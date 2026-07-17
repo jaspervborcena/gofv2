@@ -1,0 +1,245 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #3a0f57 0%, #090612 45%, #03030a 100%);
+  color: #f7e7b3;
+  font-family: Inter, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.app-shell {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.hero-card,
+.panel-card,
+.raffle-detail,
+.raffles-section {
+  background: rgba(12, 8, 24, 0.86);
+  border: 1px solid rgba(255, 203, 92, 0.24);
+  box-shadow: 0 0 0 1px rgba(255, 125, 40, 0.16), 0 20px 60px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(18px);
+  border-radius: 24px;
+}
+
+.hero-card {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.hero-copy h1 {
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  margin: 0.35rem 0 0.6rem;
+  color: #fff0b8;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  font-size: 0.75rem;
+  color: #ffbb4f;
+  margin: 0;
+}
+
+.lead {
+  color: #e0c9ff;
+  max-width: 560px;
+  line-height: 1.6;
+}
+
+.actions,
+.mode-row,
+.controls {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.primary-btn,
+.secondary-btn,
+.mode-row button,
+.tabs button,
+.raffle-item {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.primary-btn {
+  background: linear-gradient(90deg, #ffcf4d, #ff8a00);
+  color: #220e00;
+  font-weight: 700;
+}
+
+.secondary-btn,
+.mode-row button,
+.tabs button {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff6d6;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.primary-btn:hover,
+.secondary-btn:hover,
+.mode-row button:hover,
+.tabs button:hover,
+.raffle-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(255, 145, 0, 0.16);
+}
+
+.hero-panel {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.panel-card {
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.panel-card input,
+.panel-card textarea,
+.player-list {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+  padding: 0.8rem 0.9rem;
+}
+
+.wide {
+  width: 100%;
+}
+
+.raffles-section,
+.raffle-detail {
+  padding: 1rem 1.1rem 1.1rem;
+}
+
+.section-header,
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.raffle-list,
+.history-list,
+.player-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.raffle-item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  text-align: left;
+}
+
+.arrow {
+  font-size: 1.2rem;
+  color: #ffcf4d;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tabs button.active,
+.mode-row button.active {
+  background: linear-gradient(90deg, rgba(255, 207, 77, 0.32), rgba(255, 138, 0, 0.25));
+  border-color: rgba(255, 207, 77, 0.52);
+}
+
+.slot-machine {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.reel {
+  min-height: 92px;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  font-weight: 700;
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 193, 92, 0.16));
+  border: 1px solid rgba(255, 203, 92, 0.2);
+}
+
+.status-badge,
+.draw-result,
+.number-pill,
+.drawn-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.status-badge,
+.draw-result {
+  background: rgba(255, 187, 79, 0.14);
+  color: #ffd77d;
+  margin-bottom: 0.8rem;
+}
+
+.player-row,
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.number-pill {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff4c7;
+}
+
+.drawn-pill {
+  background: rgba(255, 106, 106, 0.18);
+  color: #ff8d8d;
+}
+
+@media (max-width: 900px) {
+  .hero-card {
+    grid-template-columns: 1fr;
+  }
+}

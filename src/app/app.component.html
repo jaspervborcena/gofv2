@@ -1,0 +1,119 @@
+<main class="app-shell">
+  <section class="hero-card">
+    <div class="hero-copy">
+      <p class="eyebrow">?? Raffle Spin</p>
+      <h1>Slot-machine raffle for clubs & events</h1>
+      <p class="lead">Create a raffle, invite players, and reveal winners with a polished casino-style flow.</p>
+
+      <div class="actions">
+        <button class="primary-btn" (click)="signIn()">{{ user ? 'Signed in' : 'Sign in with Google' }}</button>
+        <button class="secondary-btn" *ngIf="user" (click)="signOut()">Sign out</button>
+      </div>
+    </div>
+
+    <div class="hero-panel">
+      <div class="panel-card create-card">
+        <h2>?? Create a raffle</h2>
+        <label>
+          Club or event name
+          <input [(ngModel)]="draftName" placeholder="Enter club or event name" />
+        </label>
+        <div class="mode-row">
+          <button [class.active]="draftMode === 'simultaneous'" (click)="draftMode = 'simultaneous'">? Simultaneous</button>
+          <button [class.active]="draftMode === 'per-digit'" (click)="draftMode = 'per-digit'">?? Per Digit</button>
+        </div>
+        <button class="primary-btn wide" (click)="createRaffle()">Create</button>
+      </div>
+
+      <div class="panel-card join-card">
+        <h2>??? Join a raffle</h2>
+        <input [(ngModel)]="joinCode" placeholder="Paste raffle ID" />
+        <button class="secondary-btn wide" (click)="joinRaffle()">JOIN</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="raffles-section" *ngIf="raffles.length">
+    <div class="section-header">
+      <h2>My Raffles</h2>
+      <span>{{ raffles.length }} active</span>
+    </div>
+
+    <div class="raffle-list">
+      <button class="raffle-item" *ngFor="let raffle of raffles" (click)="selectRaffle(raffle)">
+        <div>
+          <strong>{{ raffle.name }}</strong>
+          <p>{{ raffle.players.length }} players</p>
+        </div>
+        <span class="arrow">?</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="raffle-detail" *ngIf="selectedRaffle">
+    <div class="detail-header">
+      <div>
+        <p class="eyebrow">{{ selectedRaffle.name }}</p>
+        <h2>{{ selectedRaffle.name }}</h2>
+      </div>
+      <div class="stats">
+        <span>{{ selectedRaffle.players.length }} players</span>
+        <span>{{ selectedRaffle.remainingDraws }} draws left</span>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button [class.active]="activeTab === 'raffle'" (click)="activeTab = 'raffle'">RAFFLE</button>
+      <button [class.active]="activeTab === 'players'" (click)="activeTab = 'players'">PLAYERS</button>
+      <button [class.active]="activeTab === 'history'" (click)="activeTab = 'history'">HISTORY</button>
+    </div>
+
+    <div class="tab-content" *ngIf="activeTab === 'raffle'">
+      <div class="slot-machine">
+        <div class="reel" *ngFor="let reel of reels; let i = index">{{ reel }}</div>
+      </div>
+      <div class="status-badge">{{ selectedRaffle.mode === 'simultaneous' ? '? Simultaneous Mode' : '?? Per Digit Mode' }}</div>
+      <div class="draw-result" *ngIf="lastWinner">
+        <h3>Winner revealed</h3>
+        <p>{{ lastWinner.name }} • {{ lastWinner.number }}</p>
+      </div>
+      <div class="controls">
+        <button class="primary-btn" (click)="spin()">? SPIN</button>
+        <button class="secondary-btn" (click)="resetRaffle()">? Reset</button>
+      </div>
+    </div>
+
+    <div class="tab-content" *ngIf="activeTab === 'players'">
+      <textarea [(ngModel)]="playersText" rows="8" placeholder="Paste player names, one per line"></textarea>
+      <div class="mode-row">
+        <button [class.active]="playerNumberMode === 'random'" (click)="playerNumberMode = 'random'">?? Random</button>
+        <button [class.active]="playerNumberMode === 'ordered'" (click)="playerNumberMode = 'ordered'">?? Ordered</button>
+      </div>
+      <div class="mode-row">
+        <button [class.active]="selectedRaffle.mode === 'simultaneous'" (click)="updateMode('simultaneous')">? Simultaneous</button>
+        <button [class.active]="selectedRaffle.mode === 'per-digit'" (click)="updateMode('per-digit')">?? Per Digit</button>
+      </div>
+      <button class="primary-btn wide" (click)="savePlayers()">Save Players</button>
+
+      <div class="player-list">
+        <div class="player-row" *ngFor="let player of selectedRaffle.players">
+          <span>{{ player.name }}</span>
+          <span class="number-pill">#{{ player.assignedNumber }}</span>
+          <span class="drawn-pill" *ngIf="player.drawn">DRAWN</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" *ngIf="activeTab === 'history'">
+      <div class="history-list">
+        <div class="history-item" *ngFor="let item of selectedRaffle.history.slice().reverse()">
+          <div>
+            <strong>#{{ item.drawnNumber }}</strong>
+            <p>{{ item.winnerName }}</p>
+          </div>
+          <span>{{ item.timestamp | date:'short' }}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>

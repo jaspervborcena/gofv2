@@ -1,0 +1,52 @@
+<main class="app-shell">
+  <section class="hero-card">
+    <div class="hero-copy">
+      <p class="eyebrow">🎰 Raffle Spin</p>
+      <h1>Slot-machine raffle for clubs & events</h1>
+      <p class="lead">Create a raffle, invite players, and reveal winners with a polished casino-style flow.</p>
+
+      <div class="actions">
+        <button class="primary-btn" (click)="signIn()">{{ user ? 'Signed in' : 'Sign in with Google' }}</button>
+        <button class="secondary-btn" *ngIf="user" (click)="signOut()">Sign out</button>
+      </div>
+    </div>
+
+    <div class="hero-panel">
+      <div class="panel-card create-card">
+        <h2>🎲 Create a raffle</h2>
+        <label>
+          Club or event name
+          <input [(ngModel)]="draftName" placeholder="Enter club or event name" />
+        </label>
+        <div class="mode-row">
+          <button [class.active]="draftMode === 'simultaneous'" (click)="draftMode = 'simultaneous'">⚡ Simultaneous</button>
+          <button [class.active]="draftMode === 'per-digit'" (click)="draftMode = 'per-digit'">🎯 Per Digit</button>
+        </div>
+        <button class="primary-btn wide" (click)="createRaffle()">Create</button>
+      </div>
+
+      <div class="panel-card join-card">
+        <h2>🎟️ Join a raffle</h2>
+        <input [(ngModel)]="joinCode" placeholder="Paste raffle ID" />
+        <button class="secondary-btn wide" (click)="joinRaffle()">JOIN</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="raffles-section" *ngIf="raffles.length">
+    <div class="section-header">
+      <h2>My Raffles</h2>
+      <span>{{ raffles.length }} active</span>
+    </div>
+
+    <div class="raffle-list">
+      <a class="raffle-item" *ngFor="let raffle of raffles" [routerLink]="['/raffles', raffle.id]">
+        <div>
+          <strong>{{ raffle.name }}</strong>
+          <p>{{ raffle.players.length }} players</p>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+    </div>
+  </section>
+</main>
