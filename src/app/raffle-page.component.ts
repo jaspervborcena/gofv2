@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { gsap } from 'gsap';
 import { NumberMode, Player, Raffle, RaffleService, SpinMode } from './raffle.service';
 
 @Component({
@@ -89,34 +90,19 @@ export class RafflePageComponent implements OnInit {
       parseInt(winner.assignedNumber.toString().split('')[2] ?? '0')
     ];
 
-    const spinDuration = 8000; // 8 seconds fast spin
-    const decelerateDuration = 12000; // 12 seconds deceleration
-    const totalDuration = spinDuration + decelerateDuration;
-    const startTime = Date.now();
+    // Create animation object to track position
+    const animState = { spinPos: [0, 0, 0], progress: 0 };
+    const spinSpeed = 8; // rotations per second
+    const maxSpinPos = (8 / 1000) * spinSpeed * 10 * 1000; // position at end of spin phase
 
-    const animateReel = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / totalDuration, 1);
-      this.spinProgress = progress * 100;
-
-      if (elapsed < spinDuration) {
-        // Fast spin phase - move smoothly
-        const spinSpeed = 8; // rotations per second
-        this.reelPositions = this.reelPositions.map(() => (elapsed / 1000) * spinSpeed * 10);
-      } else {
-        // Deceleration phase - ease out to final position
-        const decElapsed = elapsed - spinDuration;
-        const decProgress = decElapsed / decelerateDuration;
-        const easeOutQuad = 1 - Math.pow(1 - decProgress, 2);
-
-        this.reelPositions = targetReels.map((target) => {
-          const startPos = (spinDuration / 1000) * 8 * 10;
-          return startPos + (target - startPos) * easeOutQuad;
-        });
-      }
-      if (progress < 1) {
-        requestAnimationFrame(animateReel);
-      } else {
+    // Create GSAP timeline
+    const tl = gsap.timeline({
+      onUpdate: () => {
+        this.reelPositions = animState.spinPos.map((pos) => pos);
+        this.spinProgress = animState.progress * 100;
+      },
+      onComplete: () => {
+        // Animation complete - lock in final values
         this.reelPositions = targetReels.map((val) => val);
         this.reels = targetReels.map((num) => num.toString());
         this.lastWinner = { name: winner.name, number: `${winner.assignedNumber}` };
@@ -138,9 +124,30 @@ export class RafflePageComponent implements OnInit {
         this.raffle!.lastNumber = `${winner.assignedNumber}`;
         this.raffleService.saveRaffle(this.raffle!);
       }
-    };
+    });
 
-    animateReel();
+    // Fast spin phase (0.8s scaled) - all reels spin together
+    tl.to(
+      animState,
+      {
+        spinPos: [maxSpinPos, maxSpinPos, maxSpinPos],
+        progress: 0.4,
+        duration: 0.8,
+        ease: 'none'
+      },
+      0
+    );
+
+    // Deceleration phase (1.2s scaled) - ease out to target values
+    tl.to(
+      animState,
+      {
+        spinPos: targetReels.map((target) => target),
+        progress: 1,
+        duration: 1.2,
+        ease: 'power2.out'
+      }
+    );
   }
 
   resetRaffle(): void {
