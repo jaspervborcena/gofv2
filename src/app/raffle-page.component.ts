@@ -92,7 +92,7 @@ export class RafflePageComponent implements OnInit {
 
     // Create animation object to track position
     const animState = { spinPos: [0, 0, 0], progress: 0 };
-    const spinSpeed = 8; // rotations per second
+    const spinSpeed = 50; // very fast rotations per second - shows lots of number changes
     const maxSpinPos = (8 / 1000) * spinSpeed * 10 * 1000; // position at end of spin phase
 
     // Create GSAP timeline
@@ -126,26 +126,26 @@ export class RafflePageComponent implements OnInit {
       }
     });
 
-    // Fast spin phase (0.8s scaled) - all reels spin together
+    // Fast spin phase (2.5s) - all reels spin extremely fast with visible number changes
     tl.to(
       animState,
       {
         spinPos: [maxSpinPos, maxSpinPos, maxSpinPos],
-        progress: 0.4,
-        duration: 0.8,
-        ease: 'none'
+        progress: 0.3,
+        duration: 2.5,
+        ease: 'power1.inOut'
       },
       0
     );
 
-    // Deceleration phase (1.2s scaled) - ease out to target values
+    // Deceleration phase (3.5s) - smooth ease out to target values with visible slowing
     tl.to(
       animState,
       {
         spinPos: targetReels.map((target) => target),
         progress: 1,
-        duration: 1.2,
-        ease: 'power2.out'
+        duration: 3.5,
+        ease: 'power3.out'
       }
     );
   }
