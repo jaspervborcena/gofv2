@@ -1,0 +1,53 @@
+<main class="app-shell">
+  <section class="hero-card">
+    <div class="hero-copy">
+      <p class="eyebrow">🎡 Spectator Spin Wheel</p>
+      <h1>Watch the wheel land on the next lucky name.</h1>
+      <p class="lead">A polished casino-style experience for live audiences, complete with a join-in option for participants.</p>
+      <div class="actions">
+        <a class="primary-btn" routerLink="/">← Back home</a>
+      </div>
+    </div>
+
+    <div class="wheel-panel">
+      <div class="wheel-stage">
+        <div class="wheel" [style.transform]="'rotate(' + wheelRotation + 'deg)'">
+          <div class="wheel-slice" *ngFor="let entry of entries; let i = index" [style.background]="entry.color" [style.transform]="'rotate(' + (i * (360 / entries.length)) + 'deg)'"></div>
+        </div>
+        <div class="wheel-pointer"></div>
+      </div>
+
+      <div class="panel-card">
+        <div class="participants-header">
+          <div>
+            <h2>🎯 Current contestants</h2>
+            <p class="participant-meta">{{ participantCount }} players joined</p>
+          </div>
+          <span class="status-pill" [class.active]="participantCount > 0">Live</span>
+        </div>
+
+        <ul class="entry-list">
+          <li *ngFor="let entry of entries">
+            <span class="entry-dot" [style.background]="entry.color"></span>
+            <span>{{ entry.name }}</span>
+          </li>
+        </ul>
+
+        <div class="join-box">
+          <input [(ngModel)]="joinedName" placeholder="Add your name to the wheel" />
+          <button class="primary-btn" type="button" (click)="joinEntry()">Join</button>
+        </div>
+
+        <button class="primary-btn wide" [disabled]="isSpinning" (click)="spin()">
+          <span *ngIf="!isSpinning">▶ Spin the wheel</span>
+          <span *ngIf="isSpinning">🎡 Spinning…</span>
+        </button>
+
+        <div class="winner-box" *ngIf="selectedWinner">
+          <p class="eyebrow">Winner</p>
+          <h3>{{ selectedWinner }}</h3>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>

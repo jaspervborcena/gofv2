@@ -1,0 +1,52 @@
+<main class="app-shell">
+  <section class="hero-card">
+    <div class="hero-copy">
+      <p class="eyebrow">🎰 Spectator Slot Machine</p>
+      <h1>Watch the reels spin and reveal the lucky number.</h1>
+      <p class="lead">This spectator view is tuned for live events, with a polished casino-style reveal and a clear winner banner.</p>
+      <div class="actions">
+        <a class="primary-btn" routerLink="/">← Back home</a>
+      </div>
+    </div>
+
+    <div class="machine-panel">
+      <div class="slot-machine">
+        <div class="reel-column" *ngFor="let reel of reels">
+          <div class="reel-face">{{ reel }}</div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <div class="participants-header">
+          <div>
+            <h2>🎯 Current contestants</h2>
+            <p class="participant-meta">{{ participantCount }} players joined</p>
+          </div>
+          <span class="status-pill" [class.active]="participantCount > 0">Live</span>
+        </div>
+
+        <ul class="entry-list">
+          <li *ngFor="let entry of entries">
+            <span class="entry-dot"></span>
+            <span>{{ entry.name }} • {{ entry.number }}</span>
+          </li>
+        </ul>
+
+        <div class="join-box">
+          <input [(ngModel)]="joinedName" placeholder="Add your name to the slots" />
+          <button class="primary-btn" type="button" (click)="joinEntry()">Join</button>
+        </div>
+      </div>
+
+      <button class="primary-btn wide" [disabled]="isSpinning" (click)="spin()">
+        <span *ngIf="!isSpinning">▶ Spin reels</span>
+        <span *ngIf="isSpinning">🎰 Spinning…</span>
+      </button>
+
+      <div class="winner-box" *ngIf="winner">
+        <p class="eyebrow">Winner</p>
+        <h3>{{ winner.name }} • {{ winner.number }}</h3>
+      </div>
+    </div>
+  </section>
+</main>

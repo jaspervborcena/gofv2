@@ -20,21 +20,19 @@ textarea {
   gap: 1.25rem;
 }
 
-.hero-card,
-.panel-card,
-.raffles-section {
+.hero-card {
   background: rgba(12, 8, 24, 0.86);
   border: 1px solid rgba(255, 203, 92, 0.24);
   box-shadow: 0 0 0 1px rgba(255, 125, 40, 0.16), 0 20px 60px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(18px);
   border-radius: 24px;
+  padding: 1.5rem;
 }
 
-.hero-card {
+.hero-panel {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: 1rem;
-  padding: 1.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
 }
 
 .hero-copy h1 {
@@ -43,7 +41,8 @@ textarea {
   color: #fff0b8;
 }
 
-.eyebrow {
+.eyebrow,
+.card-eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.3em;
   font-size: 0.75rem;
@@ -57,8 +56,7 @@ textarea {
   line-height: 1.6;
 }
 
-.actions,
-.mode-row {
+.actions {
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
@@ -66,13 +64,13 @@ textarea {
 }
 
 .primary-btn,
-.secondary-btn,
-.mode-row button {
+.secondary-btn {
   border: 0;
   border-radius: 999px;
   padding: 0.8rem 1rem;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
 }
 
 .primary-btn {
@@ -81,8 +79,7 @@ textarea {
   font-weight: 700;
 }
 
-.secondary-btn,
-.mode-row button {
+.secondary-btn {
   background: rgba(255, 255, 255, 0.08);
   color: #fff6d6;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -90,34 +87,136 @@ textarea {
 
 .primary-btn:hover,
 .secondary-btn:hover,
-.mode-row button:hover,
+.game-card:hover,
 .raffle-item:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 18px rgba(255, 145, 0, 0.16);
 }
 
-.hero-panel {
-  display: grid;
-  gap: 0.9rem;
-}
-
-.panel-card {
-  padding: 1rem;
-  display: grid;
-  gap: 0.75rem;
-}
-
-.panel-card input {
-  width: 100%;
-  border-radius: 14px;
+.game-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.1rem;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 145, 0, 0.12));
+  color: #fff;
+  text-decoration: none;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
-  color: white;
-  padding: 0.8rem 0.9rem;
 }
 
-.wide {
-  width: 100%;
+.card-main {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.game-card h2 {
+  margin: 0.2rem 0 0.35rem;
+  color: #fff0b8;
+}
+
+.game-card p {
+  margin: 0;
+  color: #e0c9ff;
+}
+
+.card-preview {
+  display: grid;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.85rem;
+  border-radius: 18px;
+}
+
+.slot-preview {
+  background: linear-gradient(135deg, rgba(40, 10, 30, 0.9), rgba(80, 20, 70, 0.7));
+}
+
+.slot-top,
+.slot-footer,
+.spin-note {
+  color: #f8f0b8;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mini-slot {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.45rem;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 16px;
+}
+
+.reel {
+  display: grid;
+  place-items: center;
+  min-height: 56px;
+  border-radius: 14px;
+  background: radial-gradient(circle at top, #fff8c5, #fb9e2d 55%);
+  color: #221100;
+  font-size: 1.3rem;
+  font-weight: 800;
+  text-shadow: 0 0 8px rgba(255, 153, 51, 0.55);
+}
+
+.wheel-preview {
+  position: relative;
+  padding-top: 0.6rem;
+  background: linear-gradient(135deg, rgba(20, 40, 10, 0.9), rgba(40, 80, 20, 0.7));
+}
+
+.mini-wheel {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin: 0 auto;
+  background: conic-gradient(
+    #4f46e5 0deg 45deg,
+    #16a34a 45deg 90deg,
+    #ca8a04 90deg 135deg,
+    #dc2626 135deg 180deg,
+    #2563eb 180deg 225deg,
+    #0ea5e9 225deg 270deg,
+    #a855f7 270deg 315deg,
+    #22c55e 315deg 360deg
+  );
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.08), 0 0 30px rgba(255, 193, 7, 0.15);
+}
+
+.wheel-inner {
+  position: absolute;
+  inset: 18px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.wheel-pointer {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-bottom: 20px solid #ffcf4d;
+}
+
+.card-link {
+  color: #ffcf4d;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .hero-panel {
+    grid-template-columns: 1fr;
+  }
 }
 
 .raffles-section {

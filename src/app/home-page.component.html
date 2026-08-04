@@ -1,51 +1,53 @@
 <main class="app-shell">
   <section class="hero-card">
     <div class="hero-copy">
-      <p class="eyebrow">🎰 Raffle Spin</p>
-      <h1>Slot-machine raffle for clubs & events</h1>
-      <p class="lead">Create a raffle, invite players, and reveal winners with a polished casino-style flow.</p>
+      <p class="eyebrow">🎲 Casino-style raffle hub</p>
+      <h1>Choose your game experience</h1>
+      <p class="lead">Pick the live experience you want to launch for spectators, with a polished landing page and direct access to each view.</p>
 
       <div class="actions">
-        <button class="primary-btn" (click)="signIn()">{{ user ? 'Signed in' : 'Sign in with Google' }}</button>
-        <button class="secondary-btn" *ngIf="user" (click)="signOut()">Sign out</button>
+        <button class="primary-btn" type="button" (click)="signIn()">{{ user ? 'Signed in' : 'Sign in with Google' }}</button>
+        <button class="secondary-btn" type="button" *ngIf="user" (click)="signOut()">Sign out</button>
       </div>
     </div>
 
     <div class="hero-panel">
-      <div class="panel-card create-card">
-        <h2>🎲 Create a raffle</h2>
-        <label>
-          Club or event name
-          <input [(ngModel)]="draftName" placeholder="Enter club or event name" />
-        </label>
-        <div class="mode-row">
-          <button [class.active]="draftMode === 'simultaneous'" (click)="draftMode = 'simultaneous'">⚡ Simultaneous</button>
-          <button [class.active]="draftMode === 'per-digit'" (click)="draftMode = 'per-digit'">🎯 Per Digit</button>
+      <a class="game-card" routerLink="/slots">
+        <div class="card-main">
+          <div>
+            <p class="card-eyebrow">🎰 Slot Machine</p>
+            <h2>Live number reveal</h2>
+            <p>Show a dazzling slot-machine draw with winner numbers and names in a spectator-first view.</p>
+          </div>
+          <div class="card-preview slot-preview">
+            <div class="slot-top">SLOTS</div>
+            <div class="mini-slot">
+              <div class="reel">0</div>
+              <div class="reel">0</div>
+              <div class="reel">0</div>
+            </div>
+            <div class="slot-footer">Spectator ticket lighting</div>
+          </div>
         </div>
-        <button class="primary-btn wide" (click)="createRaffle()">Create</button>
-      </div>
+        <span class="card-link">Spectate →</span>
+      </a>
 
-      <div class="panel-card join-card">
-        <h2>🎟️ Join a raffle</h2>
-        <input [(ngModel)]="joinCode" placeholder="Paste raffle ID" />
-        <button class="secondary-btn wide" (click)="joinRaffle()">JOIN</button>
-      </div>
-    </div>
-  </section>
-
-  <section class="raffles-section" *ngIf="raffles.length">
-    <div class="section-header">
-      <h2>My Raffles</h2>
-      <span>{{ raffles.length }} active</span>
-    </div>
-
-    <div class="raffle-list">
-      <a class="raffle-item" *ngFor="let raffle of raffles" [routerLink]="['/raffles', raffle.id]">
-        <div>
-          <strong>{{ raffle.name }}</strong>
-          <p>{{ raffle.players.length }} players</p>
+      <a class="game-card" routerLink="/spin">
+        <div class="card-main">
+          <div>
+            <p class="card-eyebrow">🎡 Spin Wheel of Names</p>
+            <h2>Colorful wheel showdown</h2>
+            <p>Let spectators watch the wheel spin and celebrate the winner with bright visuals.</p>
+          </div>
+          <div class="card-preview wheel-preview">
+            <div class="mini-wheel">
+              <div class="wheel-inner"></div>
+            </div>
+            <div class="wheel-pointer"></div>
+            <div class="spin-note">Click to spin the winner wheel</div>
+          </div>
         </div>
-        <span class="arrow">→</span>
+        <span class="card-link">Spectate →</span>
       </a>
     </div>
   </section>
