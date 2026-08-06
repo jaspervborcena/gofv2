@@ -9,6 +9,8 @@
         <button class="primary-btn" type="button" (click)="signIn()">{{ user ? 'Signed in' : 'Sign in with Google' }}</button>
         <button class="secondary-btn" type="button" *ngIf="user" (click)="signOut()">Sign out</button>
       </div>
+
+      <p class="auth-error" *ngIf="authError">{{ authError }}</p>
     </div>
 
     <div class="hero-panel">

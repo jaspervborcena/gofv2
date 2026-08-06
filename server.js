@@ -2,8 +2,9 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const port = Number(process.env.PORT || 8080);
+const requestedPort = Number(process.env.PORT || 8080);
 const host = '0.0.0.0';
+let port = requestedPort;
 
 const possibleRoots = [
   path.join(__dirname, 'dist', 'gofv2', 'browser'),
@@ -94,6 +95,23 @@ const server = http.createServer((req, res) => {
   res.end('Method not allowed');
 });
 
-server.listen(port, host, () => {
-  console.log(`Server listening on http://${host}:${port}`);
-});
+function startServer() {
+  server.removeAllListeners('error');
+  server.on('error', (error) => {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'EADDRINUSE') {
+      port += 1;
+      console.warn(`Port ${requestedPort} is busy, trying ${port} instead.`);
+      server.close(() => startServer());
+      return;
+    }
+
+    console.error(error);
+    process.exit(1);
+  });
+
+  server.listen(port, host, () => {
+    console.log(`Server listening on http://${host}:${port}`);
+  });
+}
+
+startServer();

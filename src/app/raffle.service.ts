@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Auth, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, user } from '@angular/fire/auth';
+import { Auth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut as firebaseSignOut, user } from '@angular/fire/auth';
 import { Firestore, addDoc, collection, doc, getDocs, orderBy, query, updateDoc } from '@angular/fire/firestore';
 import { environment } from '../environments/environment';
 
@@ -46,10 +46,30 @@ export class RaffleService {
   async signInWithGoogle(): Promise<void> {
     if (!this.firestoreEnabled) {
       console.warn('Firebase auth is not configured. Continuing in local mode.');
-      return;
+      throw new Error('Firebase auth is not configured for this app.');
     }
 
-    await signInWithPopup(this.auth, new GoogleAuthProvider());
+    const provider = new GoogleAuthProvider();
+    provider.addScope('profile');
+    provider.addScope('email');
+    provider.setCustomParameters({ prompt: 'select_account' });
+
+    try {
+      await signInWithRedirect(this.auth, provider);
+    } catch (error: unknown) {
+      const code = this.getErrorCode(error);
+
+      if (code === 'auth/popup-blocked' || code === 'auth/popup-closed-by-user' || code === 'auth/operation-not-supported-in-this-environment') {
+        await signInWithPopup(this.auth, provider);
+        return;
+      }
+
+      if (code === 'auth/operation-not-allowed') {
+        throw new Error('Google sign-in is not enabled in Firebase Authentication. Please enable the Google provider in Firebase Console.');
+      }
+
+      throw this.normalizeError(error);
+    }
   }
 
   async signOut(): Promise<void> {
@@ -129,6 +149,22 @@ export class RaffleService {
     } catch {
       return [];
     }
+  }
+
+  private getErrorCode(error: unknown): string | null {
+    if (typeof error === 'object' && error !== null && 'code' in error && typeof (error as { code?: unknown }).code === 'string') {
+      return (error as { code: string }).code;
+    }
+
+    return null;
+  }
+
+  private normalizeError(error: unknown): Error {
+    if (error instanceof Error) {
+      return error;
+    }
+
+    return new Error('Unable to sign in with Google right now.');
   }
 
   private makeId(): string {
