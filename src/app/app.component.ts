@@ -14,11 +14,31 @@ import { RaffleService } from './raffle.service';
 export class AppComponent {
   title = 'gofv2';
   raffleService = inject(RaffleService);
-  user: { uid: string; displayName?: string | null } | null = null;
+  user: { uid: string; displayName?: string | null; email?: string | null } | null = null;
 
   constructor() {
     this.raffleService.user$.subscribe((authUser) => {
-      this.user = authUser ? { uid: authUser.uid, displayName: authUser.displayName } : null;
+      this.user = authUser
+        ? {
+            uid: authUser.uid,
+            displayName: authUser.displayName,
+            email: authUser.email
+          }
+        : null;
     });
+  }
+
+  get userDisplayName(): string {
+    if (!this.user) {
+      return 'Player';
+    }
+
+    const trimmedName = this.user.displayName?.trim();
+    if (trimmedName) {
+      return trimmedName;
+    }
+
+    const emailPrefix = this.user.email?.split('@')[0]?.trim();
+    return emailPrefix || 'Player';
   }
 }

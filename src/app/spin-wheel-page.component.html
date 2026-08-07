@@ -36,17 +36,17 @@
           <span *ngIf="isSpinning">🎡 Spinning…</span>
         </button>
 
+        <div class="join-box">
+          <input [(ngModel)]="joinedName" placeholder="Add your name to the wheel" />
+          <button class="primary-btn" type="button" (click)="joinEntry()">Join</button>
+        </div>
+
         <ul class="entry-list">
           <li *ngFor="let entry of entries">
             <span class="entry-dot" [style.background]="entry.color"></span>
             <span>{{ entry.name }}</span>
           </li>
         </ul>
-
-        <div class="join-box">
-          <input [(ngModel)]="joinedName" placeholder="Add your name to the wheel" />
-          <button class="primary-btn" type="button" (click)="joinEntry()">Join</button>
-        </div>
       </div>
     </div>
   </section>

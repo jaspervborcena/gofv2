@@ -1,7 +1,7 @@
 <header class="top-bar">
   <div class="app-shell">
     <div class="top-right">
-      <span *ngIf="user" class="welcome">Welcome {{ user?.displayName || 'Player' }}!</span>
+      <span *ngIf="user" class="welcome">Welcome {{ userDisplayName }}!</span>
       <button *ngIf="user" class="link-btn" (click)="raffleService.signOut()">Log out</button>
       <a *ngIf="!user" class="link-btn" routerLink="/signin">Sign in</a>
     </div>

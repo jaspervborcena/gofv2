@@ -25,27 +25,27 @@
           <span class="status-pill" [class.active]="participantCount > 0">Live</span>
         </div>
 
+        <div class="winner-box" *ngIf="winner">
+          <p class="eyebrow">Winner</p>
+          <h3>{{ winner.name }} • {{ winner.number }}</h3>
+        </div>
+
+        <button class="primary-btn wide" [disabled]="isSpinning" (click)="spin()">
+          <span *ngIf="!isSpinning">▶ Spin reels</span>
+          <span *ngIf="isSpinning">🎰 Spinning…</span>
+        </button>
+
+        <div class="join-box">
+          <input [(ngModel)]="joinedName" placeholder="Add your name to the slots" />
+          <button class="primary-btn" type="button" (click)="joinEntry()">Join</button>
+        </div>
+
         <ul class="entry-list">
           <li *ngFor="let entry of entries">
             <span class="entry-dot"></span>
             <span>{{ entry.name }} • {{ entry.number }}</span>
           </li>
         </ul>
-
-        <div class="join-box">
-          <input [(ngModel)]="joinedName" placeholder="Add your name to the slots" />
-          <button class="primary-btn" type="button" (click)="joinEntry()">Join</button>
-        </div>
-      </div>
-
-      <button class="primary-btn wide" [disabled]="isSpinning" (click)="spin()">
-        <span *ngIf="!isSpinning">▶ Spin reels</span>
-        <span *ngIf="isSpinning">🎰 Spinning…</span>
-      </button>
-
-      <div class="winner-box" *ngIf="winner">
-        <p class="eyebrow">Winner</p>
-        <h3>{{ winner.name }} • {{ winner.number }}</h3>
       </div>
     </div>
   </section>

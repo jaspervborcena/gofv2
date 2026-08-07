@@ -32,10 +32,12 @@ export class SlotMachinePageComponent {
   }
 
   joinEntry(): void {
-    const name = this.joinedName.trim();
-    if (!name) {
+    const rawName = this.joinedName.trim();
+    if (!rawName) {
       return;
     }
+
+    const name = rawName.includes('@') ? rawName.split('@')[0] : rawName;
 
     this.entries = [
       ...this.entries,
