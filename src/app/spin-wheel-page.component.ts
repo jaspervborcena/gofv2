@@ -68,7 +68,7 @@ export class SpinWheelPageComponent implements AfterViewInit {
     }
 
     const colors = this.getSegmentColors();
-    const segments: any[] = [null];
+    const segments: any[] = [];
 
     this.entries.forEach((entry, index) => {
       segments.push({
