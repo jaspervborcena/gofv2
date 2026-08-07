@@ -1,7 +1,11 @@
-import { Component } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+
+declare var Winwheel: any;
+
+declare var TweenMax: any;
 
 interface WheelEntry {
   name: string;
@@ -15,34 +19,119 @@ interface WheelEntry {
   templateUrl: './spin-wheel-page.component.html',
   styleUrl: './spin-wheel-page.component.scss'
 })
-export class SpinWheelPageComponent {
+export class SpinWheelPageComponent implements AfterViewInit {
+  @ViewChild('wheelCanvas', { static: true }) wheelCanvas!: ElementRef<HTMLCanvasElement>;
+
   entries: WheelEntry[] = [
-    { name: 'Ava', color: '#ff7a00' },
-    { name: 'Noah', color: '#8b5cf6' },
-    { name: 'Mina', color: '#06b6d4' },
-    { name: 'Theo', color: '#facc15' },
-    { name: 'Lina', color: '#fb7185' },
-    { name: 'Kai', color: '#34d399' }
+    { name: 'Ava', color: '#FF7F50' },
+    { name: 'Noah', color: '#6A5ACD' },
+    { name: 'Mina', color: '#1E90FF' },
+    { name: 'Theo', color: '#FFD700' },
+    { name: 'Lina', color: '#FF69B4' },
+    { name: 'Kai', color: '#32CD32' }
   ];
+
+  joinedName = '';
+  selectedWinner: string | null = null;
+  isSpinning = false;
+  wheel: any;
+  private currentWinnerIndex = 0;
+  private tickAudio: HTMLAudioElement;
+
+  private readonly crayonColors = [
+    '#FF7F50',
+    '#6A5ACD',
+    '#1E90FF',
+    '#FFD700',
+    '#FF69B4',
+    '#32CD32',
+    '#FF4500',
+    '#00CED1',
+    '#8A2BE2'
+  ];
+
+  constructor() {
+    this.tickAudio = new Audio('assets/tick.mp3');
+  }
 
   get participantCount(): number {
     return this.entries.length;
   }
 
-  joinedName = '';
-  selectedWinner: string | null = null;
-  wheelRotation = 0;
-  isSpinning = false;
+  ngAfterViewInit(): void {
+    this.createWheel();
+  }
 
-  get wheelGradient(): string {
-    const sliceAngle = 360 / this.entries.length;
-    return this.entries
-      .map((entry, index) => {
-        const start = index * sliceAngle;
-        const end = (index + 1) * sliceAngle;
-        return `${entry.color} ${start}deg ${end}deg`;
-      })
-      .join(', ');
+  private createWheel(): void {
+    const colors = this.getSegmentColors();
+    const segments: any[] = [null];
+
+    this.entries.forEach((entry, index) => {
+      segments.push({
+        fillStyle: colors[index],
+        text: entry.name,
+        textFillStyle: '#ffffff',
+        textFontFamily: 'Arial',
+        textFontSize: 18,
+        textFontWeight: 'bold',
+        textOrientation: 'horizontal',
+        textAlignment: 'center'
+      });
+    });
+
+    this.wheel = new Winwheel({
+      canvasId: 'wheelcanvas',
+      numSegments: this.entries.length,
+      outerRadius: 250,
+      innerRadius: 0,
+      drawMode: 'code',
+      drawText: true,
+      textFontFamily: 'Arial',
+      textFontSize: 18,
+      textFontWeight: 'bold',
+      textOrientation: 'horizontal',
+      textDirection: 'normal',
+      textAlignment: 'center',
+      textMargin: 15,
+      textFillStyle: '#f7f7f7',
+      lineWidth: 2,
+      strokeStyle: '#ffffff',
+      pointerAngle: 0,
+      segments,
+      animation: {
+        type: 'spinToStop',
+        duration: 8,
+        spins: 8,
+        callbackFinished: this.onFinished.bind(this),
+        callbackSound: this.playTick.bind(this),
+        soundTrigger: 'pin'
+      },
+      pins: {
+        number: this.entries.length,
+        fillStyle: '#ffffff',
+        outerRadius: 5
+      }
+    });
+
+    this.wheel.updateSegmentSizes();
+    this.wheel.draw();
+  }
+
+  private getSegmentColors(): string[] {
+    const count = this.entries.length;
+
+    return Array.from({ length: count }, (_, index) => {
+      const entry = this.entries[index];
+      if (entry?.color) {
+        return entry.color;
+      }
+
+      return this.crayonColors[index % this.crayonColors.length];
+    });
+  }
+
+  private updateWheel(): void {
+    this.createWheel();
   }
 
   joinEntry(): void {
@@ -53,26 +142,44 @@ export class SpinWheelPageComponent {
 
     this.entries = [
       ...this.entries,
-      { name, color: ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#ec4899'][this.entries.length % 5] }
+      {
+        name,
+        color: this.crayonColors[this.entries.length % this.crayonColors.length]
+      }
     ];
+
     this.joinedName = '';
+    this.updateWheel();
   }
 
   spin(): void {
-    if (this.isSpinning || !this.entries.length) {
+    if (this.isSpinning || !this.entries.length || !this.wheel) {
       return;
     }
 
-    const winnerIndex = Math.floor(Math.random() * this.entries.length);
-    const targetAngle = 360 * 5 + (360 / this.entries.length) * winnerIndex + 18;
+    this.currentWinnerIndex = Math.floor(Math.random() * this.entries.length);
+    const segmentNumber = this.currentWinnerIndex + 1;
+    const stopAngle = this.wheel.getRandomForSegment(segmentNumber);
 
     this.isSpinning = true;
     this.selectedWinner = null;
-    this.wheelRotation += targetAngle;
+    this.wheel.animation.stopAngle = stopAngle;
+    this.wheel.startAnimation();
+  }
 
-    window.setTimeout(() => {
-      this.selectedWinner = this.entries[winnerIndex].name;
-      this.isSpinning = false;
-    }, 2400);
+  private onFinished(): void {
+    this.selectedWinner = this.entries[this.currentWinnerIndex]?.name || null;
+    this.isSpinning = false;
+  }
+
+  private playTick(): void {
+    if (!this.tickAudio) {
+      return;
+    }
+
+    this.tickAudio.currentTime = 0;
+    this.tickAudio.play().catch(() => {
+      // Ignore play errors due to browser autoplay policies.
+    });
   }
 }
