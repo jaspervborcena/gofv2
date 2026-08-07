@@ -125,17 +125,6 @@ input {
   display: grid;
   place-items: center;
   pointer-events: none;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #fff;
-  text-shadow: 0 0 16px rgba(0, 0, 0, 0.4);
-  letter-spacing: 0.04em;
-}
-
-.wheel-overlay span {
-  background: rgba(0, 0, 0, 0.35);
-  padding: 0.6rem 1rem;
-  border-radius: 999px;
 }
 
 .wheel {
