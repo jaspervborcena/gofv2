@@ -23,7 +23,7 @@ export class SpinWheelPageComponent implements AfterViewInit {
   @ViewChild('wheelCanvas', { static: true }) wheelCanvas!: ElementRef<HTMLCanvasElement>;
 
   entries: WheelEntry[] = [
-    { name: 'Ava', color: '#FF7F50' },
+    { name: 'Ava', color: '#FF8C00' },
     { name: 'Noah', color: '#6A5ACD' },
     { name: 'Mina', color: '#1E90FF' },
     { name: 'Theo', color: '#FFD700' },
@@ -63,6 +63,10 @@ export class SpinWheelPageComponent implements AfterViewInit {
   }
 
   private createWheel(): void {
+    if (this.wheel?.clearCanvas) {
+      this.wheel.clearCanvas();
+    }
+
     const colors = this.getSegmentColors();
     const segments: any[] = [null];
 
@@ -71,6 +75,8 @@ export class SpinWheelPageComponent implements AfterViewInit {
         fillStyle: colors[index],
         text: entry.name,
         textFillStyle: '#ffffff',
+        textStrokeStyle: '#000000',
+        textLineWidth: 2,
         textFontFamily: 'Arial',
         textFontSize: 18,
         textFontWeight: 'bold',
@@ -94,6 +100,9 @@ export class SpinWheelPageComponent implements AfterViewInit {
       textAlignment: 'center',
       textMargin: 15,
       textFillStyle: '#f7f7f7',
+      textStrokeStyle: '#000000',
+      textLineWidth: 1,
+      clearTheCanvas: true,
       lineWidth: 2,
       strokeStyle: '#ffffff',
       pointerAngle: 0,
