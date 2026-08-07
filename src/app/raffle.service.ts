@@ -1,5 +1,15 @@
 import { Injectable, inject } from '@angular/core';
-import { Auth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut as firebaseSignOut, user } from '@angular/fire/auth';
+import {
+  Auth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut as firebaseSignOut,
+  user,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  fetchSignInMethodsForEmail
+} from '@angular/fire/auth';
 import { Firestore, addDoc, collection, doc, getDocs, orderBy, query, updateDoc } from '@angular/fire/firestore';
 import { environment } from '../environments/environment';
 
@@ -78,6 +88,30 @@ export class RaffleService {
     }
 
     await firebaseSignOut(this.auth);
+  }
+
+  async fetchSignInMethodsForEmail(email: string): Promise<string[]> {
+    if (!this.firestoreEnabled) {
+      throw new Error('Firebase auth is not configured for this app.');
+    }
+
+    return await fetchSignInMethodsForEmail(this.auth, email);
+  }
+
+  async signInWithEmail(email: string, password: string): Promise<void> {
+    if (!this.firestoreEnabled) {
+      throw new Error('Firebase auth is not configured for this app.');
+    }
+
+    await signInWithEmailAndPassword(this.auth, email, password);
+  }
+
+  async signUpWithEmail(email: string, password: string): Promise<void> {
+    if (!this.firestoreEnabled) {
+      throw new Error('Firebase auth is not configured for this app.');
+    }
+
+    await createUserWithEmailAndPassword(this.auth, email, password);
   }
 
   async createRaffle(input: { name: string; creatorId: string; mode: SpinMode; numberMode: NumberMode }): Promise<Raffle> {

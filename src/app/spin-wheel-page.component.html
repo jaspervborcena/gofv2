@@ -10,21 +10,34 @@
     </div>
 
     <div class="wheel-panel">
-      <div class="wheel-stage">
-        <div class="wheel" [style.transform]="'rotate(' + wheelRotation + 'deg)'">
-          <div class="wheel-slice" *ngFor="let entry of entries; let i = index" [style.background]="entry.color" [style.transform]="'rotate(' + (i * (360 / entries.length)) + 'deg)'"></div>
-        </div>
-        <div class="wheel-pointer"></div>
-      </div>
-
       <div class="panel-card">
         <div class="participants-header">
           <div>
-            <h2>🎯 Current contestants</h2>
+            <h2>🎯 All the players</h2>
             <p class="participant-meta">{{ participantCount }} players joined</p>
           </div>
           <span class="status-pill" [class.active]="participantCount > 0">Live</span>
         </div>
+
+        <div class="winner-box" *ngIf="selectedWinner">
+          <p class="eyebrow">Winner</p>
+          <h3>{{ selectedWinner }}</h3>
+        </div>
+
+        <div class="wheel-container">
+          <div class="wheel-stage">
+            <canvas #wheelCanvas id="wheelcanvas" width="560" height="560"></canvas>
+            <div #pointer class="wheel-pointer"></div>
+            <div class="wheel-overlay">
+              <span>All the players</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="primary-btn wide" [disabled]="isSpinning" (click)="spin()">
+          <span *ngIf="!isSpinning">▶ Spin the wheel</span>
+          <span *ngIf="isSpinning">🎡 Spinning…</span>
+        </button>
 
         <ul class="entry-list">
           <li *ngFor="let entry of entries">
@@ -36,16 +49,6 @@
         <div class="join-box">
           <input [(ngModel)]="joinedName" placeholder="Add your name to the wheel" />
           <button class="primary-btn" type="button" (click)="joinEntry()">Join</button>
-        </div>
-
-        <button class="primary-btn wide" [disabled]="isSpinning" (click)="spin()">
-          <span *ngIf="!isSpinning">▶ Spin the wheel</span>
-          <span *ngIf="isSpinning">🎡 Spinning…</span>
-        </button>
-
-        <div class="winner-box" *ngIf="selectedWinner">
-          <p class="eyebrow">Winner</p>
-          <h3>{{ selectedWinner }}</h3>
         </div>
       </div>
     </div>

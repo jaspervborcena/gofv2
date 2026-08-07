@@ -24,6 +24,38 @@ textarea {
   gap: 1.25rem;
 }
 
+.top-bar {
+  background: transparent;
+}
+
+.top-bar .app-shell {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  padding-bottom: 0;
+}
+
+.top-right {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.welcome {
+  color: #fff6d6;
+  font-weight: 700;
+}
+
+.link-btn {
+  background: transparent;
+  border: 0;
+  color: #ffcf4d;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+}
+
 .hero-card,
 .panel-card,
 .raffle-detail,

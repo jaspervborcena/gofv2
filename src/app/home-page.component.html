@@ -1,13 +1,19 @@
 <main class="app-shell">
+  <header class="top-bar">
+    <div class="top-right" *ngIf="user">
+      <span class="welcome">Welcome {{ user.displayName || 'Player' }}!</span>
+      <button class="link-btn" type="button" (click)="signOut()">Log out</button>
+    </div>
+  </header>
   <section class="hero-card">
     <div class="hero-copy">
-      <p class="eyebrow">🎲 Casino-style raffle hub</p>
+      <p class="eyebrow">Welcome to Game of Fortunes — spin the wheel, roll the numbers, and let fortune find you! Every draw is packed with fun, every spin a chance to discover your lucky number.</p>
       <h1>Choose your game experience</h1>
       <p class="lead">Pick the live experience you want to launch for spectators, with a polished landing page and direct access to each view.</p>
 
       <div class="actions">
-        <button class="primary-btn" type="button" (click)="signIn()">{{ user ? 'Signed in' : 'Sign in with Google' }}</button>
-        <button class="secondary-btn" type="button" *ngIf="user" (click)="signOut()">Sign out</button>
+        <button class="primary-btn" type="button" *ngIf="!user" (click)="signIn()">Sign in with Google</button>
+        <a class="secondary-btn" *ngIf="!user" routerLink="/signin">Sign in with email</a>
       </div>
 
       <p class="auth-error" *ngIf="authError">{{ authError }}</p>

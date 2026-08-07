@@ -1,0 +1,37 @@
+<main class="auth-shell">
+  <section class="auth-card">
+    <h1 *ngIf="step==='email'">Sign in with email</h1>
+    <h1 *ngIf="step==='signin'">Enter your password</h1>
+    <h1 *ngIf="step==='signup'">Create an account</h1>
+
+    <div *ngIf="step==='email'">
+      <label>Email</label>
+      <input type="email" [(ngModel)]="email" />
+      <div class="actions">
+        <button class="primary-btn" (click)="continue()" [disabled]="loading">Continue</button>
+        <a routerLink="/">Cancel</a>
+      </div>
+    </div>
+
+    <div *ngIf="step==='signin'">
+      <label>{{ email }}</label>
+      <input type="password" placeholder="Password" [(ngModel)]="password" />
+      <div class="actions">
+        <button class="primary-btn" (click)="signIn()" [disabled]="loading">Sign in</button>
+        <a (click)="step='email'">Back</a>
+      </div>
+    </div>
+
+    <div *ngIf="step==='signup'">
+      <label>{{ email }}</label>
+      <input type="password" placeholder="Password" [(ngModel)]="password" />
+      <input type="password" placeholder="Confirm password" [(ngModel)]="confirm" />
+      <div class="actions">
+        <button class="primary-btn" (click)="signUp()" [disabled]="loading">Create account</button>
+        <a (click)="step='email'">Back</a>
+      </div>
+    </div>
+
+    <p class="error" *ngIf="error">{{ error }}</p>
+  </section>
+</main>

@@ -20,6 +20,38 @@ textarea {
   gap: 1.25rem;
 }
 
+.top-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.top-right {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.welcome {
+  color: #fff6d6;
+  font-weight: 700;
+}
+
+.link-btn {
+  background: transparent;
+  border: 0;
+  color: #ffcf4d;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
 .hero-card {
   background: rgba(12, 8, 24, 0.86);
   border: 1px solid rgba(255, 203, 92, 0.24);

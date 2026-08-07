@@ -91,6 +91,51 @@ input {
   padding: 1rem;
   border-radius: 20px;
   background: linear-gradient(145deg, rgba(30, 15, 50, 0.82), rgba(60, 20, 80, 0.7));
+  max-width: 100%;
+}
+
+.wheel-container {
+  display: grid;
+  place-items: center;
+  padding: 0.5rem 0 0;
+}
+
+.winner-box {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1rem 1.1rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 203, 92, 0.16);
+}
+
+.winner-box h3 {
+  margin: 0;
+  font-size: 1.35rem;
+  color: #ffefc1;
+}
+
+.panel-card .primary-btn.wide {
+  margin-top: 1rem;
+}
+
+.wheel-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 16px rgba(0, 0, 0, 0.4);
+  letter-spacing: 0.04em;
+}
+
+.wheel-overlay span {
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
 }
 
 .wheel {

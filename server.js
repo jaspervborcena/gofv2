@@ -3,7 +3,9 @@ const fs = require('fs');
 const path = require('path');
 
 const requestedPort = Number(process.env.PORT || 8080);
-const host = '0.0.0.0';
+// Listen on IPv6 unspecified by default so localhost (::1) resolves correctly
+// You can override with the HOST env var (e.g. HOST=0.0.0.0)
+const host = process.env.HOST || '::';
 let port = requestedPort;
 
 const possibleRoots = [
