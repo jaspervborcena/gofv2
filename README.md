@@ -1,59 +1,61 @@
-# Gofv2
+# Game of Fortunes
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.1.4.
+Game of Fortunes is an Angular app for running live, interactive raffle draws for spectators, with authentication for signed-in users.
 
-## Development server
+## Features
 
-To start a local development server, run:
+### Before sign-in
+- Visit the landing page and choose a raffle experience.
+- Add players to a raffle and assign their numbers.
+- Spin the raffle reels to reveal a winner.
+- Use the app without signing in for quick demo or spectator use.
 
-```bash
-ng serve
-```
+### After sign-in
+- Sign in with Google or email.
+- See a personalized welcome message using your display name or email prefix.
+- Create raffles from the home page.
+- Join an existing raffle using a raffle code.
+- Manage raffle players, draw modes, and history.
+- Run raffle draws in either:
+  - Simultaneous mode
+  - Per-digit mode
+- Reset a raffle and review past winners.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Raffle experience
+- Create a raffle with a name and draw settings.
+- Add players from a text list.
+- Assign numbers automatically.
+- Draw winners and preserve a history log.
 
-## Code scaffolding
+## Authentication
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Supported sign-in options:
+- Google sign-in
+- Email/password sign-in
+- Email/password sign-up
 
-```bash
-ng generate component component-name
-```
+## Development
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+### Install dependencies
 
 ```bash
-ng test
+npm install
 ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
+### Start the development server
 
 ```bash
-ng e2e
+npm run start:dev
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+### Build the app
 
-## Additional Resources
+```bash
+npm run build
+```
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+### Run tests
+
+```bash
+npm run test
+```

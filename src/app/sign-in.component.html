@@ -7,8 +7,12 @@
     <div *ngIf="step==='email'">
       <label>Email</label>
       <input type="email" [(ngModel)]="email" />
+      <label>Password</label>
+      <input type="password" placeholder="Password" [(ngModel)]="password" />
       <div class="actions">
-        <button class="primary-btn" (click)="continue()" [disabled]="loading">Continue</button>
+        <button class="primary-btn" (click)="signIn()" [disabled]="loading">Sign in with email</button>
+        <button class="google-btn" (click)="signInWithGoogle()" [disabled]="loading">Sign in with Google</button>
+        <button class="text-btn" (click)="continue()" [disabled]="loading">Create an account</button>
         <a routerLink="/">Cancel</a>
       </div>
     </div>

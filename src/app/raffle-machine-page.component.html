@@ -1,0 +1,83 @@
+<main class="raffle-shell">
+  <section class="raffle-card">
+    <div class="machine-panel">
+      <div class="machine-actions">
+        <a class="back-link" routerLink="/">← Back home</a>
+        <a class="create-game-link" routerLink="/games/new">Create New Game</a>
+      </div>
+
+      <ng-container>
+          <div class="default-game-heading">
+            <h1>{{ gameName }}</h1>
+            <p>{{ gameDescription }}</p>
+          </div>
+
+        <div class="reel-machine" [style.gridTemplateColumns]="'repeat(' + reels.length + ', minmax(0, 1fr))'">
+          <div class="reel-column" *ngFor="let reel of reels" [class.winner-reel]="winner">
+            <div class="reel-face">{{ reel }}</div>
+          </div>
+        </div>
+
+        <button class="primary-btn wide" [disabled]="isSpinning" (click)="spin()">
+          <span *ngIf="!isSpinning">▶ Spin raffle</span>
+          <span *ngIf="isSpinning">🎟️ Drawing...</span>
+        </button>
+
+        <div class="winner-box" *ngIf="winner">
+          <p class="eyebrow">Winner</p>
+          <h3>{{ winner.number }} • {{ winner.name }}</h3>
+        </div>
+      </ng-container>
+
+      <div class="machine-tabs" role="tablist" aria-label="Participant views">
+        <button type="button" [class.active]="activeTab === 'names'" (click)="activeTab = 'names'">Participant names</button>
+        <button type="button" [class.active]="activeTab === 'text'" (click)="activeTab = 'text'">Participant list editor</button>
+      </div>
+
+      <div class="panel-card names-panel" *ngIf="activeTab === 'names'">
+        <div class="participants-header">
+          <div>
+            <h2>🎯 Participant names</h2>
+            <p class="participant-meta">{{ participantCount }} players joined</p>
+          </div>
+          <span class="status-pill active">Live</span>
+        </div>
+        <div class="join-box">
+          <input [(ngModel)]="joinedName" placeholder="Add your name to the raffle" />
+          <button class="primary-btn" type="button" (click)="joinEntry()">Join</button>
+        </div>
+
+        <ul class="entry-list">
+          <li *ngFor="let entry of entries">
+            <span class="entry-dot"></span>
+              <span>{{ entry.number }} • {{ entry.name }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="panel-card names-editor-panel" *ngIf="activeTab === 'text'">
+        <div class="participants-header">
+          <div>
+            <h2>Participant list editor</h2>
+            <p class="participant-meta">One participant per line</p>
+            <div class="duplicate-notice" *ngIf="pendingPasteEntries">
+              <span>There are duplicate names in the pasted list. Remove them or keep the copies?</span>
+              <div class="duplicate-actions">
+                <button type="button" (click)="resolveDuplicatePaste(false)">Remove duplicates</button>
+                <button type="button" (click)="resolveDuplicatePaste(true)">Keep copies</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <textarea
+          class="names-editor"
+          rows="10"
+          [ngModel]="namesText"
+          (ngModelChange)="updateNames($event)"
+          (paste)="handleNamesPaste($event)"
+          (blur)="normalizeNamesText()"
+          aria-label="Participant names and raffle numbers"></textarea>
+      </div>
+    </div>
+  </section>
+</main>

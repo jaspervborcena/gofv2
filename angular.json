@@ -36,8 +36,7 @@
               "src/styles.scss"
             ],
             "scripts": [
-              "node_modules/gsap/dist/gsap.min.js",
-              "src/assets/Winwheel.js"
+              "node_modules/gsap/dist/gsap.min.js"
             ]
           },
           "configurations": {
@@ -99,8 +98,7 @@
               "src/styles.scss"
             ],
             "scripts": [
-              "node_modules/gsap/dist/gsap.min.js",
-              "src/assets/Winwheel.js"
+              "node_modules/gsap/dist/gsap.min.js"
             ]
           }
         }

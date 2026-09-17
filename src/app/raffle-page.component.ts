@@ -38,6 +38,9 @@ export class RafflePageComponent implements OnInit {
       if (this.raffle) {
         this.playersText = this.raffle.players.map((player) => player.name).join('\n');
         this.playerNumberMode = this.raffle.numberMode;
+        const digitCount = this.raffle.digitCount ?? 3;
+        this.reelPositions = Array(digitCount).fill(0);
+        this.reels = Array(digitCount).fill('0');
       }
     });
   }
@@ -55,7 +58,7 @@ export class RafflePageComponent implements OnInit {
     this.raffle.players = names.map((name, index) => ({
       id: `${this.raffle!.id}-${index}`,
       name,
-      assignedNumber: this.playerNumberMode === 'ordered' ? index + 1 : Math.floor(Math.random() * 9000) + 1000,
+      assignedNumber: this.playerNumberMode === 'ordered' ? index + 1 : this.createRandomNumber(),
       drawn: false
     }));
     this.raffle.remainingDraws = Math.max(this.raffle.remainingDraws, this.raffle.players.length);
@@ -84,14 +87,10 @@ export class RafflePageComponent implements OnInit {
     this.isSpinning = true;
     this.lastWinner = null;
     const winner = players[Math.floor(Math.random() * players.length)];
-    const targetReels = [
-      parseInt(winner.assignedNumber.toString().split('')[0] ?? '0'),
-      parseInt(winner.assignedNumber.toString().split('')[1] ?? '0'),
-      parseInt(winner.assignedNumber.toString().split('')[2] ?? '0')
-    ];
+    const targetReels = this.formatNumber(winner.assignedNumber).split('').map((digit) => Number(digit));
 
     // Create animation object to track position
-    const animState = { spinPos: [0, 0, 0], progress: 0 };
+    const animState = { spinPos: Array(targetReels.length).fill(0), progress: 0 };
     const spinSpeed = 50; // very fast rotations per second - shows lots of number changes
     const maxSpinPos = (8 / 1000) * spinSpeed * 10 * 1000; // position at end of spin phase
 
@@ -105,7 +104,7 @@ export class RafflePageComponent implements OnInit {
         // Animation complete - lock in final values
         this.reelPositions = targetReels.map((val) => val);
         this.reels = targetReels.map((num) => num.toString());
-        this.lastWinner = { name: winner.name, number: `${winner.assignedNumber}` };
+        this.lastWinner = { name: winner.name, number: this.formatNumber(winner.assignedNumber) };
         this.isSpinning = false;
         this.spinProgress = 100;
 
@@ -115,13 +114,13 @@ export class RafflePageComponent implements OnInit {
           {
             id: `${this.raffle!.id}-${Date.now()}`,
             winnerName: winner.name,
-            drawnNumber: `${winner.assignedNumber}`,
+            drawnNumber: this.formatNumber(winner.assignedNumber),
             timestamp: new Date().toISOString()
           }
         ];
         this.raffle!.remainingDraws = Math.max(0, this.raffle!.remainingDraws - 1);
         this.raffle!.lastWinner = winner.name;
-        this.raffle!.lastNumber = `${winner.assignedNumber}`;
+        this.raffle!.lastNumber = this.formatNumber(winner.assignedNumber);
         this.raffleService.saveRaffle(this.raffle!);
       }
     });
@@ -150,8 +149,21 @@ export class RafflePageComponent implements OnInit {
     );
   }
 
+  private createRandomNumber(): number {
+    const digitCount = this.raffle?.digitCount ?? 3;
+    const minimum = 10 ** (digitCount - 1);
+    const maximum = 10 ** digitCount - 1;
+    return Math.floor(minimum + Math.random() * (maximum - minimum + 1));
+  }
+
+  formatNumber(number: number): string {
+    return String(number).padStart(this.raffle?.digitCount ?? 3, '0');
+  }
+
   resetRaffle(): void {
-    this.reels = ['🎰', '🎰', '🎰'];
+    const digitCount = this.raffle?.digitCount ?? 3;
+    this.reels = Array(digitCount).fill('🎰');
+    this.reelPositions = Array(digitCount).fill(0);
     this.lastWinner = null;
   }
 }

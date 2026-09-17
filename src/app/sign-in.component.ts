@@ -44,8 +44,26 @@ export class SignInComponent {
     }
   }
 
+  async signInWithGoogle(): Promise<void> {
+    this.error = null;
+    this.loading = true;
+
+    try {
+      await this.raffleService.signInWithGoogle();
+      this.router.navigate(['/']);
+    } catch (err) {
+      this.error = err instanceof Error ? err.message : 'Google sign in failed.';
+    } finally {
+      this.loading = false;
+    }
+  }
+
   async signIn(): Promise<void> {
     this.error = null;
+    if (!this.email.trim()) {
+      this.error = 'Please enter an email.';
+      return;
+    }
     if (!this.password) {
       this.error = 'Please enter your password.';
       return;

@@ -1,0 +1,57 @@
+<main class="setup-shell">
+  <section class="setup-card">
+    <div class="setup-header">
+      <a class="back-link" routerLink="/raffles">← Back to raffle</a>
+      <p class="eyebrow">Game setup</p>
+      <h1>Create a new game</h1>
+      <p class="lead">Set the rules first. You can add participants and invite players after the game is created.</p>
+    </div>
+
+    <form class="setup-form" (ngSubmit)="createGame()">
+      <label>
+        Game name
+        <input [(ngModel)]="gameName" name="gameName" required maxlength="80" placeholder="Friday night raffle" />
+      </label>
+
+      <label>
+        Number of digits
+        <select [(ngModel)]="digitCount" name="digitCount">
+          <option [ngValue]="3">3 digits</option>
+          <option [ngValue]="4">4 digits</option>
+          <option [ngValue]="5">5 digits</option>
+          <option [ngValue]="6">6 digits</option>
+        </select>
+      </label>
+
+      <fieldset>
+        <legend>Participant number style</legend>
+        <label class="choice">
+          <input type="radio" [(ngModel)]="numberMode" name="numberMode" value="random" />
+          <span><strong>Random numbers</strong><small>Generate a unique number within the selected digit range.</small></span>
+        </label>
+        <label class="choice">
+          <input type="radio" [(ngModel)]="numberMode" name="numberMode" value="ordered" />
+          <span><strong>Sequential numbers</strong><small>Assign numbers in order: 001, 002, 003...</small></span>
+        </label>
+      </fieldset>
+
+      <label>
+        Draw mode
+        <select [(ngModel)]="spinMode" name="spinMode">
+          <option value="simultaneous">Simultaneous</option>
+          <option value="per-digit">Per digit</option>
+        </select>
+      </label>
+
+      <label>
+        Remarks
+        <textarea [(ngModel)]="remarks" name="remarks" rows="4" maxlength="500" placeholder="Add game details or instructions for participants"></textarea>
+      </label>
+
+      <p class="error-message" *ngIf="errorMessage">{{ errorMessage }}</p>
+      <button class="primary-btn" type="submit" [disabled]="isSaving">
+        {{ isSaving ? 'Creating game...' : 'Create game' }}
+      </button>
+    </form>
+  </section>
+</main>

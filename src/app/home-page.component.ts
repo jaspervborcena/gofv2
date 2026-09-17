@@ -17,8 +17,6 @@ export class HomePageComponent implements OnInit {
 
   user: { uid: string; displayName?: string | null } | null = null;
   raffles: Raffle[] = [];
-  authError: string | null = null;
-
   draftName = '';
   draftMode: SpinMode = 'simultaneous';
   joinCode = '';
@@ -31,20 +29,9 @@ export class HomePageComponent implements OnInit {
     });
   }
 
-  async signIn(): Promise<void> {
-    this.authError = null;
-
-    try {
-      await this.raffleService.signInWithGoogle();
-    } catch (error) {
-      this.authError = error instanceof Error ? error.message : 'Unable to sign in with Google right now.';
-    }
-  }
-
   async signOut(): Promise<void> {
     await this.raffleService.signOut();
     this.user = null;
-    this.authError = null;
   }
 
   async loadRaffles(): Promise<void> {

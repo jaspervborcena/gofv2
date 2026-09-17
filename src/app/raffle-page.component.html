@@ -4,10 +4,7 @@
       <div>
         <p class="eyebrow">{{ raffle.name }}</p>
         <h2>{{ raffle.name }}</h2>
-      </div>
-      <div class="stats">
-        <span>{{ raffle.players.length }} players</span>
-        <span>{{ raffle.remainingDraws }} draws left</span>
+        <p class="game-remarks"><strong>Description:</strong> {{ raffle.remarks || 'Winner takes all' }}</p>
       </div>
     </div>
 
@@ -19,7 +16,7 @@
 
     <div class="tab-content" *ngIf="activeTab === 'raffle'">
       <div class="slot-machine-container">
-        <div class="slot-machine">
+        <div class="slot-machine" [style.gridTemplateColumns]="'repeat(' + reelPositions.length + ', minmax(0, 1fr))'">
           <div class="reel-column" *ngFor="let pos of reelPositions; let i = index">
             <div class="reel-tape" [style.transform]="'translateY(' + (-pos * 60) + 'px)'">
               <div class="reel-item" *ngFor="let num of [0,1,2,3,4,5,6,7,8,9]">{{ num }}</div>
@@ -30,10 +27,9 @@
         <div class="reel-lights"></div>
       </div>
 
-      <div class="status-badge">{{ raffle.mode === 'simultaneous' ? '⚡ Simultaneous Mode' : '🎯 Per Digit Mode' }}</div>
       <div class="draw-result" *ngIf="lastWinner">
         <h3>🎉 Winner revealed</h3>
-        <p class="winner-text">{{ lastWinner.name }} • <strong>{{ lastWinner.number }}</strong></p>
+          <p class="winner-text"><strong>{{ lastWinner.number }}</strong> • {{ lastWinner.name }}</p>
       </div>
       <div class="controls">
         <button class="primary-btn spin-btn" [disabled]="isSpinning" (click)="spin()">
@@ -45,7 +41,7 @@
     </div>
 
     <div class="tab-content" *ngIf="activeTab === 'players'">
-      <textarea [(ngModel)]="playersText" rows="8" placeholder="Paste player names, one per line"></textarea>
+      <textarea [(ngModel)]="playersText" rows="8" [placeholder]="'Paste player names, one per line. Numbers will be ' + (raffle.numberMode === 'ordered' ? 'sequential.' : 'randomly generated.')"></textarea>
       <div class="mode-row">
         <button [class.active]="playerNumberMode === 'random'" (click)="playerNumberMode = 'random'">🎲 Random</button>
         <button [class.active]="playerNumberMode === 'ordered'" (click)="playerNumberMode = 'ordered'">📋 Ordered</button>
@@ -59,7 +55,7 @@
       <div class="player-list">
         <div class="player-row" *ngFor="let player of raffle.players">
           <span>{{ player.name }}</span>
-          <span class="number-pill">#{{ player.assignedNumber }}</span>
+          <span class="number-pill">#{{ formatNumber(player.assignedNumber) }}</span>
           <span class="drawn-pill" *ngIf="player.drawn">DRAWN</span>
         </div>
       </div>

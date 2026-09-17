@@ -31,6 +31,7 @@ input {
   display: flex;
   gap: 0.6rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .primary-btn {
@@ -39,6 +40,25 @@ input {
   padding: 0.6rem 0.9rem;
   border-radius: 999px;
   font-weight: 700;
+}
+
+.google-btn,
+.text-btn {
+  border: 0;
+  padding: 0.6rem 0.9rem;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.google-btn {
+  background: #fff;
+  color: #222;
+}
+
+.text-btn {
+  background: transparent;
+  color: #ffcf4d;
 }
 
 .error {
