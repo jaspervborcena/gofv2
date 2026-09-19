@@ -59,3 +59,17 @@ npm run build
 ```bash
 npm run test
 ```
+
+## Local winner gRPC stream
+
+The optional NestJS gRPC service lives beside this Angular project in `../raffle-grpc`.
+Start it separately with:
+
+```bash
+cd ../raffle-grpc
+npm install
+npm run build
+npm start
+```
+
+It listens for gRPC subscriptions on `localhost:50051` and accepts completed winners from the Angular app at `http://localhost:3001/winners`. Import `../raffle-grpc/proto/raffle.proto` into Postman, invoke `raffle.RaffleService/SubscribeWinners`, and keep the request open while spinning the raffle.

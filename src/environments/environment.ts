@@ -1,5 +1,6 @@
 export const environment = {
   production: false,
+  raffleGrpcHttpUrl: 'http://localhost:3001',
   firebaseConfig: {
     apiKey: 'AIzaSyBDzrpzYiaNc2TiCaNWI7cOvIgEVKCFpVs',
     authDomain: 'gameoffortunes-32578.firebaseapp.com',

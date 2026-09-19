@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DrawItem, Raffle, RaffleService } from './raffle.service';
+import { environment } from '../environments/environment';
 
 interface RaffleEntry {
   name: string;
@@ -281,8 +282,27 @@ export class RaffleMachinePageComponent implements OnInit {
           this.raffle.lastNumber = winner.number;
           void this.raffleService.saveRaffle(this.raffle);
         }
+        void this.notifyWinner(winner);
       }
     }, 120);
+  }
+
+  private async notifyWinner(winner: RaffleEntry): Promise<void> {
+    try {
+      await fetch(`${environment.raffleGrpcHttpUrl}/winners`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          raffleId: this.raffle?.id ?? 'raffle-demo',
+          spinId: `spin-${Date.now()}`,
+          winnerId: winner.number,
+          winnerName: winner.name,
+          prize: ''
+        })
+      });
+    } catch {
+      // The raffle remains usable when the optional local gRPC bridge is offline.
+    }
   }
 
   async addWinnerToList(item: DrawItem): Promise<void> {
