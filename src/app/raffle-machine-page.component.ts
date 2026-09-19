@@ -288,12 +288,16 @@ export class RaffleMachinePageComponent implements OnInit {
   }
 
   private async notifyWinner(winner: RaffleEntry): Promise<void> {
+    if (!this.raffle) {
+      return;
+    }
+
     try {
       await fetch(`${environment.raffleGrpcHttpUrl}/winners`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          raffleId: this.raffle?.id ?? 'raffle-demo',
+          raffleId: this.raffle.id,
           spinId: `spin-${Date.now()}`,
           winnerId: winner.number,
           winnerName: winner.name,
