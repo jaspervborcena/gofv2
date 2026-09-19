@@ -5,7 +5,8 @@ import { join } from 'node:path';
 import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
-  const grpcUrl = `0.0.0.0:${process.env.PORT || 50051}`;
+  const grpcPort = process.env.GRPC_PORT || (process.env.GRPC_ONLY === 'true' ? process.env.PORT || '50051' : '50051');
+  const grpcUrl = `0.0.0.0:${grpcPort}`;
   const grpcOptions: MicroserviceOptions = {
     transport: Transport.GRPC,
     options: {
@@ -24,9 +25,10 @@ async function bootstrap(): Promise<void> {
 
   const httpApp = await NestFactory.create(AppModule);
   httpApp.enableCors();
-  httpApp.connectMicroservice<MicroserviceOptions>(grpcOptions);
-
-  await httpApp.startAllMicroservices();
+  if (process.env.ENABLE_LOCAL_GRPC === 'true') {
+    httpApp.connectMicroservice<MicroserviceOptions>(grpcOptions);
+    await httpApp.startAllMicroservices();
+  }
   const httpPort = Number(process.env.PORT || process.env.HTTP_PORT || 3001);
   await httpApp.listen(httpPort, '0.0.0.0');
   console.log('Raffle gRPC server listening on 0.0.0.0:50051');

@@ -4,6 +4,7 @@ package raffle;
 
 service RaffleService {
   rpc SubscribeWinners(SubscribeRequest) returns (stream Winner);
+  rpc PublishWinner(Winner) returns (PublishResponse);
 }
 
 message SubscribeRequest {
@@ -16,4 +17,8 @@ message Winner {
   string winnerId = 3;
   string winnerName = 4;
   string prize = 5;
+}
+
+message PublishResponse {
+  bool accepted = 1;
 }

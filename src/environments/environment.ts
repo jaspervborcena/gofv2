@@ -2,7 +2,7 @@ const isLocalDev = typeof window !== 'undefined' && window.location.hostname ===
 
 export const environment = {
   production: false,
-  raffleGrpcHttpUrl: isLocalDev ? 'http://localhost:3001' : 'https://raffle-grpc-jozxtuutyq-de.a.run.app',
+  raffleGrpcHttpUrl: isLocalDev ? 'http://localhost:3001' : 'https://raffle-grpc-http-12420305994.asia-east1.run.app',
   firebaseConfig: {
     apiKey: 'AIzaSyBDzrpzYiaNc2TiCaNWI7cOvIgEVKCFpVs',
     authDomain: 'gameoffortunes-32578.firebaseapp.com',
