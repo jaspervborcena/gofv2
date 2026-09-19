@@ -17,6 +17,8 @@ message Winner {
   string winnerId = 3;
   string winnerName = 4;
   string prize = 5;
+  string eventType = 6;
+  string message = 7;
 }
 
 message PublishResponse {

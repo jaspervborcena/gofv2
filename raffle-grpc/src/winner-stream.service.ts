@@ -7,6 +7,8 @@ export interface WinnerEvent {
   winnerId: string;
   winnerName: string;
   prize: string;
+  eventType?: string;
+  message?: string;
 }
 
 @Injectable()
@@ -17,7 +19,24 @@ export class WinnerStreamService {
     const stream = this.getStream(raffleId);
     return new Observable<WinnerEvent>((subscriber) => {
       const subscription = stream.subscribe(subscriber);
-      return () => subscription.unsubscribe();
+      let heartbeat = 0;
+      const heartbeatTimer = setInterval(() => {
+        heartbeat += 1;
+        subscriber.next({
+          raffleId,
+          spinId: '',
+          winnerId: '',
+          winnerName: '',
+          prize: '',
+          eventType: 'healthcheck',
+          message: `alive ${heartbeat}`
+        });
+      }, 10_000);
+
+      return () => {
+        clearInterval(heartbeatTimer);
+        subscription.unsubscribe();
+      };
     });
   }
 
