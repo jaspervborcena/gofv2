@@ -17,9 +17,10 @@ async function bootstrap(): Promise<void> {
   });
 
   await httpApp.startAllMicroservices();
-  await httpApp.listen(Number(process.env.HTTP_PORT || 3001), '0.0.0.0');
+  const httpPort = Number(process.env.PORT || process.env.HTTP_PORT || 3001);
+  await httpApp.listen(httpPort, '0.0.0.0');
   console.log('Raffle gRPC server listening on 0.0.0.0:50051');
-  console.log('Winner publish endpoint listening on http://localhost:3001/winners');
+  console.log(`Winner publish endpoint listening on http://0.0.0.0:${httpPort}/winners`);
 }
 
 void bootstrap();
