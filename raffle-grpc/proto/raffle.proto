@@ -5,6 +5,13 @@ package raffle;
 service RaffleService {
   rpc SubscribeWinners(SubscribeRequest) returns (stream Winner);
   rpc PublishWinner(Winner) returns (PublishResponse);
+  rpc HealthCheck(HealthCheckRequest) returns (stream HealthResponse);
+}
+
+message HealthCheckRequest {}
+
+message HealthResponse {
+  string status = 1;
 }
 
 message SubscribeRequest {

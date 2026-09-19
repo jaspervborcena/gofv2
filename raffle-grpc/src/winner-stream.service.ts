@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Observable, Subject } from 'rxjs';
+import { interval, map, Observable, Subject } from 'rxjs';
 
 export interface WinnerEvent {
   raffleId: string;
@@ -14,6 +14,12 @@ export interface WinnerEvent {
 @Injectable()
 export class WinnerStreamService {
   private readonly streams = new Map<string, Subject<WinnerEvent>>();
+
+  healthCheck(): Observable<{ status: string }> {
+    return interval(10_000).pipe(
+      map((count) => ({ status: `alive ${count + 1}` }))
+    );
+  }
 
   subscribe(raffleId: string): Observable<WinnerEvent> {
     const stream = this.getStream(raffleId);

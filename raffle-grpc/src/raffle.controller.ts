@@ -29,6 +29,11 @@ export class RaffleController {
     return this.winnerStream.subscribe(request.raffleId);
   }
 
+  @GrpcMethod('RaffleService', 'HealthCheck')
+  healthCheck(): Observable<{ status: string }> {
+    return this.winnerStream.healthCheck();
+  }
+
   @Post('winners')
   @GrpcMethod('RaffleService', 'PublishWinner')
   publishWinner(@Body() event: WinnerEvent): { accepted: boolean } {
