@@ -50,7 +50,7 @@ export class SignInComponent {
 
     try {
       await this.raffleService.signInWithGoogle();
-      this.router.navigate(['/']);
+      await this.router.navigateByUrl('/');
     } catch (err) {
       this.error = err instanceof Error ? err.message : 'Google sign in failed.';
     } finally {
@@ -72,7 +72,7 @@ export class SignInComponent {
     this.loading = true;
     try {
       await this.raffleService.signInWithEmail(this.email.trim(), this.password);
-      this.router.navigate(['/']);
+      await this.router.navigateByUrl('/');
     } catch (err) {
       this.error = err instanceof Error ? err.message : 'Sign in failed.';
     } finally {
@@ -93,8 +93,17 @@ export class SignInComponent {
 
     this.loading = true;
     try {
-      await this.raffleService.signUpWithEmail(this.email.trim(), this.password);
-      this.router.navigate(['/']);
+      const credential = await this.raffleService.signUpWithEmail(this.email.trim(), this.password);
+      const now = new Date().toISOString();
+      await this.raffleService.saveUserProfile({
+        id: credential.user.uid,
+        displayName: credential.user.displayName ?? '',
+        email: credential.user.email ?? this.email.trim(),
+        role: 'guest',
+        createdAt: now,
+        lastActiveAt: now
+      });
+      await this.router.navigateByUrl('/');
     } catch (err) {
       this.error = err instanceof Error ? err.message : 'Sign up failed.';
     } finally {

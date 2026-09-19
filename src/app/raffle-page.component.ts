@@ -15,6 +15,9 @@ import { NumberMode, Player, Raffle, RaffleService, SpinMode } from './raffle.se
 export class RafflePageComponent implements OnInit {
   private readonly raffleService = inject(RaffleService);
   private readonly route = inject(ActivatedRoute);
+  private readonly spinSound = new Audio('/assets/slot-spin.mp3');
+  private readonly stopSound = new Audio('/assets/slot-stop.mp3');
+  private readonly winSound = new Audio('/assets/slot-win.mp3');
 
   raffle: Raffle | null = null;
   activeTab: 'raffle' | 'players' | 'history' = 'raffle';
@@ -62,6 +65,7 @@ export class RafflePageComponent implements OnInit {
       drawn: false
     }));
     this.raffle.remainingDraws = Math.max(this.raffle.remainingDraws, this.raffle.players.length);
+    this.raffle.numberMode = this.playerNumberMode;
     await this.raffleService.saveRaffle(this.raffle);
   }
 
@@ -86,27 +90,35 @@ export class RafflePageComponent implements OnInit {
 
     this.isSpinning = true;
     this.lastWinner = null;
+    this.spinSound.currentTime = 0;
+    this.spinSound.loop = true;
+    void this.spinSound.play().catch(() => undefined);
     const winner = players[Math.floor(Math.random() * players.length)];
     const targetReels = this.formatNumber(winner.assignedNumber).split('').map((digit) => Number(digit));
 
-    // Create animation object to track position
-    const animState = { spinPos: Array(targetReels.length).fill(0), progress: 0 };
+    const digitStates = targetReels.map(() => ({ spinPos: 0 }));
     const spinSpeed = 50; // very fast rotations per second - shows lots of number changes
     const maxSpinPos = (8 / 1000) * spinSpeed * 10 * 1000; // position at end of spin phase
 
     // Create GSAP timeline
     const tl = gsap.timeline({
       onUpdate: () => {
-        this.reelPositions = animState.spinPos.map((pos) => pos);
-        this.spinProgress = animState.progress * 100;
+        this.reelPositions = digitStates.map((state) => state.spinPos);
+        this.spinProgress = tl.progress() * 100;
       },
       onComplete: () => {
         // Animation complete - lock in final values
+        this.spinSound.pause();
+        this.spinSound.currentTime = 0;
+        this.stopSound.currentTime = 0;
+        void this.stopSound.play().catch(() => undefined);
         this.reelPositions = targetReels.map((val) => val);
         this.reels = targetReels.map((num) => num.toString());
         this.lastWinner = { name: winner.name, number: this.formatNumber(winner.assignedNumber) };
         this.isSpinning = false;
         this.spinProgress = 100;
+        this.winSound.currentTime = 0;
+        void this.winSound.play().catch(() => undefined);
 
         // Save to Firestore
         this.raffle!.history = [
@@ -125,28 +137,20 @@ export class RafflePageComponent implements OnInit {
       }
     });
 
-    // Fast spin phase (2.5s) - all reels spin extremely fast with visible number changes
-    tl.to(
-      animState,
-      {
-        spinPos: [maxSpinPos, maxSpinPos, maxSpinPos],
-        progress: 0.3,
+    const perDigit = this.raffle.mode === 'per-digit';
+    digitStates.forEach((state, index) => {
+      const delay = perDigit ? index * 0.5 : 0;
+      tl.to(state, {
+        spinPos: maxSpinPos,
         duration: 2.5,
         ease: 'power1.inOut'
-      },
-      0
-    );
-
-    // Deceleration phase (3.5s) - smooth ease out to target values with visible slowing
-    tl.to(
-      animState,
-      {
-        spinPos: targetReels.map((target) => target),
-        progress: 1,
+      }, delay);
+      tl.to(state, {
+        spinPos: targetReels[index],
         duration: 3.5,
         ease: 'power3.out'
-      }
-    );
+      }, 2.5 + delay);
+    });
   }
 
   private createRandomNumber(): number {

@@ -2,7 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Raffle, RaffleService } from './raffle.service';
+import { DrawItem, Raffle, RaffleService } from './raffle.service';
 
 interface RaffleEntry {
   name: string;
@@ -19,14 +19,19 @@ interface RaffleEntry {
 export class RaffleMachinePageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly raffleService = inject(RaffleService);
+  private readonly spinSound = new Audio('/assets/slot-spin.mp3');
+  private readonly stopSound = new Audio('/assets/slot-stop.mp3');
+  private readonly winSound = new Audio('/assets/slot-win.mp3');
 
   raffle: Raffle | null = null;
   gameName = 'Lucky Draws';
   gameDescription = 'Winner takes all';
-  activeTab: 'names' | 'text' = 'names';
+  activeTab: 'names' | 'text' | 'history' | 'winners' = 'names';
   reels = ['0', '0', '0'];
   isSpinning = false;
   winner: RaffleEntry | null = null;
+  removedMessage = '';
+  private removeNoticeTimeout?: number;
   joinedName = '';
   pendingPasteEntries: RaffleEntry[] | null = null;
   entries: RaffleEntry[] = [
@@ -67,6 +72,10 @@ export class RaffleMachinePageComponent implements OnInit {
     return this.entries.length;
   }
 
+  get gameHistory(): DrawItem[] {
+    return [...(this.raffle?.history ?? [])].reverse();
+  }
+
   private formatEntries(): string {
     return this.entries.map((entry) => `${entry.number} • ${entry.name}`).join('\n');
   }
@@ -85,17 +94,28 @@ export class RaffleMachinePageComponent implements OnInit {
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean)
-      .map((line) => {
+      .map((line, index) => {
         const parts = line.split('•').map((part) => part.trim());
         const numberPart = parts.length > 1 ? parts[0] : '';
         const namePart = parts.length > 1 ? parts[1] : parts[0];
         return {
           name: namePart || 'Player',
-          number: /^\d{3}$/.test(numberPart || '')
+          number: this.raffle?.numberMode === 'ordered'
+            ? /^\d+$/.test(numberPart || '') ? numberPart : this.orderedNumber(index)
+            : /^\d+$/.test(numberPart || '')
             ? numberPart as string
             : this.randomNumber()
         };
       });
+  }
+
+  private orderedNumber(index: number): string {
+    return String(index + 1).padStart(this.raffle?.digitCount ?? 3, '0');
+  }
+
+  private nextOrderedNumber(entries: RaffleEntry[]): string {
+    const nextNumber = entries.reduce((highest, entry) => Math.max(highest, Number(entry.number)), 0) + 1;
+    return String(nextNumber).padStart(this.raffle?.digitCount ?? 3, '0');
   }
 
   private randomNumber(): string {
@@ -183,7 +203,9 @@ export class RaffleMachinePageComponent implements OnInit {
 
       const entry = {
         name,
-        number: names.has(normalizedName) ? this.randomNumber() : pastedEntry.number
+        number: this.raffle?.numberMode === 'ordered'
+          ? this.nextOrderedNumber(nextEntries)
+          : names.has(normalizedName) ? this.randomNumber() : pastedEntry.number
       };
       nextEntries.push(entry);
       names.add(this.normalizeName(entry.name));
@@ -201,7 +223,7 @@ export class RaffleMachinePageComponent implements OnInit {
 
     this.entries = [...this.entries, {
       name: rawName.includes('@') ? rawName.split('@')[0] : rawName,
-      number: this.randomNumber()
+      number: this.raffle?.numberMode === 'ordered' ? this.nextOrderedNumber(this.entries) : this.randomNumber()
     }];
     this.namesText = this.formatEntries();
     this.joinedName = '';
@@ -214,6 +236,9 @@ export class RaffleMachinePageComponent implements OnInit {
 
     this.isSpinning = true;
     this.winner = null;
+    this.spinSound.currentTime = 0;
+    this.spinSound.loop = true;
+    void this.spinSound.play().catch(() => undefined);
     const winner = this.entries[Math.floor(Math.random() * this.entries.length)];
     const digits = winner.number.split('');
     const frameCount = 18;
@@ -222,18 +247,90 @@ export class RaffleMachinePageComponent implements OnInit {
     const interval = window.setInterval(() => {
       frame += 1;
       this.reels = digits.map((digit, index) => {
-        if (frame >= frameCount + index * 4) {
+        const digitDelay = this.raffle?.mode === 'per-digit' ? index * 4 : 0;
+        if (frame >= frameCount + digitDelay) {
           return digit;
         }
         return String(frame % 10);
       });
 
-      if (frame >= frameCount + 10) {
+      const finalFrame = frameCount + (this.raffle?.mode === 'per-digit' ? (digits.length - 1) * 4 : 0);
+      if (frame >= finalFrame) {
         window.clearInterval(interval);
+        this.spinSound.pause();
+        this.spinSound.currentTime = 0;
+        this.stopSound.currentTime = 0;
+        void this.stopSound.play().catch(() => undefined);
         this.reels = digits;
         this.winner = winner;
         this.isSpinning = false;
+        this.winSound.currentTime = 0;
+        void this.winSound.play().catch(() => undefined);
+
+        if (this.raffle) {
+          this.raffle.history = [
+            ...this.raffle.history,
+            {
+              id: `${this.raffle.id}-${Date.now()}`,
+              winnerName: winner.name,
+              drawnNumber: winner.number,
+              timestamp: new Date().toISOString()
+            }
+          ];
+          this.raffle.lastWinner = winner.name;
+          this.raffle.lastNumber = winner.number;
+          void this.raffleService.saveRaffle(this.raffle);
+        }
       }
     }, 120);
+  }
+
+  async addWinnerToList(item: DrawItem): Promise<void> {
+    if (this.entries.some((entry) => entry.name === item.winnerName && entry.number === item.drawnNumber)) {
+      return;
+    }
+
+    this.entries = [...this.entries, { name: item.winnerName, number: item.drawnNumber }];
+    this.namesText = this.formatEntries();
+
+    if (this.raffle && !this.raffle.players.some((player) =>
+      player.name === item.winnerName && String(player.assignedNumber).padStart(this.raffle?.digitCount ?? 3, '0') === item.drawnNumber
+    )) {
+      this.raffle.players = [...this.raffle.players, {
+        id: `${this.raffle.id}-${Date.now()}`,
+        name: item.winnerName,
+        assignedNumber: Number(item.drawnNumber),
+        drawn: false
+      }];
+      await this.raffleService.saveRaffle(this.raffle);
+    }
+  }
+
+  async removeWinner(): Promise<void> {
+    if (!this.winner) {
+      return;
+    }
+
+    const winnerName = this.winner.name;
+    const winnerNumber = this.winner.number;
+    this.removedMessage = `Player {${winnerNumber} • ${winnerName}} has been removed from the game`;
+    if (this.removeNoticeTimeout) {
+      window.clearTimeout(this.removeNoticeTimeout);
+    }
+    this.removeNoticeTimeout = window.setTimeout(() => {
+      this.removedMessage = '';
+      this.removeNoticeTimeout = undefined;
+    }, 3000);
+    this.entries = this.entries.filter((entry) => entry.name !== winnerName || entry.number !== winnerNumber);
+    this.namesText = this.formatEntries();
+
+    if (this.raffle) {
+      this.raffle.players = this.raffle.players.filter((player) =>
+        player.name !== winnerName || String(player.assignedNumber).padStart(this.raffle?.digitCount ?? 3, '0') !== winnerNumber
+      );
+      await this.raffleService.saveRaffle(this.raffle);
+    }
+
+    this.winner = null;
   }
 }

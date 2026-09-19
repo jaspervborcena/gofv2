@@ -1,0 +1,39 @@
+<main class="invitation-shell">
+  <section class="invitation-card" *ngIf="game && !joined; else invitationState">
+    <a class="back-link" routerLink="/">← Back home</a>
+    <p class="eyebrow">Game invitation</p>
+    <h1>{{ game.name }}</h1>
+    <p class="description">{{ game.remarks || 'Winner takes all' }}</p>
+    <p class="details">Join with a name to receive your {{ game.digitCount ?? 3 }}-digit raffle number.</p>
+
+    <form class="join-form" (ngSubmit)="acceptInvitation()">
+      <label>
+        Your name
+        <input [(ngModel)]="name" name="name" required maxlength="80" placeholder="Enter your name" />
+      </label>
+      <label>
+        Mobile number <span>(optional)</span>
+        <input [(ngModel)]="mobileNumber" name="mobileNumber" type="tel" placeholder="Your mobile number" />
+      </label>
+      <label>
+        Remarks <span>(optional)</span>
+        <textarea [(ngModel)]="remarks" name="remarks" rows="3" placeholder="Add a note for the host"></textarea>
+      </label>
+      <p class="error-message" *ngIf="errorMessage">{{ errorMessage }}</p>
+      <button class="primary-btn" type="submit" [disabled]="isJoining">
+        {{ isJoining ? 'Joining...' : 'Accept invitation' }}
+      </button>
+    </form>
+  </section>
+
+  <ng-template #invitationState>
+    <section class="invitation-card">
+      <p class="eyebrow" *ngIf="joined">You are in</p>
+      <h1 *ngIf="joined">Invitation accepted</h1>
+      <p class="assigned-number" *ngIf="joined">Your number: <strong>{{ assignedNumber }}</strong></p>
+      <p class="error-message" *ngIf="!joined && errorMessage">{{ errorMessage }}</p>
+      <button class="primary-btn" type="button" *ngIf="joined" (click)="openGame()">View game</button>
+      <a class="back-link" routerLink="/" *ngIf="!joined">Back home</a>
+    </section>
+  </ng-template>
+</main>

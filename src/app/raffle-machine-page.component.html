@@ -26,12 +26,19 @@
         <div class="winner-box" *ngIf="winner">
           <p class="eyebrow">Winner</p>
           <h3>{{ winner.number }} • {{ winner.name }}</h3>
+          <button class="remove-winner-btn" type="button" (click)="removeWinner()">Remove from list</button>
+        </div>
+
+        <div class="removed-message" *ngIf="removedMessage" role="status">
+          {{ removedMessage }}
         </div>
       </ng-container>
 
       <div class="machine-tabs" role="tablist" aria-label="Participant views">
         <button type="button" [class.active]="activeTab === 'names'" (click)="activeTab = 'names'">Participant names</button>
         <button type="button" [class.active]="activeTab === 'text'" (click)="activeTab = 'text'">Participant list editor</button>
+        <button type="button" [class.active]="activeTab === 'history'" (click)="activeTab = 'history'">Game History</button>
+        <button type="button" [class.active]="activeTab === 'winners'" (click)="activeTab = 'winners'">Winners</button>
       </div>
 
       <div class="panel-card names-panel" *ngIf="activeTab === 'names'">
@@ -78,6 +85,42 @@
           (blur)="normalizeNamesText()"
           aria-label="Participant names and raffle numbers"></textarea>
       </div>
+
+      <div class="panel-card history-panel" *ngIf="activeTab === 'history'">
+        <div class="participants-header">
+          <div>
+            <h2>Game History</h2>
+            <p class="participant-meta">Players who have already won</p>
+          </div>
+        </div>
+        <ol class="history-list" *ngIf="gameHistory.length; else emptyHistory">
+          <li *ngFor="let item of gameHistory">
+            <div>
+              <strong>{{ item.drawnNumber }} • {{ item.winnerName }}</strong>
+              <time [attr.datetime]="item.timestamp">{{ item.timestamp | date:'medium' }}</time>
+            </div>
+            <button type="button" class="add-to-list-btn" (click)="addWinnerToList(item)">Add to list</button>
+          </li>
+        </ol>
+      </div>
+
+      <div class="panel-card winners-panel" *ngIf="activeTab === 'winners'">
+        <div class="participants-header">
+          <div>
+            <h2>Winners</h2>
+            <p class="participant-meta">The players who have won this game</p>
+          </div>
+        </div>
+        <ol class="winner-list" *ngIf="gameHistory.length; else emptyWinners">
+          <li *ngFor="let item of gameHistory">
+            <span>{{ item.drawnNumber }} • {{ item.winnerName }}</span>
+            <button type="button" class="add-to-list-btn" (click)="addWinnerToList(item)">Add to list</button>
+          </li>
+        </ol>
+      </div>
+
+      <ng-template #emptyHistory><p class="empty-state">No winners have been recorded yet.</p></ng-template>
+      <ng-template #emptyWinners><p class="empty-state">No winners have been recorded yet.</p></ng-template>
     </div>
   </section>
 </main>
