@@ -36,7 +36,7 @@ export class RaffleController {
 
   @Post('winners')
   @GrpcMethod('RaffleService', 'PublishWinner')
-  publishWinner(@Body() event: WinnerEvent): { accepted: boolean } {
+  async publishWinner(@Body() event: WinnerEvent): Promise<{ accepted: boolean }> {
     if (!event?.raffleId || !event.spinId || !event.winnerId || !event.winnerName) {
       return { accepted: false };
     }
@@ -48,7 +48,17 @@ export class RaffleController {
       winnerName: event.winnerName,
       prize: event.prize || ''
     });
-    this.nativeClient?.PublishWinner(event, () => undefined);
+    if (this.nativeClient) {
+      await new Promise<void>((resolve, reject) => {
+        this.nativeClient.PublishWinner(event, (error: Error | null) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve();
+        });
+      });
+    }
     return { accepted: true };
   }
 }
