@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package raffle;
+
+service RaffleService {
+  rpc SubscribeWinners(SubscribeRequest) returns (stream Winner);
+}
+
+message SubscribeRequest {
+  string raffleId = 1;
+}
+
+message Winner {
+  string raffleId = 1;
+  string spinId = 2;
+  string winnerId = 3;
+  string winnerName = 4;
+  string prize = 5;
+}
