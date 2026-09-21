@@ -50,7 +50,7 @@
           <span class="status-pill active">Live</span>
         </div>
         <div class="join-box">
-          <input [(ngModel)]="joinedName" placeholder="Add your name to the raffle" />
+          <input [(ngModel)]="joinedName" (keydown.enter)="joinEntry()" placeholder="Add your name to the raffle" />
           <button class="primary-btn" type="button" (click)="joinEntry()">Join</button>
         </div>
 

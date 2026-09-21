@@ -120,11 +120,14 @@ export class RaffleMachinePageComponent implements OnInit {
       .filter(Boolean)
       .map((line, index) => {
         const parts = line.split('•').map((part) => part.trim());
-        const numberPart = parts.length > 1 ? parts[0] : '';
-        const namePart = parts.length > 1 ? parts[1] : parts[0];
+        const starFormat = (parts.length > 1 ? parts[1] : parts[0]).match(/^(\d+)\s*\*\s*(.+)$/);
+        const numberPart = starFormat?.[1] ?? (parts.length > 1 ? parts[0] : '');
+        const namePart = starFormat?.[2] ?? (parts.length > 1 ? parts[1] : parts[0]);
         return {
           name: namePart || 'Player',
-          number: this.raffle?.numberMode === 'ordered'
+          number: starFormat
+            ? numberPart
+            : this.raffle?.numberMode === 'ordered'
             ? /^\d+$/.test(numberPart || '') ? numberPart : this.orderedNumber(index)
             : /^\d+$/.test(numberPart || '')
             ? numberPart as string
@@ -256,8 +259,13 @@ export class RaffleMachinePageComponent implements OnInit {
       return;
     }
 
+    const displayName = rawName.includes('@') ? rawName.split('@')[0] : rawName;
+    if (this.entries.some((entry) => this.normalizeName(entry.name) === this.normalizeName(displayName))) {
+      return;
+    }
+
     this.entries = [...this.entries, {
-      name: rawName.includes('@') ? rawName.split('@')[0] : rawName,
+      name: displayName,
       number: this.raffle?.numberMode === 'ordered' ? this.nextOrderedNumber(this.entries) : this.randomNumber()
     }];
     this.namesText = this.formatEntries();
