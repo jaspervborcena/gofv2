@@ -353,27 +353,6 @@ export class RaffleMachinePageComponent implements OnInit {
     }
   }
 
-  async addWinnerToList(item: DrawItem): Promise<void> {
-    if (this.entries.some((entry) => entry.name === item.winnerName && entry.number === item.drawnNumber)) {
-      return;
-    }
-
-    this.entries = [...this.entries, { name: item.winnerName, number: item.drawnNumber }];
-    this.namesText = this.formatEntries();
-
-    if (this.raffle && !this.raffle.players.some((player) =>
-      player.name === item.winnerName && String(player.assignedNumber).padStart(this.raffle?.digitCount ?? 3, '0') === item.drawnNumber
-    )) {
-      this.raffle.players = [...this.raffle.players, {
-        id: `${this.raffle.id}-${Date.now()}`,
-        name: item.winnerName,
-        assignedNumber: Number(item.drawnNumber),
-        drawn: false
-      }];
-      await this.raffleService.saveRaffle(this.raffle);
-    }
-  }
-
   async removeWinner(): Promise<void> {
     if (!this.winner) {
       return;
