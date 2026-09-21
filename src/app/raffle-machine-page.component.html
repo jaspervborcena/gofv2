@@ -114,6 +114,7 @@
         <ol class="winner-list" *ngIf="gameHistory.length; else emptyWinners">
           <li *ngFor="let item of gameHistory">
             <span>Round {{ item.roundNumber || '—' }} • {{ item.drawnNumber }} • {{ item.winnerName }}</span>
+            <button type="button" class="add-to-list-btn" (click)="addWinnerToList(item)">Add to list</button>
           </li>
         </ol>
       </div>
