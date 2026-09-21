@@ -100,6 +100,10 @@ export class RaffleMachinePageComponent implements OnInit {
     return [...(this.raffle?.history ?? [])].reverse();
   }
 
+  get activeWinners(): DrawItem[] {
+    return this.gameHistory.filter((item) => item.winnerStatus === 'active');
+  }
+
   private formatEntries(): string {
     return this.entries.map((entry) => `${entry.number} • ${entry.name}`).join('\n');
   }
@@ -315,7 +319,10 @@ export class RaffleMachinePageComponent implements OnInit {
               roundNumber: this.nextRoundNumber(),
               winnerName: winner.name,
               drawnNumber: winner.number,
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
+              participantId: this.raffle.players.find((player) => player.name === winner.name && String(player.assignedNumber).padStart(this.raffle?.digitCount ?? 3, '0') === winner.number)?.id,
+              participantName: winner.name,
+              winnerStatus: 'active'
             }
           ];
           this.raffle.lastWinner = winner.name;
@@ -384,12 +391,16 @@ export class RaffleMachinePageComponent implements OnInit {
   }
 
   async addWinnerToList(item: DrawItem): Promise<void> {
-    if (this.entries.some((entry) => entry.name === item.winnerName && entry.number === item.drawnNumber)) {
-      return;
+    if (this.raffle) {
+      this.raffle.history = this.raffle.history.map((historyItem) => historyItem.id === item.id
+        ? { ...historyItem, winnerStatus: 'processed', processedAt: new Date().toISOString() }
+        : historyItem);
     }
 
-    this.entries = [...this.entries, { name: item.winnerName, number: item.drawnNumber }];
-    this.namesText = this.formatEntries();
+    if (!this.entries.some((entry) => entry.name === item.winnerName && entry.number === item.drawnNumber)) {
+      this.entries = [...this.entries, { name: item.winnerName, number: item.drawnNumber }];
+      this.namesText = this.formatEntries();
+    }
 
     if (this.raffle && !this.raffle.players.some((player) =>
       player.name === item.winnerName && String(player.assignedNumber).padStart(this.raffle?.digitCount ?? 3, '0') === item.drawnNumber
@@ -400,9 +411,10 @@ export class RaffleMachinePageComponent implements OnInit {
         assignedNumber: Number(item.drawnNumber),
         drawn: false
       }];
-      if (!this.standaloneRaffle) {
-        await this.raffleService.saveRaffle(this.raffle);
-      }
+    }
+
+    if (this.raffle && !this.standaloneRaffle) {
+      await this.raffleService.saveRaffle(this.raffle);
     }
   }
 

@@ -128,7 +128,10 @@ export class RafflePageComponent implements OnInit {
             roundNumber: this.nextRoundNumber(),
             winnerName: winner.name,
             drawnNumber: this.formatNumber(winner.assignedNumber),
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            participantId: winner.id,
+            participantName: winner.name,
+            winnerStatus: 'active'
           }
         ];
         this.raffle!.remainingDraws = Math.max(0, this.raffle!.remainingDraws - 1);

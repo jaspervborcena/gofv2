@@ -53,6 +53,10 @@ export interface DrawItem {
   winnerName: string;
   drawnNumber: string;
   timestamp: string;
+  participantId?: string;
+  participantName?: string;
+  winnerStatus: 'active' | 'processed';
+  processedAt?: string;
 }
 
 export interface GameHistoryRecord extends DrawItem {
@@ -168,7 +172,11 @@ export class RaffleService {
       try {
         const q = query(collection(this.firestore, 'games'), orderBy('createdAt', 'desc'));
         const snapshot = await getDocs(q);
-        const remoteRaffles = snapshot.docs.map((docSnapshot) => ({ ...(docSnapshot.data() as Raffle), id: docSnapshot.id }));
+        const remoteRaffles = snapshot.docs.map((docSnapshot) => ({
+          ...(docSnapshot.data() as Raffle),
+          id: docSnapshot.id,
+          history: this.normalizeHistory((docSnapshot.data() as Raffle).history ?? [])
+        }));
         const remoteIds = new Set(remoteRaffles.map((raffle) => raffle.id));
         return [...remoteRaffles, ...this.readLocal().filter((raffle) => !remoteIds.has(raffle.id))];
       } catch {
@@ -176,7 +184,10 @@ export class RaffleService {
       }
     }
 
-    return this.readLocal();
+    return this.readLocal().map((raffle) => ({
+      ...raffle,
+      history: this.normalizeHistory(raffle.history ?? [])
+    }));
   }
 
   async saveRaffle(raffle: Raffle): Promise<void> {
@@ -284,6 +295,13 @@ export class RaffleService {
     } catch {
       return [];
     }
+  }
+
+  private normalizeHistory(history: DrawItem[]): DrawItem[] {
+    return history.map((item) => ({
+      ...item,
+      winnerStatus: item.winnerStatus ?? 'active'
+    }));
   }
 
   private writeLocal(raffle: Raffle): void {
