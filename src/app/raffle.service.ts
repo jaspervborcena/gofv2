@@ -10,7 +10,7 @@ import {
   fetchSignInMethodsForEmail
 } from '@angular/fire/auth';
 import type { UserCredential } from 'firebase/auth';
-import { Firestore, collection, doc, getDocs, orderBy, query, setDoc, updateDoc } from '@angular/fire/firestore';
+import { Firestore, collection, doc, getDocs, orderBy, query, setDoc } from '@angular/fire/firestore';
 import { environment } from '../environments/environment';
 
 export type SpinMode = 'simultaneous' | 'per-digit';
@@ -206,8 +206,8 @@ export class RaffleService {
         lastWinner: raffle.lastWinner,
         lastNumber: raffle.lastNumber
       };
-      await updateDoc(doc(this.firestore, 'games', raffle.id), data);
-      await this.syncGameSubcollections(raffle);
+      await setDoc(doc(this.firestore, 'games', raffle.id), data, { merge: true });
+      await this.syncGameCollections(raffle);
       return;
     }
 
@@ -227,8 +227,10 @@ export class RaffleService {
       return [];
     }
 
-    const snapshot = await getDocs(collection(this.firestore, 'games', gameId, 'participants'));
-    return snapshot.docs.map((item) => ({ ...(item.data() as ParticipantRecord), id: item.id }));
+    const snapshot = await getDocs(collection(this.firestore, 'participants'));
+    return snapshot.docs
+      .map((item) => ({ ...(item.data() as ParticipantRecord), id: item.id }))
+      .filter((item) => item.gameId === gameId);
   }
 
   async listGameHistory(gameId: string): Promise<GameHistoryRecord[]> {
@@ -236,12 +238,11 @@ export class RaffleService {
       return [];
     }
 
-    const historyQuery = query(
-      collection(this.firestore, 'games', gameId, 'history'),
-      orderBy('timestamp', 'desc')
-    );
+    const historyQuery = query(collection(this.firestore, 'history'), orderBy('timestamp', 'desc'));
     const snapshot = await getDocs(historyQuery);
-    return snapshot.docs.map((item) => ({ ...(item.data() as GameHistoryRecord), id: item.id }));
+    return snapshot.docs
+      .map((item) => ({ ...(item.data() as GameHistoryRecord), id: item.id }))
+      .filter((item) => item.gameId === gameId);
   }
 
   async createGameInvitation(gameId: string, baseUrl: string): Promise<GameInvitation> {
@@ -254,13 +255,13 @@ export class RaffleService {
     };
 
     if (this.firestoreEnabled) {
-      await setDoc(doc(this.firestore, 'games', gameId, 'invitations', invitation.id), invitation);
+      await setDoc(doc(this.firestore, 'invitations', invitation.id), invitation);
     }
 
     return invitation;
   }
 
-  private async syncGameSubcollections(raffle: Raffle): Promise<void> {
+  private async syncGameCollections(raffle: Raffle): Promise<void> {
     await Promise.all(raffle.players.map((player) => {
       const participant: ParticipantRecord = {
         id: player.id,
@@ -272,7 +273,7 @@ export class RaffleService {
         status: player.drawn ? 'winner' : 'active',
         joinedAt: raffle.createdAt
       };
-      return setDoc(doc(this.firestore, 'games', raffle.id, 'participants', player.id), participant, { merge: true });
+      return setDoc(doc(this.firestore, 'participants', player.id), participant, { merge: true });
     }));
 
     await Promise.all(raffle.history.map((item) => {
@@ -281,7 +282,7 @@ export class RaffleService {
         gameId: raffle.id,
         drawnNumber: item.drawnNumber
       };
-      return setDoc(doc(this.firestore, 'games', raffle.id, 'history', item.id), history, { merge: true });
+      return setDoc(doc(this.firestore, 'history', item.id), history, { merge: true });
     }));
   }
 

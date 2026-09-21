@@ -53,6 +53,8 @@
           <input [(ngModel)]="joinedName" (keydown.enter)="joinEntry()" placeholder="Add your name to the raffle" />
           <button class="primary-btn" type="button" (click)="joinEntry()">Join</button>
         </div>
+        <button class="secondary-btn" type="button" (click)="createInvitation()" *ngIf="!standaloneRaffle">Create invitation</button>
+        <a class="invite-link" [href]="invitationUrl" *ngIf="invitationUrl">{{ invitationUrl }}</a>
 
         <ul class="entry-list">
           <li *ngFor="let entry of entries">

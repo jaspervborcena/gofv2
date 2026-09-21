@@ -20,7 +20,7 @@ interface RaffleEntry {
 export class RaffleMachinePageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly raffleService = inject(RaffleService);
-  private standaloneRaffle = false;
+  standaloneRaffle = false;
   private readonly spinSound = new Audio('/assets/slot-spin.mp3');
   private readonly stopSound = new Audio('/assets/slot-stop.mp3');
   private readonly winSound = new Audio('/assets/slot-win.mp3');
@@ -36,6 +36,7 @@ export class RaffleMachinePageComponent implements OnInit {
   isSpinning = false;
   winner: RaffleEntry | null = null;
   removedMessage = '';
+  invitationUrl = '';
   private removeNoticeTimeout?: number;
   joinedName = '';
   pendingPasteEntries: RaffleEntry[] | null = null;
@@ -115,6 +116,15 @@ export class RaffleMachinePageComponent implements OnInit {
 
   normalizeNamesText(): void {
     this.namesText = this.formatEntries();
+  }
+
+  async createInvitation(): Promise<void> {
+    if (!this.raffle || this.standaloneRaffle) {
+      return;
+    }
+
+    const invitation = await this.raffleService.createGameInvitation(this.raffle.id, window.location.origin);
+    this.invitationUrl = invitation.inviteUrl;
   }
 
   private parseEntries(text: string): RaffleEntry[] {
