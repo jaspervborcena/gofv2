@@ -4,16 +4,20 @@
     <h1 *ngIf="step==='signin'">Enter your password</h1>
     <h1 *ngIf="step==='signup'">Create an account</h1>
 
-    <div *ngIf="step==='email'">
-      <label>Email</label>
-      <input type="email" [(ngModel)]="email" />
-      <label>Password</label>
-      <input type="password" placeholder="Password" [(ngModel)]="password" />
+    <div class="form-content" *ngIf="step==='email'">
+      <div class="field-group">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="email" placeholder="you@example.com" [(ngModel)]="email" />
+      </div>
+      <div class="field-group">
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="Enter your password" [(ngModel)]="password" />
+      </div>
       <div class="actions">
         <button class="primary-btn" (click)="signIn()" [disabled]="loading">Sign in with email</button>
         <button class="google-btn" (click)="signInWithGoogle()" [disabled]="loading">Sign in with Google</button>
         <button class="text-btn" (click)="continue()" [disabled]="loading">Create an account</button>
-        <a routerLink="/">Cancel</a>
+        <a class="cancel-link" routerLink="/">Cancel</a>
       </div>
     </div>
 
@@ -22,7 +26,7 @@
       <input type="password" placeholder="Password" [(ngModel)]="password" />
       <div class="actions">
         <button class="primary-btn" (click)="signIn()" [disabled]="loading">Sign in</button>
-        <a (click)="step='email'">Back</a>
+        <a class="cancel-link" (click)="step='email'">Back</a>
       </div>
     </div>
 
@@ -32,7 +36,7 @@
       <input type="password" placeholder="Confirm password" [(ngModel)]="confirm" />
       <div class="actions">
         <button class="primary-btn" (click)="signUp()" [disabled]="loading">Create account</button>
-        <a (click)="step='email'">Back</a>
+        <a class="cancel-link" (click)="step='email'">Back</a>
       </div>
     </div>
 
