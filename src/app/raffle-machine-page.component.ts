@@ -20,6 +20,7 @@ interface RaffleEntry {
 export class RaffleMachinePageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly raffleService = inject(RaffleService);
+  private standaloneRaffle = false;
   private readonly spinSound = new Audio('/assets/slot-spin.mp3');
   private readonly stopSound = new Audio('/assets/slot-stop.mp3');
   private readonly winSound = new Audio('/assets/slot-win.mp3');
@@ -50,6 +51,25 @@ export class RaffleMachinePageComponent implements OnInit {
     this.route.paramMap.subscribe(async (params) => {
       const gameId = params.get('id');
       if (!gameId) {
+        this.standaloneRaffle = true;
+        this.raffle = {
+          id: `standalone-${Date.now()}`,
+          name: 'Lucky Draws',
+          creatorId: 'standalone',
+          mode: 'simultaneous',
+          numberMode: 'random',
+          digitCount: 3,
+          remarks: 'Winner takes all',
+          players: this.entries.map((entry, index) => ({
+            id: `standalone-player-${index}`,
+            name: entry.name,
+            assignedNumber: Number(entry.number),
+            drawn: false
+          })),
+          history: [],
+          remainingDraws: 10,
+          createdAt: new Date().toISOString()
+        };
         return;
       }
 
@@ -292,7 +312,9 @@ export class RaffleMachinePageComponent implements OnInit {
           ];
           this.raffle.lastWinner = winner.name;
           this.raffle.lastNumber = winner.number;
-          void this.raffleService.saveRaffle(this.raffle);
+          if (!this.standaloneRaffle) {
+            void this.raffleService.saveRaffle(this.raffle);
+          }
         }
         void this.notifyWinner(winner);
       }
@@ -370,7 +392,9 @@ export class RaffleMachinePageComponent implements OnInit {
         assignedNumber: Number(item.drawnNumber),
         drawn: false
       }];
-      await this.raffleService.saveRaffle(this.raffle);
+      if (!this.standaloneRaffle) {
+        await this.raffleService.saveRaffle(this.raffle);
+      }
     }
   }
 
@@ -397,7 +421,9 @@ export class RaffleMachinePageComponent implements OnInit {
       this.raffle.players = this.raffle.players.filter((player) =>
         player.name !== winnerName || String(player.assignedNumber).padStart(this.raffle?.digitCount ?? 3, '0') !== winnerNumber
       );
-      await this.raffleService.saveRaffle(this.raffle);
+      if (!this.standaloneRaffle) {
+        await this.raffleService.saveRaffle(this.raffle);
+      }
     }
   }
 }
