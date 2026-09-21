@@ -125,6 +125,7 @@ export class RafflePageComponent implements OnInit {
           ...this.raffle!.history,
           {
             id: `${this.raffle!.id}-${Date.now()}`,
+            roundNumber: this.nextRoundNumber(),
             winnerName: winner.name,
             drawnNumber: this.formatNumber(winner.assignedNumber),
             timestamp: new Date().toISOString()
@@ -162,6 +163,17 @@ export class RafflePageComponent implements OnInit {
 
   formatNumber(number: number): string {
     return String(number).padStart(this.raffle?.digitCount ?? 3, '0');
+  }
+
+  private nextRoundNumber(): string {
+    const usedRoundNumbers = new Set((this.raffle?.history ?? [])
+      .map((item) => item.roundNumber)
+      .filter((roundNumber): roundNumber is string => !!roundNumber));
+    let roundNumber = '';
+    do {
+      roundNumber = String(Math.floor(100000 + Math.random() * 900000));
+    } while (usedRoundNumbers.has(roundNumber));
+    return roundNumber;
   }
 
   resetRaffle(): void {

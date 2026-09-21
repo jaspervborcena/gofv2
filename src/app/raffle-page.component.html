@@ -65,8 +65,8 @@
       <div class="history-list">
         <div class="history-item" *ngFor="let item of raffle.history.slice().reverse()">
           <div>
-            <strong>#{{ item.drawnNumber }}</strong>
-            <p>{{ item.winnerName }}</p>
+            <strong>Round {{ item.roundNumber || '—' }}</strong>
+            <p>#{{ item.drawnNumber }} • {{ item.winnerName }}</p>
           </div>
           <span>{{ item.timestamp | date:'short' }}</span>
         </div>

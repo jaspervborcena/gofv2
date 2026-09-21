@@ -49,6 +49,7 @@ export interface ParticipantRecord {
 
 export interface DrawItem {
   id: string;
+  roundNumber?: string;
   winnerName: string;
   drawnNumber: string;
   timestamp: string;

@@ -23,6 +23,9 @@ export class RaffleMachinePageComponent implements OnInit {
   private readonly spinSound = new Audio('/assets/slot-spin.mp3');
   private readonly stopSound = new Audio('/assets/slot-stop.mp3');
   private readonly winSound = new Audio('/assets/slot-win.mp3');
+  private spinAudioContext?: AudioContext;
+  private spinOscillator?: OscillatorNode;
+  private spinGain?: GainNode;
 
   raffle: Raffle | null = null;
   gameName = 'Lucky Draws';
@@ -124,6 +127,17 @@ export class RaffleMachinePageComponent implements OnInit {
     const minimum = 10 ** (digitCount - 1);
     const maximum = 10 ** digitCount - 1;
     return String(Math.floor(minimum + Math.random() * (maximum - minimum + 1)));
+  }
+
+  private nextRoundNumber(): string {
+    const usedRoundNumbers = new Set((this.raffle?.history ?? [])
+      .map((item) => item.roundNumber)
+      .filter((roundNumber): roundNumber is string => !!roundNumber));
+    let roundNumber = '';
+    do {
+      roundNumber = String(Math.floor(100000 + Math.random() * 900000));
+    } while (usedRoundNumbers.has(roundNumber));
+    return roundNumber;
   }
 
   private normalizeName(name: string): string {
@@ -237,9 +251,7 @@ export class RaffleMachinePageComponent implements OnInit {
 
     this.isSpinning = true;
     this.winner = null;
-    this.spinSound.currentTime = 0;
-    this.spinSound.loop = true;
-    void this.spinSound.play().catch(() => undefined);
+    this.startSpinAudio();
     const winner = this.entries[Math.floor(Math.random() * this.entries.length)];
     const digits = winner.number.split('');
     const frameCount = 18;
@@ -258,8 +270,7 @@ export class RaffleMachinePageComponent implements OnInit {
       const finalFrame = frameCount + (this.raffle?.mode === 'per-digit' ? (digits.length - 1) * 4 : 0);
       if (frame >= finalFrame) {
         window.clearInterval(interval);
-        this.spinSound.pause();
-        this.spinSound.currentTime = 0;
+        this.stopSpinAudio();
         this.stopSound.currentTime = 0;
         void this.stopSound.play().catch(() => undefined);
         this.reels = digits;
@@ -273,6 +284,7 @@ export class RaffleMachinePageComponent implements OnInit {
             ...this.raffle.history,
             {
               id: `${this.raffle.id}-${Date.now()}`,
+              roundNumber: this.nextRoundNumber(),
               winnerName: winner.name,
               drawnNumber: winner.number,
               timestamp: new Date().toISOString()
@@ -285,6 +297,38 @@ export class RaffleMachinePageComponent implements OnInit {
         void this.notifyWinner(winner);
       }
     }, 120);
+  }
+
+  private startSpinAudio(): void {
+    this.spinSound.currentTime = 0;
+    this.spinSound.loop = true;
+    void this.spinSound.play().catch(() => {
+      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) {
+        return;
+      }
+
+      this.spinAudioContext = this.spinAudioContext ?? new AudioContextClass();
+      void this.spinAudioContext.resume();
+      this.spinOscillator = this.spinAudioContext.createOscillator();
+      this.spinGain = this.spinAudioContext.createGain();
+      this.spinOscillator.type = 'square';
+      this.spinOscillator.frequency.value = 110;
+      this.spinGain.gain.value = 0.035;
+      this.spinOscillator.connect(this.spinGain);
+      this.spinGain.connect(this.spinAudioContext.destination);
+      this.spinOscillator.start();
+    });
+  }
+
+  private stopSpinAudio(): void {
+    this.spinSound.pause();
+    this.spinSound.currentTime = 0;
+    this.spinOscillator?.stop();
+    this.spinOscillator?.disconnect();
+    this.spinGain?.disconnect();
+    this.spinOscillator = undefined;
+    this.spinGain = undefined;
   }
 
   private async notifyWinner(winner: RaffleEntry): Promise<void> {
@@ -337,6 +381,7 @@ export class RaffleMachinePageComponent implements OnInit {
 
     const winnerName = this.winner.name;
     const winnerNumber = this.winner.number;
+    this.winner = null;
     this.removedMessage = `Player {${winnerNumber} • ${winnerName}} has been removed from the game`;
     if (this.removeNoticeTimeout) {
       window.clearTimeout(this.removeNoticeTimeout);
@@ -354,7 +399,5 @@ export class RaffleMachinePageComponent implements OnInit {
       );
       await this.raffleService.saveRaffle(this.raffle);
     }
-
-    this.winner = null;
   }
 }

@@ -96,10 +96,10 @@
         <ol class="history-list" *ngIf="gameHistory.length; else emptyHistory">
           <li *ngFor="let item of gameHistory">
             <div>
-              <strong>{{ item.drawnNumber }} • {{ item.winnerName }}</strong>
+              <strong>Round {{ item.roundNumber || '—' }}</strong>
+              <span>{{ item.drawnNumber }} • {{ item.winnerName }}</span>
               <time [attr.datetime]="item.timestamp">{{ item.timestamp | date:'medium' }}</time>
             </div>
-            <button type="button" class="add-to-list-btn" (click)="addWinnerToList(item)">Add to list</button>
           </li>
         </ol>
       </div>
@@ -113,8 +113,7 @@
         </div>
         <ol class="winner-list" *ngIf="gameHistory.length; else emptyWinners">
           <li *ngFor="let item of gameHistory">
-            <span>{{ item.drawnNumber }} • {{ item.winnerName }}</span>
-            <button type="button" class="add-to-list-btn" (click)="addWinnerToList(item)">Add to list</button>
+            <span>Round {{ item.roundNumber || '—' }} • {{ item.drawnNumber }} • {{ item.winnerName }}</span>
           </li>
         </ol>
       </div>
