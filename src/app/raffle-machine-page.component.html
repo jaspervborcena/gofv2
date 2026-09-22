@@ -71,6 +71,7 @@
         </div>
         <button class="secondary-btn" type="button" (click)="createInvitation()" *ngIf="!standaloneRaffle">Create invitation</button>
         <a class="invite-link" [href]="invitationUrl" *ngIf="invitationUrl">{{ invitationUrl }}</a>
+        <img *ngIf="invitationQrUrl" [src]="invitationQrUrl" alt="Game invitation QR code" class="invite-qr" />
 
         <ul class="entry-list">
           <li *ngFor="let entry of entries">

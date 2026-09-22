@@ -24,25 +24,62 @@ export class GameInvitationPageComponent implements OnInit {
   isJoining = false;
   joined = false;
   assignedNumber = '';
+  isExpired = false;
 
   ngOnInit(): void {
     this.route.paramMap.subscribe(async (params) => {
       const gameId = params.get('id');
       if (!gameId) {
-        this.errorMessage = 'Invitation link is missing a game ID.';
+        await this.router.navigate(['/raffle-unavailable'], {
+          queryParams: {
+            title: 'Invitation unavailable',
+            message: 'This invitation link is missing a game ID.'
+          }
+        });
         return;
       }
 
       const games = await this.raffleService.listRaffles();
       this.game = games.find((item) => item.gameId === gameId || item.id === gameId) ?? null;
       if (!this.game) {
-        this.errorMessage = 'This game invitation is no longer available.';
+        const allGames = await this.raffleService.listRaffles();
+        const expiredGame = allGames.find((item) => item.gameId === gameId || item.id === gameId) ?? null;
+        if (expiredGame) {
+          await this.router.navigate(['/raffle-unavailable'], {
+            queryParams: {
+              title: 'Invitation expired',
+              message: 'This invitation link has expired and is no longer accepting entries.'
+            }
+          });
+          return;
+        }
+        await this.router.navigate(['/raffle-unavailable'], {
+          queryParams: {
+            title: 'Invitation unavailable',
+            message: 'This game invitation is no longer available.'
+          }
+        });
+        return;
+      }
+
+      if (this.game && !this.raffleService.isRaffleActive(this.game)) {
+        await this.router.navigate(['/raffle-unavailable'], {
+          queryParams: {
+            title: 'Invitation expired',
+            message: 'This invitation link has expired and is no longer accepting entries.'
+          }
+        });
       }
     });
   }
 
   async acceptInvitation(): Promise<void> {
-    if (!this.game || !this.name.trim() || this.isJoining) {
+    if (!this.game || this.isExpired) {
+      this.errorMessage = 'This invitation link has expired and can no longer be used.';
+      return;
+    }
+
+    if (!this.name.trim() || this.isJoining) {
       this.errorMessage = 'Enter your name to join the game.';
       return;
     }

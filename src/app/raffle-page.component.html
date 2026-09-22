@@ -16,6 +16,7 @@
       <button [class.active]="activeTab === 'raffle'" (click)="activeTab = 'raffle'">RAFFLE</button>
       <button [class.active]="activeTab === 'players'" (click)="activeTab = 'players'">PLAYERS</button>
       <button [class.active]="activeTab === 'history'" (click)="activeTab = 'history'">HISTORY</button>
+      <button [class.active]="activeTab === 'qr'" (click)="activeTab = 'qr'">QR</button>
     </nav>
 
     <div class="tab-content" *ngIf="activeTab === 'raffle'">
@@ -32,11 +33,11 @@
           <div class="stat-block"><span class="stat-icon">♜</span><div><small>WINNER'S CIRCLE</small><strong>{{ raffle.history.length }}</strong></div></div>
           <div class="panel-divider"></div>
           <div class="detail-list">
-            <p><span>STARTS AT</span>{{ raffle.createdAt | date:'MMM d, y · h:mm a' }}</p>
-            <p><span>ENDS AT</span>{{ raffle.closedAt | date:'MMM d, y · h:mm a' }}</p>
+            <p><span>STARTS AT</span>{{ (raffle.startAt || raffle.createdAt) | date:'MMM d, y · h:mm a' }}</p>
+            <p><span>ENDS AT</span>{{ (raffle.closeAt || raffle.closedAt) | date:'MMM d, y · h:mm a' }}</p>
             <p><span>DRAW MODE</span>{{ raffle.mode === 'per-digit' ? 'Per digit' : 'Simultaneous' }}</p>
           </div>
-          <div class="active-status"><i></i> RAFFLE IS ACTIVE</div>
+          <div class="active-status" [class.inactive-status]="!isRaffleCurrent"><i></i> {{ isRaffleCurrent ? 'RAFFLE IS ACTIVE' : 'RAFFLE EXPIRED' }}</div>
         </aside>
 
         <div class="machine-zone">
@@ -152,13 +153,29 @@
         <ng-template #emptyExcludedWinners><p class="empty-state">No winners have been excluded.</p></ng-template>
       </div>
     </div>
+
+    <div class="tab-content" *ngIf="activeTab === 'qr'">
+      <div class="qr-panel">
+        <p class="eyebrow">INVITATION QR</p>
+        <h2>Share this raffle</h2>
+        <p class="player-help">Scan the code to open the invitation and join this game.</p>
+        <div class="qr-preview" *ngIf="raffle.qrCodeUrl; else qrUnavailable">
+          <img [src]="raffle.qrCodeUrl" [alt]="'QR code for ' + raffle.name" />
+        </div>
+        <ng-template #qrUnavailable>
+          <p class="empty-state">A QR code is not available for this raffle.</p>
+        </ng-template>
+        <a class="invitation-link" *ngIf="raffle.invitationLink" [href]="raffle.invitationLink">{{ raffle.invitationLink }}</a>
+        <a class="primary-btn qr-download" *ngIf="raffle.qrCodeUrl" [href]="raffle.qrCodeUrl" [download]="'game-of-fortunes-' + raffle.gameId + '.png'">Download QR code</a>
+      </div>
+    </div>
   </section>
 </main>
 
 <ng-template #loading>
   <main class="app-shell">
     <section class="raffle-detail">
-      <p class="eyebrow">Loading raffle…</p>
+      <p class="eyebrow">Loading raffle...</p>
     </section>
   </main>
 </ng-template>

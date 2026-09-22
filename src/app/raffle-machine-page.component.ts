@@ -45,6 +45,7 @@ export class RaffleMachinePageComponent implements OnDestroy, OnInit {
   participantSaveMessage = '';
   removedMessage = '';
   invitationUrl = '';
+  invitationQrUrl = '';
   private spinTimers: number[] = [];
   private spinAnimationFrame?: number;
   private participantSaveTimeout?: number;
@@ -108,7 +109,9 @@ export class RaffleMachinePageComponent implements OnDestroy, OnInit {
       }));
       this.gameName = raffle.name;
       this.gameDescription = raffle.remarks || 'Winner takes all';
-      const digitCount = raffle.numberOfDigits ?? raffle.digitCount ?? 3;
+      this.invitationUrl = raffle.invitationLink ?? '';
+      this.invitationQrUrl = raffle.qrCodeUrl ?? '';
+      const digitCount = raffle.digitCount ?? 3;
       this.reels = Array(digitCount).fill('0');
       this.reelPositions = Array(digitCount).fill(0);
       this.entries = raffle.players.filter((player) => player.status !== 'inactive' && player.status !== 'removed').map((player) => ({
@@ -230,8 +233,9 @@ export class RaffleMachinePageComponent implements OnDestroy, OnInit {
       return;
     }
 
-    const invitation = await this.raffleService.createGameInvitation(this.raffle.gameId, this.raffle.gameUid, window.location.origin);
+    const invitation = await this.raffleService.createGameInvitation(this.raffle.gameId, this.raffle.gameUid, environment.appBaseUrl);
     this.invitationUrl = invitation.inviteUrl;
+    this.invitationQrUrl = invitation.qrCodeUrl ?? '';
   }
 
   private parseEntries(text: string): RaffleEntry[] {

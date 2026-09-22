@@ -19,6 +19,8 @@ export class GameSetupPageComponent {
   digitCount = 3;
   numberMode: NumberMode = 'random';
   spinMode: SpinMode = 'simultaneous';
+  startAt = this.toDateTimeLocalValue(new Date());
+  closeAt = this.toDateTimeLocalValue(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
   remarks = '';
   isSaving = false;
   errorMessage = '';
@@ -29,8 +31,11 @@ export class GameSetupPageComponent {
 
   async createGame(): Promise<void> {
     const name = this.gameName.trim();
-    if (!name || this.digitCount < 3 || this.digitCount > 6 || this.isSaving) {
-      this.errorMessage = 'Enter a game name and choose between 3 and 6 digits.';
+    const startDate = new Date(this.startAt);
+    const closeDate = new Date(this.closeAt);
+
+    if (!name || this.digitCount < 3 || this.digitCount > 6 || !this.startAt || !this.closeAt || Number.isNaN(startDate.getTime()) || Number.isNaN(closeDate.getTime()) || closeDate <= startDate || this.isSaving) {
+      this.errorMessage = 'Choose a valid start time and close time. The close time must be after the start time.';
       return;
     }
 
@@ -51,7 +56,9 @@ export class GameSetupPageComponent {
         mode: this.spinMode,
         numberMode: this.numberMode,
         digitCount: this.digitCount,
-        remarks: this.remarks.trim()
+        remarks: this.remarks.trim(),
+        startAt: startDate.toISOString(),
+        closeAt: closeDate.toISOString()
       });
       this.isSaving = false;
       await this.router.navigate(['/raffles', raffle.gameId]);
@@ -59,5 +66,11 @@ export class GameSetupPageComponent {
       this.errorMessage = this.raffleService.getFirestoreErrorMessage(error, 'The game could not be created. Please try again.');
       this.isSaving = false;
     }
+  }
+
+  private toDateTimeLocalValue(date: Date): string {
+    const timezoneOffset = date.getTimezoneOffset() * 60000;
+    const localDate = new Date(date.getTime() - timezoneOffset);
+    return localDate.toISOString().slice(0, 16);
   }
 }

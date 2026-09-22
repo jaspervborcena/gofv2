@@ -12,6 +12,7 @@ import {
 import type { UserCredential } from 'firebase/auth';
 import { Firestore, collection, doc, getDocs, orderBy, query, setDoc, where, writeBatch } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
+import QRCode from 'qrcode';
 import { environment } from '../environments/environment';
 
 export type SpinMode = 'simultaneous' | 'per-digit';
@@ -93,6 +94,8 @@ export interface GameInvitation {
   gameUid: string;
   token: string;
   inviteUrl: string;
+  invitationLink?: string;
+  qrCodeUrl?: string;
   expiresAt?: string;
   createdAt: string;
 }
@@ -106,7 +109,6 @@ export interface Raffle {
   mode: SpinMode;
   numberMode: NumberMode;
   digitCount?: number;
-  numberOfDigits?: number;
   numberStyle?: NumberMode;
   drawMode?: SpinMode;
   remarks?: string;
@@ -114,7 +116,11 @@ export interface Raffle {
   history: DrawItem[];
   remainingDraws: number;
   createdAt: string;
+  startAt: string;
+  closeAt: string;
   closedAt: string;
+  invitationLink?: string;
+  qrCodeUrl?: string;
   lastWinner?: string;
   lastNumber?: string;
 }
@@ -230,19 +236,24 @@ export class RaffleService {
     return await createUserWithEmailAndPassword(this.auth, email, password);
   }
 
-  async createRaffle(input: { name: string; creatorId: string; mode: SpinMode; numberMode: NumberMode; digitCount?: number; remarks?: string }): Promise<Raffle> {
+  async createRaffle(input: { name: string; creatorId: string; mode: SpinMode; numberMode: NumberMode; digitCount?: number; remarks?: string; startAt?: string; closeAt?: string }): Promise<Raffle> {
     const gameUid = this.makeId();
+    const gameId = this.makeGameId();
     const createdAt = new Date().toISOString();
+    const startAtIso = input.startAt ?? createdAt;
+    const closeAtIso = input.closeAt ?? new Date(Date.parse(createdAt) + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const digitCount = this.normalizeDigitCount(input.digitCount);
+    const invitationLink = this.createInvitationLink(gameId);
+    const qrCodeUrl = await QRCode.toDataURL(invitationLink, { width: 240, margin: 1 });
     const raffle: Raffle = {
       id: gameUid,
-      gameId: this.makeGameId(),
+      gameId,
       gameUid,
       name: input.name,
       creatorId: input.creatorId,
       mode: input.mode,
       numberMode: input.numberMode,
-      digitCount: input.digitCount ?? 3,
-      numberOfDigits: input.digitCount ?? 3,
+      digitCount,
       numberStyle: input.numberMode,
       drawMode: input.mode,
       remarks: input.remarks ?? '',
@@ -250,7 +261,11 @@ export class RaffleService {
       history: [],
       remainingDraws: 10,
       createdAt,
-      closedAt: new Date(Date.parse(createdAt) + 7 * 24 * 60 * 60 * 1000).toISOString()
+      startAt: startAtIso,
+      closeAt: closeAtIso,
+      closedAt: closeAtIso,
+      invitationLink,
+      qrCodeUrl
     };
 
     if (this.firestoreEnabled) {
@@ -263,13 +278,16 @@ export class RaffleService {
         mode: raffle.mode,
         numberMode: raffle.numberMode,
         digitCount: raffle.digitCount,
-        numberOfDigits: raffle.numberOfDigits,
         numberStyle: raffle.numberStyle,
         drawMode: raffle.drawMode,
         remarks: raffle.remarks,
         remainingDraws: raffle.remainingDraws,
         createdAt: raffle.createdAt,
-        closedAt: raffle.closedAt
+        startAt: raffle.startAt,
+        closeAt: raffle.closeAt,
+        closedAt: raffle.closeAt,
+        invitationLink: raffle.invitationLink,
+        qrCodeUrl: raffle.qrCodeUrl
       });
       return raffle;
     }
@@ -295,18 +313,22 @@ export class RaffleService {
           id: docSnapshot.id,
           gameUid: docSnapshot.id,
           history: this.normalizeHistory((docSnapshot.data() as Raffle).history ?? [])
-        })).sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+        }))
+          .filter((raffle) => this.isRaffleActive(raffle))
+          .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
         const remoteIds = new Set(remoteRaffles.map((raffle) => raffle.id));
-        return [...remoteRaffles, ...this.readLocal().filter((raffle) => !remoteIds.has(raffle.id))];
+        return [...remoteRaffles, ...this.readLocal().filter((raffle) => !remoteIds.has(raffle.id) && this.isRaffleActive(raffle))];
       } catch {
         // Fall back to games created in this browser when Firebase is unavailable.
       }
     }
 
-    return this.readLocal().map((raffle) => this.normalizeRaffle({
-      ...raffle,
-      history: this.normalizeHistory(raffle.history ?? [])
-    }));
+    return this.readLocal()
+      .map((raffle) => this.normalizeRaffle({
+        ...raffle,
+        history: this.normalizeHistory(raffle.history ?? [])
+      }))
+      .filter((raffle) => this.isRaffleActive(raffle));
   }
 
   async saveRaffle(raffle: Raffle): Promise<void> {
@@ -317,12 +339,15 @@ export class RaffleService {
         mode: raffle.mode,
         numberMode: raffle.numberMode,
         digitCount: raffle.digitCount,
-        numberOfDigits: raffle.digitCount,
         numberStyle: raffle.numberMode,
         drawMode: raffle.mode,
         gameId: raffle.gameId ?? raffle.id,
         gameUid: raffle.gameUid ?? raffle.id,
-        closedAt: raffle.closedAt ?? new Date(Date.parse(raffle.createdAt) + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        startAt: raffle.startAt ?? raffle.createdAt,
+        closeAt: raffle.closeAt ?? raffle.closedAt ?? new Date(Date.parse(raffle.createdAt) + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        closedAt: raffle.closeAt ?? raffle.closedAt ?? new Date(Date.parse(raffle.createdAt) + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        invitationLink: raffle.invitationLink,
+        qrCodeUrl: raffle.qrCodeUrl,
         remarks: raffle.remarks,
         history: raffle.history,
         remainingDraws: raffle.remainingDraws,
@@ -370,12 +395,16 @@ export class RaffleService {
   }
 
   async createGameInvitation(gameId: string, gameUid: string, baseUrl: string): Promise<GameInvitation> {
+    const invitationLink = `${baseUrl.replace(/\/$/, '')}/games/${gameId}/join`;
+    const qrCodeUrl = await QRCode.toDataURL(invitationLink, { width: 240, margin: 1 });
     const invitation: GameInvitation = {
       id: this.makeId(),
       gameId,
       gameUid,
       token: this.makeId(),
-      inviteUrl: `${baseUrl.replace(/\/$/, '')}/games/${gameId}/join`,
+      inviteUrl: invitationLink,
+      invitationLink,
+      qrCodeUrl,
       createdAt: new Date().toISOString()
     };
 
@@ -452,21 +481,49 @@ export class RaffleService {
   }
 
   private normalizeRaffle(raffle: Raffle): Raffle {
-    const digitCount = raffle.numberOfDigits ?? raffle.digitCount ?? 3;
+    const digitCount = this.normalizeDigitCount(raffle.digitCount);
     const numberMode = raffle.numberStyle ?? raffle.numberMode ?? 'random';
     const mode = raffle.drawMode ?? raffle.mode ?? 'simultaneous';
+    const createdAt = this.normalizeDateValue(raffle.createdAt, new Date().toISOString());
+    const fallbackCloseAt = new Date(Date.parse(createdAt) + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const normalizedStartAt = this.normalizeDateValue(raffle.startAt, createdAt);
+    const normalizedCloseAt = this.normalizeDateValue(raffle.closeAt ?? raffle.closedAt, fallbackCloseAt);
     return {
       ...raffle,
       gameId: raffle.gameId ?? raffle.id,
       gameUid: raffle.gameUid ?? raffle.id,
-      closedAt: raffle.closedAt ?? new Date(Date.parse(raffle.createdAt) + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      createdAt,
+      startAt: normalizedStartAt,
+      closeAt: normalizedCloseAt,
+      closedAt: normalizedCloseAt,
+      invitationLink: raffle.invitationLink ?? this.createInvitationLink(raffle.gameId ?? raffle.id),
+      qrCodeUrl: raffle.qrCodeUrl,
       digitCount,
-      numberOfDigits: digitCount,
       numberMode,
       numberStyle: numberMode,
       mode,
-      drawMode: mode
+      drawMode: mode,
+      players: Array.isArray(raffle.players) ? raffle.players : [],
+      history: Array.isArray(raffle.history) ? raffle.history : [],
+      remainingDraws: Number.isFinite(Number(raffle.remainingDraws)) ? Number(raffle.remainingDraws) : 0
     };
+  }
+
+  private normalizeDateValue(value: unknown, fallback: string): string {
+    const candidate = typeof value === 'object' && value !== null && 'toDate' in value
+      ? (value as { toDate: () => Date }).toDate()
+      : value;
+    const parsed = candidate instanceof Date ? candidate.getTime() : Date.parse(String(candidate ?? ''));
+    return Number.isFinite(parsed) ? new Date(parsed).toISOString() : fallback;
+  }
+
+  private createInvitationLink(gameId: string): string {
+    return `${environment.appBaseUrl}/games/${gameId}/join`;
+  }
+
+  private normalizeDigitCount(value: unknown): number {
+    const parsed = Number(value ?? 3);
+    return Number.isFinite(parsed) ? Math.min(6, Math.max(3, Math.floor(parsed))) : 3;
   }
 
   private writeLocal(raffle: Raffle): void {
@@ -489,5 +546,12 @@ export class RaffleService {
 
   private makeGameId(): string {
     return String(Date.now() % 100000000).padStart(8, '0');
+  }
+
+  isRaffleActive(raffle: Pick<Raffle, 'startAt' | 'closeAt' | 'createdAt' | 'closedAt'>): boolean {
+    const startMs = Date.parse(raffle.startAt ?? raffle.createdAt);
+    const closeMs = Date.parse(raffle.closeAt ?? raffle.closedAt ?? raffle.createdAt);
+    const nowMs = Date.now();
+    return nowMs >= startMs && nowMs <= closeMs;
   }
 }

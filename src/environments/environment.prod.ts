@@ -1,11 +1,9 @@
-const isLocalDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-
 export const environment = {
-  production: false,
-  appBaseUrl: 'http://localhost:8080',
-  raffleGrpcHttpUrl: isLocalDev ? 'http://localhost:3001' : 'https://raffle-grpc-http-12420305994.asia-east1.run.app',
+  production: true,
+  appBaseUrl: 'https://www.gameoffortunes.com',
+  raffleGrpcHttpUrl: 'https://raffle-grpc-http-12420305994.asia-east1.run.app',
   firebaseConfig: {
-    apiKey: 'AIzaSyBDzrpzYiaNc2TiCaNWI7cOvIgEVKCFpVs',
+    apiKey: 'AIzaSyBDzrpzYiaNc2TiCaNWIc7OvIgEVKCFpVs',
     authDomain: 'gameoffortunes-32578.firebaseapp.com',
     projectId: 'gameoffortunes-32578',
     storageBucket: 'gameoffortunes-32578.firebasestorage.app',

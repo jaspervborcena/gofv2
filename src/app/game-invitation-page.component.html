@@ -1,5 +1,5 @@
 <main class="invitation-shell">
-  <section class="invitation-card" *ngIf="game && !joined; else invitationState">
+  <section class="invitation-card" *ngIf="game && !joined && !isExpired; else invitationState">
     <a class="back-link" routerLink="/">← Back home</a>
     <p class="eyebrow">Game invitation</p>
     <h1>{{ game.name }}</h1>
@@ -32,6 +32,7 @@
       <h1 *ngIf="joined">Invitation accepted</h1>
       <p class="assigned-number" *ngIf="joined">Your number: <strong>{{ assignedNumber }}</strong></p>
       <p class="error-message" *ngIf="!joined && errorMessage">{{ errorMessage }}</p>
+      <p class="error-message" *ngIf="isExpired">This page has expired. The game is no longer accepting entries.</p>
       <button class="primary-btn" type="button" *ngIf="joined" (click)="openGame()">View game</button>
       <a class="back-link" routerLink="/" *ngIf="!joined">Back home</a>
     </section>

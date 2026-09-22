@@ -2,7 +2,7 @@ import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { gsap } from 'gsap';
 import { BehaviorSubject } from 'rxjs';
 import { DrawItem, NumberMode, Player, Raffle, RaffleService, SpinMode } from './raffle.service';
@@ -17,6 +17,7 @@ import { DrawItem, NumberMode, Player, Raffle, RaffleService, SpinMode } from '.
 export class RafflePageComponent implements OnInit {
   private readonly raffleService = inject(RaffleService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly spinSound = new Audio('/assets/slot-spin.mp3');
   private readonly stopSound = new Audio('/assets/slot-stop.mp3');
   private readonly winSound = new Audio('/assets/slot-win.mp3');
@@ -24,7 +25,7 @@ export class RafflePageComponent implements OnInit {
 
   raffle: Raffle | null = null;
   isPreviewRaffle = false;
-  activeTab: 'raffle' | 'players' | 'history' = 'raffle';
+  activeTab: 'raffle' | 'players' | 'history' | 'qr' = 'raffle';
   activePlayersTab: 'names' | 'text' = 'names';
   historySubTab: 'history' | 'winners' = 'history';
   playersText = '';
@@ -62,6 +63,10 @@ export class RafflePageComponent implements OnInit {
 
   get hasParticipantPagination(): boolean {
     return this.activePlayers.length > this.participantPageSize;
+  }
+
+  get isRaffleCurrent(): boolean {
+    return !!this.raffle && this.raffleService.isRaffleActive(this.raffle);
   }
 
   @HostListener('window:resize')
@@ -111,7 +116,17 @@ export class RafflePageComponent implements OnInit {
         const digitCount = this.raffle.digitCount ?? 3;
         this.reelPositions = Array(digitCount).fill(0);
         this.reels = Array(digitCount).fill('0');
+        return;
       }
+
+      this.isPreviewRaffle = false;
+      this.raffleState$.next(null);
+      await this.router.navigate(['/raffle-unavailable'], {
+        queryParams: {
+          title: 'Raffle unavailable',
+          message: 'This raffle could not be found, has expired, or is no longer available.'
+        }
+      });
     });
   }
 
@@ -454,6 +469,8 @@ export class RafflePageComponent implements OnInit {
       history: [],
       remainingDraws: players.length,
       createdAt: now.toISOString(),
+      startAt: now.toISOString(),
+      closeAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       closedAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
     };
   }

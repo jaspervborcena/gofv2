@@ -14,6 +14,16 @@
       </label>
 
       <label>
+        Start time
+        <input [(ngModel)]="startAt" name="startAt" type="datetime-local" required />
+      </label>
+
+      <label>
+        Close time
+        <input [(ngModel)]="closeAt" name="closeAt" type="datetime-local" required />
+      </label>
+
+      <label>
         Number of digits
         <select [(ngModel)]="digitCount" name="digitCount">
           <option [ngValue]="3">3 digits</option>

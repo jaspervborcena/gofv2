@@ -48,11 +48,17 @@ export class HomePageComponent implements OnInit {
       return;
     }
 
+    const now = new Date();
+    const startAt = now.toISOString();
+    const closeAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
     const created = await this.raffleService.createRaffle({
       name: this.draftName.trim(),
       creatorId,
       mode: this.draftMode,
-      numberMode: this.playerNumberMode
+      numberMode: this.playerNumberMode,
+      startAt,
+      closeAt
     });
 
     this.draftName = '';
