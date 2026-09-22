@@ -28,6 +28,8 @@ export class RafflePageComponent implements OnInit {
   editorText = '';
   joinedName = '';
   participantSaveMessage = '';
+  exclusionMessage = '';
+  private exclusionMessageTimeout?: number;
   playerNumberMode: NumberMode = 'random';
   reels = ['🎰', '🎰', '🎰'];
   reelStrip = Array.from({ length: 100 }, (_, index) => index % 10);
@@ -223,18 +225,26 @@ export class RafflePageComponent implements OnInit {
     return (this.raffle?.history ?? []).filter((item) => item.excludedFromList === true);
   }
 
-  async restoreWinner(participantId?: string): Promise<void> {
+  async restoreWinner(historyId?: string): Promise<void> {
     if (!this.raffle) {
       return;
     }
 
-    this.raffle.history = this.raffle.history.map((item) => item.participantId === participantId
+    const historyItem = this.raffle.history.find((item) => item.id === historyId);
+    if (!historyItem) {
+      return;
+    }
+
+    this.raffle.history = this.raffle.history.map((item) => item.id === historyId
       ? { ...item, excludedFromList: false }
       : item);
-    this.raffle.players = this.raffle.players.map((player) => player.id === participantId
-      ? { ...player, drawn: false, status: 'active' }
-      : player);
+    this.raffle.players = this.raffle.players.map((player) =>
+      player.id === historyItem.participantId
+      || (player.name === historyItem.winnerName && this.formatNumber(player.assignedNumber) === historyItem.drawnNumber)
+        ? { ...player, drawn: false, status: 'active' }
+        : player);
     this.editorText = this.formatEditorText();
+      this.showExclusionMessage(`Restored ${historyItem.drawnNumber} • ${historyItem.winnerName} to the participant list.`);
     await this.raffleService.saveRaffle(this.raffle);
   }
 
@@ -252,12 +262,31 @@ export class RafflePageComponent implements OnInit {
     }
 
     const item = this.raffle.history[historyIndex];
-    this.raffle.history[historyIndex] = { ...item, excludedFromList: true };
-    this.raffle.players = this.raffle.players.map((player) => player.id === item.participantId
+    const winnerPlayer = this.raffle.players.find((player) =>
+      player.id === item.participantId
+      || (player.name === item.winnerName && this.formatNumber(player.assignedNumber) === item.drawnNumber));
+    this.raffle.history[historyIndex] = {
+      ...item,
+      excludedFromList: true,
+      participantId: item.participantId ?? winnerPlayer?.id
+    };
+    this.raffle.players = this.raffle.players.map((player) => player.id === winnerPlayer?.id
       ? { ...player, drawn: true, status: 'winner' }
       : player);
     this.editorText = this.formatEditorText();
+    this.showExclusionMessage(`Excluded ${item.drawnNumber} • ${item.winnerName} from the participant list.`);
     await this.raffleService.saveRaffle(this.raffle);
+  }
+
+  private showExclusionMessage(message: string): void {
+    this.exclusionMessage = message;
+    if (this.exclusionMessageTimeout) {
+      window.clearTimeout(this.exclusionMessageTimeout);
+    }
+    this.exclusionMessageTimeout = window.setTimeout(() => {
+      this.exclusionMessage = '';
+      this.exclusionMessageTimeout = undefined;
+    }, 2000);
   }
 
   async updateMode(mode: SpinMode): Promise<void> {

@@ -54,6 +54,7 @@
             <div class="reel-lights"></div>
           </div>
 
+          <p class="exclusion-message" *ngIf="exclusionMessage" role="status">{{ exclusionMessage }}</p>
           <div class="draw-result" *ngIf="lastWinner">
             <h3>Winner revealed</h3>
           <p class="winner-text"><strong>{{ lastWinner.number }}</strong> • {{ lastWinner.name }}</p>
@@ -137,7 +138,7 @@
       <div class="player-panel" *ngIf="historySubTab === 'winners'">
         <h2>Excluded Winners</h2><p class="player-help">Winners temporarily excluded from the participant list</p>
         <div class="history-list" *ngIf="excludedWinners.length; else emptyExcludedWinners">
-          <div class="history-item" *ngFor="let item of excludedWinners"><span>#{{ item.drawnNumber }} • {{ item.winnerName }}</span><button class="secondary-btn" type="button" (click)="restoreWinner(item.participantId)">Add to list</button></div>
+          <div class="history-item" *ngFor="let item of excludedWinners"><span>#{{ item.drawnNumber }} • {{ item.winnerName }}</span><button class="secondary-btn" type="button" (click)="restoreWinner(item.id)">Add to list</button></div>
         </div>
         <ng-template #emptyExcludedWinners><p class="empty-state">No winners have been excluded.</p></ng-template>
       </div>

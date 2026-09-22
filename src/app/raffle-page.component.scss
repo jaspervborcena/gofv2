@@ -552,6 +552,7 @@ textarea,
 .pagination button:disabled { opacity: 0.35; cursor: not-allowed; }
 .player-panel textarea { min-height: 220px; resize: vertical; font: 1rem/1.7 'Courier New', monospace; }
 .save-message { margin: 0; color: #86efac; font-weight: 700; }
+.exclusion-message { margin: 0.45rem auto; padding: 0.55rem 0.8rem; border: 1px solid rgba(255, 207, 77, 0.55); border-radius: 10px; color: #ffe28a; background: rgba(31, 13, 38, 0.96); text-align: center; font-size: 0.75rem; font-weight: 700; }
 
 @media (max-width: 600px) {
   .player-tabs { flex-wrap: nowrap; overflow-x: auto; }
