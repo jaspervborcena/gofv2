@@ -1,14 +1,15 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { gsap } from 'gsap';
-import { NumberMode, Player, Raffle, RaffleService, SpinMode } from './raffle.service';
+import { DrawItem, NumberMode, Player, Raffle, RaffleService, SpinMode } from './raffle.service';
 
 @Component({
   selector: 'app-raffle-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './raffle-page.component.html',
   styleUrl: './raffle-page.component.scss'
 })
@@ -21,25 +22,80 @@ export class RafflePageComponent implements OnInit {
 
   raffle: Raffle | null = null;
   activeTab: 'raffle' | 'players' | 'history' = 'raffle';
+  activePlayersTab: 'names' | 'text' = 'names';
+  historySubTab: 'history' | 'winners' = 'history';
   playersText = '';
+  editorText = '';
+  joinedName = '';
+  participantSaveMessage = '';
   playerNumberMode: NumberMode = 'random';
   reels = ['🎰', '🎰', '🎰'];
+  reelStrip = Array.from({ length: 100 }, (_, index) => index % 10);
   reelPositions = [0, 0, 0];
   lastWinner: { name: string; number: string } | null = null;
   isSpinning = false;
   spinProgress = 0;
+  leftPanelOpen = false;
+  rightPanelOpen = false;
+  participantPage = 1;
+  participantPageSize = 20;
+
+  get activePlayers(): Player[] {
+    return (this.raffle?.players ?? []).filter((player) => !player.drawn);
+  }
+
+  get visiblePlayers(): Player[] {
+    const start = (this.participantPage - 1) * this.participantPageSize;
+    return this.activePlayers.slice(start, start + this.participantPageSize);
+  }
+
+  get participantPageCount(): number {
+    return Math.max(1, Math.ceil(this.activePlayers.length / this.participantPageSize));
+  }
+
+  get hasParticipantPagination(): boolean {
+    return this.activePlayers.length > this.participantPageSize;
+  }
+
+  @HostListener('window:resize')
+  updateParticipantPageSize(): void {
+    this.participantPageSize = window.innerWidth <= 600 ? 10 : 20;
+    this.participantPage = Math.min(this.participantPage, this.participantPageCount);
+  }
+
+  goToParticipantPage(page: number): void {
+    this.participantPage = Math.max(1, Math.min(page, this.participantPageCount));
+  }
+
+  togglePanel(panel: 'left' | 'right'): void {
+    if (panel === 'left') {
+      this.leftPanelOpen = !this.leftPanelOpen;
+      this.rightPanelOpen = false;
+      return;
+    }
+
+    this.rightPanelOpen = !this.rightPanelOpen;
+    this.leftPanelOpen = false;
+  }
 
   ngOnInit(): void {
+    this.updateParticipantPageSize();
     this.route.paramMap.subscribe(async (params) => {
       const id = params.get('id');
       if (!id) {
+        this.raffle = this.createPreviewRaffle();
+        this.playersText = this.raffle.players.map((player) => player.name).join('\n');
+        this.editorText = this.formatEditorText();
+        this.reelPositions = Array(this.raffle.digitCount ?? 3).fill(0);
+        this.reels = Array(this.raffle.digitCount ?? 3).fill('0');
         return;
       }
 
       const raffles = await this.raffleService.listRaffles();
-      this.raffle = raffles.find((item) => item.id === id) ?? null;
+      this.raffle = raffles.find((item) => item.id === id || item.gameId === id) ?? null;
       if (this.raffle) {
         this.playersText = this.raffle.players.map((player) => player.name).join('\n');
+        this.editorText = this.formatEditorText();
         this.playerNumberMode = this.raffle.numberMode;
         const digitCount = this.raffle.digitCount ?? 3;
         this.reelPositions = Array(digitCount).fill(0);
@@ -53,19 +109,154 @@ export class RafflePageComponent implements OnInit {
       return;
     }
 
-    const names = this.playersText
-      .split('\n')
-      .map((name) => name.trim())
-      .filter(Boolean);
+    this.assignMissingNumbers();
 
-    this.raffle.players = names.map((name, index) => ({
+    const entries = this.editorText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line, index) => {
+        const parts = line.split('•').map((part) => part.trim());
+        const explicitNumber = parts.length > 1 && /^\d+$/.test(parts[0]) ? Number(parts[0]) : null;
+        return {
+          name: explicitNumber === null ? parts[0] : parts.slice(1).join(' • '),
+          assignedNumber: explicitNumber ?? (this.playerNumberMode === 'ordered' ? index + 1 : this.createRandomNumber())
+        };
+      });
+
+    const names = entries.map((entry) => entry.name);
+    this.playersText = names.join('\n');
+    this.raffle.players = entries
+      .filter((entry) => entry.name)
+      .map((entry, index) => ({
       id: `${this.raffle!.id}-${index}`,
-      name,
-      assignedNumber: this.playerNumberMode === 'ordered' ? index + 1 : this.createRandomNumber(),
+      name: entry.name,
+      assignedNumber: entry.assignedNumber,
       drawn: false
     }));
+    this.editorText = this.formatEditorText();
+    this.participantPage = 1;
     this.raffle.remainingDraws = Math.max(this.raffle.remainingDraws, this.raffle.players.length);
     this.raffle.numberMode = this.playerNumberMode;
+    await this.raffleService.saveRaffle(this.raffle);
+    this.participantSaveMessage = 'Participants saved';
+  }
+
+  assignMissingNumbers(): void {
+    if (!this.raffle || !this.editorText.trim()) {
+      return;
+    }
+
+    const usedNumbers = new Set<number>();
+    let nextOrderedNumber = 1;
+    const lines = this.editorText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    this.editorText = lines.map((line, index) => {
+      const parts = line.split('•').map((part) => part.trim());
+      const explicitNumber = parts.length > 1 && /^\d+$/.test(parts[0]) ? Number(parts[0]) : null;
+      const name = explicitNumber === null ? parts[0] : parts.slice(1).join(' • ');
+      if (explicitNumber !== null) {
+        usedNumbers.add(explicitNumber);
+        nextOrderedNumber = Math.max(nextOrderedNumber, explicitNumber + 1);
+      }
+      let assignedNumber = explicitNumber;
+      if (assignedNumber === null) {
+        if (this.playerNumberMode === 'ordered') {
+          while (usedNumbers.has(nextOrderedNumber)) {
+            nextOrderedNumber += 1;
+          }
+          assignedNumber = nextOrderedNumber;
+          nextOrderedNumber += 1;
+        } else {
+          assignedNumber = this.createRandomNumber(usedNumbers);
+        }
+      }
+      usedNumbers.add(assignedNumber);
+      return `${this.formatNumber(assignedNumber)} • ${name}`;
+    }).join('\n');
+  }
+
+  async joinEntry(): Promise<void> {
+    const name = this.joinedName.trim();
+    if (!this.raffle || !name) {
+      return;
+    }
+
+    const assignedNumber = this.playerNumberMode === 'ordered'
+      ? this.raffle.players.length + 1
+      : this.createRandomNumber();
+    this.raffle.players = [...this.raffle.players, {
+      id: `${this.raffle.id}-${Date.now()}`,
+      name,
+      assignedNumber,
+      drawn: false
+    }];
+    this.joinedName = '';
+    this.playersText = this.raffle.players.map((player) => player.name).join('\n');
+    this.editorText = this.formatEditorText();
+    this.participantPage = this.participantPageCount;
+    this.raffle.remainingDraws = Math.max(this.raffle.remainingDraws, this.raffle.players.length);
+    await this.raffleService.saveRaffle(this.raffle);
+  }
+
+  setPlayerNumberMode(mode: NumberMode): void {
+    this.playerNumberMode = mode;
+    if (!this.raffle) {
+      return;
+    }
+
+    const usedNumbers = new Set<number>();
+    this.raffle.players = this.raffle.players.map((player, index) => {
+      const assignedNumber = mode === 'ordered'
+        ? index + 1
+        : this.createRandomNumber(usedNumbers);
+      usedNumbers.add(assignedNumber);
+      return { ...player, assignedNumber };
+    });
+    this.editorText = this.formatEditorText();
+  }
+
+  get excludedWinners(): DrawItem[] {
+    return (this.raffle?.history ?? []).filter((item) => item.excludedFromList === true);
+  }
+
+  async restoreWinner(participantId?: string): Promise<void> {
+    if (!this.raffle) {
+      return;
+    }
+
+    this.raffle.history = this.raffle.history.map((item) => item.participantId === participantId
+      ? { ...item, excludedFromList: false }
+      : item);
+    this.raffle.players = this.raffle.players.map((player) => player.id === participantId
+      ? { ...player, drawn: false, status: 'active' }
+      : player);
+    this.editorText = this.formatEditorText();
+    await this.raffleService.saveRaffle(this.raffle);
+  }
+
+  async excludeLastWinner(): Promise<void> {
+    if (!this.raffle || !this.lastWinner) {
+      return;
+    }
+
+    const historyIndex = [...this.raffle.history]
+      .map((item, index) => ({ item, index }))
+      .reverse()
+      .find(({ item }) => item.winnerName === this.lastWinner!.name && item.drawnNumber === this.lastWinner!.number)?.index;
+    if (historyIndex === undefined) {
+      return;
+    }
+
+    const item = this.raffle.history[historyIndex];
+    this.raffle.history[historyIndex] = { ...item, excludedFromList: true };
+    this.raffle.players = this.raffle.players.map((player) => player.id === item.participantId
+      ? { ...player, drawn: true, status: 'winner' }
+      : player);
+    this.editorText = this.formatEditorText();
     await this.raffleService.saveRaffle(this.raffle);
   }
 
@@ -98,7 +289,7 @@ export class RafflePageComponent implements OnInit {
 
     const digitStates = targetReels.map(() => ({ spinPos: 0 }));
     const spinSpeed = 50; // very fast rotations per second - shows lots of number changes
-    const maxSpinPos = (8 / 1000) * spinSpeed * 10 * 1000; // position at end of spin phase
+    const maxSpinPos = 80; // rows, kept within the repeated reel strip
 
     // Create GSAP timeline
     const tl = gsap.timeline({
@@ -157,19 +348,56 @@ export class RafflePageComponent implements OnInit {
     });
   }
 
-  private createRandomNumber(): number {
+  private createRandomNumber(usedNumbers?: Set<number>): number {
     const digitCount = this.raffle?.digitCount ?? 3;
     const minimum = 10 ** (digitCount - 1);
     const maximum = 10 ** digitCount - 1;
-    return Math.floor(minimum + Math.random() * (maximum - minimum + 1));
+    let number = Math.floor(minimum + Math.random() * (maximum - minimum + 1));
+    while (usedNumbers?.has(number)) {
+      number = Math.floor(minimum + Math.random() * (maximum - minimum + 1));
+    }
+    return number;
   }
 
   formatNumber(number: number): string {
     return String(number).padStart(this.raffle?.digitCount ?? 3, '0');
   }
 
+  private formatEditorText(): string {
+    return (this.raffle?.players ?? [])
+      .map((player) => `${this.formatNumber(player.assignedNumber)} • ${player.name}`)
+      .join('\n');
+  }
+
   private nextRoundNumber(): string {
     return String((this.raffle?.history.length ?? 0) + 1);
+  }
+
+  private createPreviewRaffle(): Raffle {
+    const now = new Date();
+    const players: Player[] = [
+      { id: 'preview-1', name: 'Mina', assignedNumber: 248, drawn: false },
+      { id: 'preview-2', name: 'Drew', assignedNumber: 731, drawn: false },
+      { id: 'preview-3', name: 'Lina', assignedNumber: 564, drawn: false },
+      { id: 'preview-4', name: 'Kai', assignedNumber: 902, drawn: false }
+    ];
+
+    return {
+      id: 'preview-raffle',
+      gameId: 'preview-raffle',
+      gameUid: 'preview-raffle',
+      name: 'Lucky Draws',
+      creatorId: 'preview',
+      mode: 'simultaneous',
+      numberMode: 'ordered',
+      digitCount: 3,
+      remarks: 'Winner takes all',
+      players,
+      history: [],
+      remainingDraws: players.length,
+      createdAt: now.toISOString(),
+      closedAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    };
   }
 
   resetRaffle(): void {

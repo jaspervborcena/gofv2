@@ -23,6 +23,10 @@ export class GameSetupPageComponent {
   isSaving = false;
   errorMessage = '';
 
+  get requiresSignIn(): boolean {
+    return this.errorMessage === 'Please sign in before creating a game.';
+  }
+
   async createGame(): Promise<void> {
     const name = this.gameName.trim();
     if (!name || this.digitCount < 3 || this.digitCount > 6 || this.isSaving) {

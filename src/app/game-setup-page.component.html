@@ -48,7 +48,13 @@
         <textarea [(ngModel)]="remarks" name="remarks" rows="4" maxlength="500" placeholder="Add game details or instructions for participants"></textarea>
       </label>
 
-      <p class="error-message" *ngIf="errorMessage">{{ errorMessage }}</p>
+      <p class="error-message" *ngIf="errorMessage">
+        <ng-container *ngIf="!requiresSignIn; else signInPrompt">{{ errorMessage }}</ng-container>
+        <ng-template #signInPrompt>
+          Please sign in before creating a game.
+          <a routerLink="/signin" [queryParams]="{ returnUrl: '/games/new' }">Sign in now</a>
+        </ng-template>
+      </p>
       <button class="primary-btn" type="submit" [disabled]="isSaving">
         {{ isSaving ? 'Creating game...' : 'Create game' }}
       </button>

@@ -1,75 +1,145 @@
 <main class="app-shell" *ngIf="raffle; else loading">
   <section class="raffle-detail">
-    <div class="detail-header">
-      <div>
-        <p class="eyebrow">{{ raffle.name }}</p>
-        <h2>{{ raffle.name }}</h2>
-        <p class="game-remarks"><strong>Description:</strong> {{ raffle.remarks || 'Winner takes all' }}</p>
+    <div class="game-topbar">
+      <a class="brand-button" routerLink="/" aria-label="Go to Game of Fortunes home">
+        <img src="assets/gofv2logo.png" alt="Game of Fortunes" />
+      </a>
+      <div class="game-title">
+        <p class="eyebrow">LIVE RAFFLE</p>
+        <h1>{{ raffle.name }}</h1>
+        <span>ROLL · REVEAL · WIN</span>
       </div>
+      <a class="sound-button create-game-button" routerLink="/games/new" aria-label="Create a new game">⌁</a>
     </div>
 
-    <div class="tabs">
+    <nav class="tabs">
       <button [class.active]="activeTab === 'raffle'" (click)="activeTab = 'raffle'">RAFFLE</button>
       <button [class.active]="activeTab === 'players'" (click)="activeTab = 'players'">PLAYERS</button>
       <button [class.active]="activeTab === 'history'" (click)="activeTab = 'history'">HISTORY</button>
-    </div>
+    </nav>
 
     <div class="tab-content" *ngIf="activeTab === 'raffle'">
-      <div class="slot-machine-container">
-        <div class="slot-machine" [style.gridTemplateColumns]="'repeat(' + reelPositions.length + ', minmax(0, 1fr))'">
-          <div class="reel-column" *ngFor="let pos of reelPositions; let i = index">
-            <div class="reel-tape" [style.transform]="'translateY(' + (-pos * 60) + 'px)'">
-              <div class="reel-item" *ngFor="let num of [0,1,2,3,4,5,6,7,8,9]">{{ num }}</div>
-            </div>
-            <div class="reel-mask"></div>
-          </div>
-        </div>
-        <div class="reel-lights"></div>
+      <div class="mobile-actions">
+        <button type="button" (click)="togglePanel('left')">☰ Details</button>
+        <button type="button" (click)="togglePanel('right')">♛ Winners</button>
       </div>
 
-      <div class="draw-result" *ngIf="lastWinner">
-        <h3>🎉 Winner revealed</h3>
+      <div class="raffle-stage">
+        <aside class="side-panel left-panel" [class.open]="leftPanelOpen">
+          <div class="panel-heading"><span>♛</span><h2>RAFFLE DETAILS</h2><button type="button" class="close-panel" (click)="togglePanel('left')">×</button></div>
+          <div class="stat-block"><span class="stat-icon">♟</span><div><small>ELIGIBLE PLAYERS</small><strong>{{ raffle.players.length | number }}</strong></div></div>
+          <div class="stat-block"><span class="stat-icon">✹</span><div><small>TOTAL ENTRIES</small><strong>{{ raffle.players.length | number }}</strong></div></div>
+          <div class="stat-block"><span class="stat-icon">♜</span><div><small>WINNER'S CIRCLE</small><strong>{{ raffle.history.length }}</strong></div></div>
+          <div class="panel-divider"></div>
+          <div class="detail-list">
+            <p><span>STARTS AT</span>{{ raffle.createdAt | date:'MMM d, y · h:mm a' }}</p>
+            <p><span>ENDS AT</span>{{ raffle.closedAt | date:'MMM d, y · h:mm a' }}</p>
+            <p><span>DRAW MODE</span>{{ raffle.mode === 'per-digit' ? 'Per digit' : 'Simultaneous' }}</p>
+          </div>
+          <div class="active-status"><i></i> RAFFLE IS ACTIVE</div>
+        </aside>
+
+        <div class="machine-zone">
+          <div class="machine-label">{{ raffle.remarks || 'YOUR LUCKY NUMBER IS WAITING' }}</div>
+          <div class="slot-machine-container">
+            <div class="machine-crown">♛</div>
+            <div class="slot-machine" [style.gridTemplateColumns]="'repeat(' + reelPositions.length + ', minmax(0, 1fr))'">
+              <div class="reel-column" *ngFor="let pos of reelPositions">
+                <div class="reel-tape" [style.transform]="'translateY(' + (48 - pos * 60) + 'px)'">
+                  <div class="reel-item" *ngFor="let num of reelStrip">{{ num }}</div>
+                </div>
+                <div class="reel-mask"></div>
+              </div>
+            </div>
+            <div class="reel-lights"></div>
+          </div>
+
+          <div class="draw-result" *ngIf="lastWinner">
+            <h3>Winner revealed</h3>
           <p class="winner-text"><strong>{{ lastWinner.number }}</strong> • {{ lastWinner.name }}</p>
+            <button class="secondary-btn" type="button" (click)="excludeLastWinner()">Exclude winner</button>
+          </div>
+          <div class="controls">
+            <button class="primary-btn spin-btn" [disabled]="isSpinning" (click)="spin()">
+              <span *ngIf="!isSpinning">🎰 SPIN TO WIN</span>
+              <span *ngIf="isSpinning">SPINNING...</span>
+            </button>
+            <button class="secondary-btn" [disabled]="isSpinning" (click)="resetRaffle()">↺ Reset</button>
+          </div>
+        </div>
+
+        <aside class="side-panel right-panel" [class.open]="rightPanelOpen">
+          <div class="panel-heading"><span>♛</span><h2>RECENT WINNERS</h2><button type="button" class="close-panel" (click)="togglePanel('right')">×</button></div>
+          <div class="winner-list" *ngIf="raffle.history.length; else noWinners">
+            <div class="winner-row" *ngFor="let item of raffle.history.slice().reverse().slice(0, 5)">
+              <span class="winner-avatar">{{ item.winnerName.charAt(0) }}</span>
+              <div><strong>{{ item.winnerName }}</strong><b>{{ item.drawnNumber }}</b><small>{{ item.timestamp | date:'MMM d, y · h:mm a' }}</small></div>
+              <span class="winner-arrow">›</span>
+            </div>
+          </div>
+          <ng-template #noWinners><p class="empty-panel">Your first winner will appear here after the draw.</p></ng-template>
+          <button class="view-winners" type="button" (click)="activeTab = 'history'">♟ VIEW ALL WINNERS</button>
+        </aside>
       </div>
-      <div class="controls">
-        <button class="primary-btn spin-btn" [disabled]="isSpinning" (click)="spin()">
-          <span *ngIf="!isSpinning">▶ SPIN</span>
-          <span *ngIf="isSpinning">🎰 SPINNING...</span>
-        </button>
-        <button class="secondary-btn" [disabled]="isSpinning" (click)="resetRaffle()">↺ Reset</button>
+
+      <div class="feature-strip">
+        <div><b>✦</b><span><strong>100% FAIR</strong>Random &amp; transparent draw</span></div>
+        <div><b>♙</b><span><strong>SECURE</strong>Your data is safe with us</span></div>
+        <div><b>◉</b><span><strong>LIVE DRAW</strong>Real-time draw experience</span></div>
+        <div><b>ϟ</b><span><strong>INSTANT WIN</strong>Winners are announced immediately</span></div>
+        <div><b>✹</b><span><strong>TRUSTED</strong>Thousands of happy participants</span></div>
       </div>
     </div>
 
     <div class="tab-content" *ngIf="activeTab === 'players'">
-      <textarea [(ngModel)]="playersText" rows="8" [placeholder]="'Paste player names, one per line. Numbers will be ' + (raffle.numberMode === 'ordered' ? 'sequential.' : 'randomly generated.')"></textarea>
-      <div class="mode-row">
-        <button [class.active]="playerNumberMode === 'random'" (click)="playerNumberMode = 'random'">🎲 Random</button>
-        <button [class.active]="playerNumberMode === 'ordered'" (click)="playerNumberMode = 'ordered'">📋 Ordered</button>
+      <div class="player-tabs">
+        <button [class.active]="activePlayersTab === 'names'" (click)="activePlayersTab = 'names'">🎯 Participant names</button>
+        <button [class.active]="activePlayersTab === 'text'" (click)="activePlayersTab = 'text'">📋 Participant list editor</button>
       </div>
-      <div class="mode-row">
-        <button [class.active]="raffle.mode === 'simultaneous'" (click)="updateMode('simultaneous')">⚡ Simultaneous</button>
-        <button [class.active]="raffle.mode === 'per-digit'" (click)="updateMode('per-digit')">🎯 Per Digit</button>
-      </div>
-      <button class="primary-btn wide" (click)="savePlayers()">Save Players</button>
 
-      <div class="player-list">
-        <div class="player-row" *ngFor="let player of raffle.players">
-          <span>{{ player.name }}</span>
-          <span class="number-pill">#{{ formatNumber(player.assignedNumber) }}</span>
-          <span class="drawn-pill" *ngIf="player.drawn">DRAWN</span>
+      <div class="player-panel" *ngIf="activePlayersTab === 'names'">
+        <div class="player-panel-heading"><div><h2>🎯 Participant names</h2><p>{{ raffle.players.length }} players joined</p></div><span class="live-pill">Live</span></div>
+        <div class="join-row"><input [(ngModel)]="joinedName" (keydown.enter)="joinEntry()" placeholder="Add your name to the raffle" /><button class="primary-btn" type="button" (click)="joinEntry()">Join</button></div>
+        <div class="player-list">
+          <div class="player-row" *ngFor="let player of visiblePlayers">
+            <span><i class="player-dot"></i>{{ formatNumber(player.assignedNumber) }} • {{ player.name }}</span>
+          </div>
+        </div>
+        <div class="pagination" *ngIf="hasParticipantPagination">
+          <button type="button" [disabled]="participantPage === 1" (click)="goToParticipantPage(participantPage - 1)">‹</button>
+          <span>Page {{ participantPage }} of {{ participantPageCount }}</span>
+          <button type="button" [disabled]="participantPage === participantPageCount" (click)="goToParticipantPage(participantPage + 1)">›</button>
         </div>
       </div>
+
+      <div class="player-panel" *ngIf="activePlayersTab === 'text'">
+        <h2>Participant list editor</h2>
+        <p class="player-help">One participant per line. Use <strong>number • name</strong> or enter names only.</p>
+        <textarea [(ngModel)]="editorText" (blur)="assignMissingNumbers()" rows="8" aria-label="Participant names and raffle numbers"></textarea>
+        <button class="primary-btn wide" (click)="savePlayers()">Save Players</button>
+        <p class="save-message" *ngIf="participantSaveMessage">{{ participantSaveMessage }}</p>
+      </div>
+
     </div>
 
     <div class="tab-content" *ngIf="activeTab === 'history'">
-      <div class="history-list">
-        <div class="history-item" *ngFor="let item of raffle.history.slice().reverse()">
-          <div>
-            <strong>Round {{ item.roundNumber || '—' }}</strong>
-            <p>#{{ item.drawnNumber }} • {{ item.winnerName }}</p>
-          </div>
-          <span>{{ item.timestamp | date:'short' }}</span>
+      <div class="player-tabs history-tabs">
+        <button [class.active]="historySubTab === 'history'" (click)="historySubTab = 'history'">Game History</button>
+        <button [class.active]="historySubTab === 'winners'" (click)="historySubTab = 'winners'">Excluded Winners</button>
+      </div>
+      <div class="player-panel" *ngIf="historySubTab === 'history'">
+        <h2>Game History</h2><p class="player-help">Players who have already won</p>
+        <div class="history-list" *ngIf="raffle.history.length; else emptyPlayerHistory">
+          <div class="history-item" *ngFor="let item of raffle.history.slice().reverse()"><div><strong>Round {{ item.roundNumber || '—' }}</strong><p>#{{ item.drawnNumber }} • {{ item.winnerName }}</p></div><span>{{ item.timestamp | date:'medium' }}</span></div>
         </div>
+        <ng-template #emptyPlayerHistory><p class="empty-state">No winners have been recorded yet.</p></ng-template>
+      </div>
+      <div class="player-panel" *ngIf="historySubTab === 'winners'">
+        <h2>Excluded Winners</h2><p class="player-help">Winners temporarily excluded from the participant list</p>
+        <div class="history-list" *ngIf="excludedWinners.length; else emptyExcludedWinners">
+          <div class="history-item" *ngFor="let item of excludedWinners"><span>#{{ item.drawnNumber }} • {{ item.winnerName }}</span><button class="secondary-btn" type="button" (click)="restoreWinner(item.participantId)">Add to list</button></div>
+        </div>
+        <ng-template #emptyExcludedWinners><p class="empty-state">No winners have been excluded.</p></ng-template>
       </div>
     </div>
   </section>

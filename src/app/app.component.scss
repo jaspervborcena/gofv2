@@ -31,7 +31,7 @@ textarea {
 .top-bar .app-shell {
   display: flex;
   justify-content: flex-end;
-  padding-top: 1rem;
+  padding-top: 0.5rem;
   padding-bottom: 0;
 }
 
@@ -54,6 +54,15 @@ textarea {
   font-weight: 700;
   padding: 0.35rem 0.6rem;
   border-radius: 999px;
+}
+
+main.app-shell {
+  padding-top: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  .top-bar .app-shell { padding-top: 0.35rem; }
+  main.app-shell { padding: 0.5rem 0.65rem 1rem; }
 }
 
 .hero-card,

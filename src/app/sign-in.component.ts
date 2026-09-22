@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { RaffleService } from './raffle.service';
 
 @Component({
@@ -14,6 +14,7 @@ import { RaffleService } from './raffle.service';
 export class SignInComponent {
   private readonly raffleService = inject(RaffleService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   step: 'email' | 'signin' | 'signup' = 'email';
   email = '';
@@ -21,6 +22,11 @@ export class SignInComponent {
   confirm = '';
   error: string | null = null;
   loading = false;
+
+  private get returnUrl(): string {
+    const requestedUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    return requestedUrl?.startsWith('/') ? requestedUrl : '/';
+  }
 
   async continue(): Promise<void> {
     this.error = null;
@@ -50,7 +56,7 @@ export class SignInComponent {
 
     try {
       await this.raffleService.signInWithGoogle();
-      await this.router.navigateByUrl('/');
+      await this.router.navigateByUrl(this.returnUrl);
     } catch (err) {
       this.error = this.raffleService.getAuthErrorMessage(err, 'Google sign in failed.');
     } finally {
@@ -72,7 +78,7 @@ export class SignInComponent {
     this.loading = true;
     try {
       await this.raffleService.signInWithEmail(this.email.trim(), this.password);
-      await this.router.navigateByUrl('/');
+      await this.router.navigateByUrl(this.returnUrl);
     } catch (err) {
       this.error = this.raffleService.getAuthErrorMessage(err, 'Sign in failed.');
     } finally {
@@ -104,7 +110,7 @@ export class SignInComponent {
         createdAt: now,
         lastActiveAt: now
       });
-      await this.router.navigateByUrl('/');
+      await this.router.navigateByUrl(this.returnUrl);
     } catch (err) {
       this.error = this.raffleService.getAuthErrorMessage(err, 'Sign up failed.');
     } finally {

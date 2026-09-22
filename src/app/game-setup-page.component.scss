@@ -1,6 +1,6 @@
 :host { display: block; }
 
-.setup-shell { max-width: 760px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+.setup-shell { max-width: 760px; margin: 0 auto; padding: 0.5rem 1rem 1rem; }
 .setup-card { padding: 1.5rem; border: 1px solid rgba(255, 203, 92, 0.24); border-radius: 24px; background: rgba(12, 8, 24, 0.88); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35); }
 .setup-header { display: grid; gap: 0.6rem; margin-bottom: 1.5rem; }
 .back-link { color: #ffcf4d; font-weight: 700; }
@@ -21,3 +21,12 @@ legend { padding: 0 0.35rem; color: #ffcf4d; }
 .primary-btn { border: 0; border-radius: 999px; padding: 0.85rem 1rem; cursor: pointer; background: linear-gradient(90deg, #ffcf4d, #ff8a00); color: #220e00; font: inherit; font-weight: 700; }
 .primary-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 .error-message { margin: 0; color: #fca5a5; }
+.error-message a { color: #ffcf4d; font-weight: 800; }
+
+@media (max-width: 600px) {
+	main.setup-shell { margin: 0; padding: 0.5rem 0.65rem 1rem; }
+	.setup-card { padding: 1rem; border-radius: 16px; }
+	.setup-header { gap: 0.4rem; margin-bottom: 1rem; }
+	.setup-header h1 { font-size: 2rem; line-height: 1.08; }
+	.setup-header .lead { font-size: 0.95rem; line-height: 1.45; }
+}
