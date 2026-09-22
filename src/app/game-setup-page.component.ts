@@ -34,18 +34,25 @@ export class GameSetupPageComponent {
     this.errorMessage = '';
 
     try {
+      const creatorId = this.raffleService.currentUserId;
+      if (!creatorId) {
+        this.errorMessage = 'Please sign in before creating a game.';
+        this.isSaving = false;
+        return;
+      }
+
       const raffle = await this.raffleService.createRaffle({
         name,
-        creatorId: 'local-user',
+        creatorId,
         mode: this.spinMode,
         numberMode: this.numberMode,
         digitCount: this.digitCount,
         remarks: this.remarks.trim()
       });
       this.isSaving = false;
-      await this.router.navigate(['/raffles', raffle.id]);
-    } catch {
-      this.errorMessage = 'The game could not be created. Please try again.';
+      await this.router.navigate(['/raffles', raffle.gameId]);
+    } catch (error) {
+      this.errorMessage = this.raffleService.getFirestoreErrorMessage(error, 'The game could not be created. Please try again.');
       this.isSaving = false;
     }
   }

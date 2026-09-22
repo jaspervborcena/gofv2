@@ -34,7 +34,7 @@ export class GameInvitationPageComponent implements OnInit {
       }
 
       const games = await this.raffleService.listRaffles();
-      this.game = games.find((item) => item.id === gameId) ?? null;
+      this.game = games.find((item) => item.gameId === gameId || item.id === gameId) ?? null;
       if (!this.game) {
         this.errorMessage = 'This game invitation is no longer available.';
       }
@@ -55,7 +55,7 @@ export class GameInvitationPageComponent implements OnInit {
       : Math.floor(10 ** (digitCount - 1) + Math.random() * (10 ** digitCount - 10 ** (digitCount - 1)));
 
     this.game.players = [...this.game.players, {
-      id: `${this.game.id}-${Date.now()}`,
+      id: `${this.game.gameUid}-${Date.now()}`,
       name: this.name.trim(),
       assignedNumber,
       drawn: false,
@@ -77,7 +77,7 @@ export class GameInvitationPageComponent implements OnInit {
 
   openGame(): void {
     if (this.game) {
-      this.router.navigate(['/raffles', this.game.id]);
+      this.router.navigate(['/raffles', this.game.gameId]);
     }
   }
 }

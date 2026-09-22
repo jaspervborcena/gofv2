@@ -43,15 +43,20 @@ export class HomePageComponent implements OnInit {
       return;
     }
 
+    const creatorId = this.raffleService.currentUserId;
+    if (!creatorId) {
+      return;
+    }
+
     const created = await this.raffleService.createRaffle({
       name: this.draftName.trim(),
-      creatorId: this.user?.uid ?? 'local-user',
+      creatorId,
       mode: this.draftMode,
       numberMode: this.playerNumberMode
     });
 
     this.draftName = '';
-    this.router.navigate(['/raffles', created.id]);
+    this.router.navigate(['/raffles', created.gameId]);
   }
 
   async joinRaffle(): Promise<void> {
@@ -61,7 +66,7 @@ export class HomePageComponent implements OnInit {
 
     const raffle = this.raffles.find((item) => item.id === this.joinCode.trim());
     if (raffle) {
-      this.router.navigate(['/raffles', raffle.id]);
+      this.router.navigate(['/raffles', raffle.gameId]);
     }
   }
 }

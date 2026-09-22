@@ -106,7 +106,7 @@ export class RafflePageComponent implements OnInit {
         this.reelPositions = digitStates.map((state) => state.spinPos);
         this.spinProgress = tl.progress() * 100;
       },
-      onComplete: () => {
+      onComplete: async () => {
         // Animation complete - lock in final values
         this.spinSound.pause();
         this.spinSound.currentTime = 0;
@@ -131,13 +131,13 @@ export class RafflePageComponent implements OnInit {
             timestamp: new Date().toISOString(),
             participantId: winner.id,
             participantName: winner.name,
-            winnerStatus: 'active'
+            winnerStatus: 'active',
           }
         ];
         this.raffle!.remainingDraws = Math.max(0, this.raffle!.remainingDraws - 1);
         this.raffle!.lastWinner = winner.name;
         this.raffle!.lastNumber = this.formatNumber(winner.assignedNumber);
-        this.raffleService.saveRaffle(this.raffle!);
+        await this.raffleService.saveRaffle(this.raffle!);
       }
     });
 
@@ -169,14 +169,7 @@ export class RafflePageComponent implements OnInit {
   }
 
   private nextRoundNumber(): string {
-    const usedRoundNumbers = new Set((this.raffle?.history ?? [])
-      .map((item) => item.roundNumber)
-      .filter((roundNumber): roundNumber is string => !!roundNumber));
-    let roundNumber = '';
-    do {
-      roundNumber = String(Math.floor(100000 + Math.random() * 900000));
-    } while (usedRoundNumbers.has(roundNumber));
-    return roundNumber;
+    return String((this.raffle?.history.length ?? 0) + 1);
   }
 
   resetRaffle(): void {

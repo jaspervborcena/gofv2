@@ -1,0 +1,48 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsGame(gameUid) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/games/$(gameUid))
+        && get(/databases/$(database)/documents/games/$(gameUid)).data.creatorId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow create, read, update: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /games/{gameId} {
+      allow create: if signedIn()
+        && request.resource.data.creatorId == request.auth.uid;
+      allow read, update, delete: if signedIn()
+        && resource.data.creatorId == request.auth.uid;
+    }
+
+    match /participants/{participantId} {
+      allow read: if ownsGame(resource.data.gameUid);
+      allow create, update: if ownsGame(request.resource.data.gameUid);
+      allow delete: if ownsGame(resource.data.gameUid);
+    }
+
+    match /invitations/{invitationId} {
+      allow create: if ownsGame(request.resource.data.gameUid);
+      allow read: if ownsGame(resource.data.gameUid);
+    }
+
+    match /history/{historyId} {
+      allow read: if ownsGame(resource.data.gameUid);
+      allow create, update: if ownsGame(request.resource.data.gameUid);
+    }
+
+    match /winners/{winnerId} {
+      allow read: if ownsGame(resource.data.gameUid);
+      allow create, update: if ownsGame(request.resource.data.gameUid);
+    }
+
+  }
+}
