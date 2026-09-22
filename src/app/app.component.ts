@@ -12,7 +12,7 @@ import { RaffleService } from './raffle.service';
   styleUrl: './app.component.scss'
 })
 export class AppComponent {
-  title = 'gofv2';
+  title = 'Game of Fortunes';
   raffleService = inject(RaffleService);
   user: { uid: string; displayName?: string | null; email?: string | null } | null = null;
 
