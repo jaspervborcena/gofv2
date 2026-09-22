@@ -39,6 +39,9 @@ yarn-error.log
 testem.log
 /typings
 
+# Android / Capacitor generated platform files
+/android
+
 # System files
 .DS_Store
 Thumbs.db
