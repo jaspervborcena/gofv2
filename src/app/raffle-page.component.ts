@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { gsap } from 'gsap';
+import { BehaviorSubject } from 'rxjs';
 import { DrawItem, NumberMode, Player, Raffle, RaffleService, SpinMode } from './raffle.service';
 
 @Component({
@@ -19,8 +20,10 @@ export class RafflePageComponent implements OnInit {
   private readonly spinSound = new Audio('/assets/slot-spin.mp3');
   private readonly stopSound = new Audio('/assets/slot-stop.mp3');
   private readonly winSound = new Audio('/assets/slot-win.mp3');
+  private readonly raffleState$ = new BehaviorSubject<Raffle | null>(null);
 
   raffle: Raffle | null = null;
+  isPreviewRaffle = false;
   activeTab: 'raffle' | 'players' | 'history' = 'raffle';
   activePlayersTab: 'names' | 'text' = 'names';
   historySubTab: 'history' | 'winners' = 'history';
@@ -28,6 +31,8 @@ export class RafflePageComponent implements OnInit {
   editorText = '';
   joinedName = '';
   participantSaveMessage = '';
+  participantLimitMessage = '';
+  readonly freePlayerLimit = 500;
   exclusionMessage = '';
   private exclusionMessageTimeout?: number;
   playerNumberMode: NumberMode = 'random';
@@ -85,7 +90,9 @@ export class RafflePageComponent implements OnInit {
     this.route.paramMap.subscribe(async (params) => {
       const id = params.get('id');
       if (!id) {
+        this.isPreviewRaffle = true;
         this.raffle = this.createPreviewRaffle();
+        this.raffleState$.next(this.raffle);
         this.playersText = this.raffle.players.map((player) => player.name).join('\n');
         this.editorText = this.formatEditorText();
         this.reelPositions = Array(this.raffle.digitCount ?? 3).fill(0);
@@ -96,6 +103,8 @@ export class RafflePageComponent implements OnInit {
       const raffles = await this.raffleService.listRaffles();
       this.raffle = raffles.find((item) => item.id === id || item.gameId === id) ?? null;
       if (this.raffle) {
+        this.isPreviewRaffle = false;
+        this.raffleState$.next(this.raffle);
         this.playersText = this.raffle.players.map((player) => player.name).join('\n');
         this.editorText = this.formatEditorText();
         this.playerNumberMode = this.raffle.numberMode;
@@ -140,7 +149,7 @@ export class RafflePageComponent implements OnInit {
     this.participantPage = 1;
     this.raffle.remainingDraws = Math.max(this.raffle.remainingDraws, this.raffle.players.length);
     this.raffle.numberMode = this.playerNumberMode;
-    await this.raffleService.saveRaffle(this.raffle);
+    await this.saveRaffleIfPersisted();
     this.participantSaveMessage = 'Participants saved';
   }
 
@@ -151,10 +160,15 @@ export class RafflePageComponent implements OnInit {
 
     const usedNumbers = new Set<number>();
     let nextOrderedNumber = 1;
-    const lines = this.editorText
+    let lines = this.editorText
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean);
+
+    if (this.isPreviewRaffle && lines.length > this.freePlayerLimit) {
+      lines = lines.slice(0, this.freePlayerLimit);
+      this.participantLimitMessage = 'Free plan limit reached: only 500 players can be added. Please upgrade for more.';
+    }
 
     this.editorText = lines.map((line, index) => {
       const parts = line.split('•').map((part) => part.trim());
@@ -187,6 +201,11 @@ export class RafflePageComponent implements OnInit {
       return;
     }
 
+    if (this.isPreviewRaffle && this.activePlayers.length >= this.freePlayerLimit) {
+      this.participantLimitMessage = 'Free plan limit reached: only 500 players can be added. Please upgrade for more.';
+      return;
+    }
+
     const assignedNumber = this.playerNumberMode === 'ordered'
       ? this.raffle.players.length + 1
       : this.createRandomNumber();
@@ -201,7 +220,7 @@ export class RafflePageComponent implements OnInit {
     this.editorText = this.formatEditorText();
     this.participantPage = this.participantPageCount;
     this.raffle.remainingDraws = Math.max(this.raffle.remainingDraws, this.raffle.players.length);
-    await this.raffleService.saveRaffle(this.raffle);
+    await this.saveRaffleIfPersisted();
   }
 
   setPlayerNumberMode(mode: NumberMode): void {
@@ -238,14 +257,25 @@ export class RafflePageComponent implements OnInit {
     this.raffle.history = this.raffle.history.map((item) => item.id === historyId
       ? { ...item, excludedFromList: false }
       : item);
-    this.raffle.players = this.raffle.players.map((player) =>
+    const existingPlayer = this.raffle.players.find((player) =>
       player.id === historyItem.participantId
-      || (player.name === historyItem.winnerName && this.formatNumber(player.assignedNumber) === historyItem.drawnNumber)
+      || (player.name === historyItem.winnerName && this.formatNumber(player.assignedNumber) === historyItem.drawnNumber));
+    if (existingPlayer) {
+      this.raffle.players = this.raffle.players.map((player) => player.id === existingPlayer.id
         ? { ...player, drawn: false, status: 'active' }
         : player);
+    } else {
+      this.raffle.players = [...this.raffle.players, {
+        id: historyItem.participantId ?? `${this.raffle.id}-${Date.now()}`,
+        name: historyItem.winnerName,
+        assignedNumber: Number(historyItem.drawnNumber),
+        drawn: false,
+        status: 'active'
+      }];
+    }
     this.editorText = this.formatEditorText();
       this.showExclusionMessage(`Restored ${historyItem.drawnNumber} • ${historyItem.winnerName} to the participant list.`);
-    await this.raffleService.saveRaffle(this.raffle);
+    await this.saveRaffleIfPersisted();
   }
 
   async excludeLastWinner(): Promise<void> {
@@ -270,12 +300,10 @@ export class RafflePageComponent implements OnInit {
       excludedFromList: true,
       participantId: item.participantId ?? winnerPlayer?.id
     };
-    this.raffle.players = this.raffle.players.map((player) => player.id === winnerPlayer?.id
-      ? { ...player, drawn: true, status: 'winner' }
-      : player);
+    this.raffle.players = this.raffle.players.filter((player) => player.id !== winnerPlayer?.id);
     this.editorText = this.formatEditorText();
     this.showExclusionMessage(`Excluded ${item.drawnNumber} • ${item.winnerName} from the participant list.`);
-    await this.raffleService.saveRaffle(this.raffle);
+    await this.saveRaffleIfPersisted();
   }
 
   private showExclusionMessage(message: string): void {
@@ -295,7 +323,7 @@ export class RafflePageComponent implements OnInit {
     }
 
     this.raffle.mode = mode;
-    await this.raffleService.saveRaffle(this.raffle);
+    await this.saveRaffleIfPersisted();
   }
 
   async spin(): Promise<void> {
@@ -305,6 +333,7 @@ export class RafflePageComponent implements OnInit {
 
     const players = this.raffle.players;
     if (!players.length) {
+      this.showExclusionMessage('Please add players before spinning the raffle.');
       return;
     }
 
@@ -357,7 +386,7 @@ export class RafflePageComponent implements OnInit {
         this.raffle!.remainingDraws = Math.max(0, this.raffle!.remainingDraws - 1);
         this.raffle!.lastWinner = winner.name;
         this.raffle!.lastNumber = this.formatNumber(winner.assignedNumber);
-        await this.raffleService.saveRaffle(this.raffle!);
+        await this.saveRaffleIfPersisted();
       }
     });
 
@@ -413,7 +442,7 @@ export class RafflePageComponent implements OnInit {
 
     return {
       id: 'preview-raffle',
-      gameId: 'preview-raffle',
+      gameId: '',
       gameUid: 'preview-raffle',
       name: 'Lucky Draws',
       creatorId: 'preview',
@@ -427,6 +456,16 @@ export class RafflePageComponent implements OnInit {
       createdAt: now.toISOString(),
       closedAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
     };
+  }
+
+  private async saveRaffleIfPersisted(): Promise<void> {
+    if (!this.raffle || this.isPreviewRaffle || !this.raffle.gameId) {
+      this.raffleState$.next(this.raffle);
+      return;
+    }
+
+    await this.raffleService.saveRaffle(this.raffle);
+    this.raffleState$.next(this.raffle);
   }
 
   resetRaffle(): void {

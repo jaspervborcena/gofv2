@@ -40,9 +40,7 @@
         </aside>
 
         <div class="machine-zone">
-          <div class="machine-label">{{ raffle.remarks || 'YOUR LUCKY NUMBER IS WAITING' }}</div>
           <div class="slot-machine-container">
-            <div class="machine-crown">♛</div>
             <div class="slot-machine" [style.gridTemplateColumns]="'repeat(' + reelPositions.length + ', minmax(0, 1fr))'">
               <div class="reel-column" *ngFor="let pos of reelPositions">
                 <div class="reel-tape" [style.transform]="'translateY(' + (48 - pos * 60) + 'px)'">
@@ -55,10 +53,11 @@
           </div>
 
           <p class="exclusion-message" *ngIf="exclusionMessage" role="status">{{ exclusionMessage }}</p>
-          <div class="draw-result" *ngIf="lastWinner">
-            <h3>Winner revealed</h3>
-          <p class="winner-text"><strong>{{ lastWinner.number }}</strong> • {{ lastWinner.name }}</p>
-            <button class="secondary-btn" type="button" (click)="excludeLastWinner()">Exclude winner</button>
+          <div class="draw-result" [class.empty-result]="!lastWinner">
+            <ng-container *ngIf="lastWinner">
+              <p class="winner-text"><strong>Winner: {{ lastWinner.number }} • {{ lastWinner.name }}</strong></p>
+              <button class="view-winners exclude-winner-button" type="button" (click)="excludeLastWinner()">EXCLUDE WINNER</button>
+            </ng-container>
           </div>
           <div class="controls">
             <button class="primary-btn spin-btn" [disabled]="isSpinning" (click)="spin()">
@@ -100,7 +99,12 @@
 
       <div class="player-panel" *ngIf="activePlayersTab === 'names'">
         <div class="player-panel-heading"><div><h2>🎯 Participant names</h2><p>{{ raffle.players.length }} players joined</p></div><span class="live-pill">Live</span></div>
+        <div class="free-plan-notice" *ngIf="isPreviewRaffle">
+          <strong>Free plan: players list is limited to 500.</strong>
+          <span>If you want more than 500 players, please <a routerLink="/plans">upgrade your plan</a>.</span>
+        </div>
         <div class="join-row"><input [(ngModel)]="joinedName" (keydown.enter)="joinEntry()" placeholder="Add your name to the raffle" /><button class="primary-btn" type="button" (click)="joinEntry()">Join</button></div>
+        <p class="save-message" *ngIf="participantLimitMessage" role="status">{{ participantLimitMessage }}</p>
         <div class="player-list">
           <div class="player-row" *ngFor="let player of visiblePlayers">
             <span><i class="player-dot"></i>{{ formatNumber(player.assignedNumber) }} • {{ player.name }}</span>
@@ -116,9 +120,14 @@
       <div class="player-panel" *ngIf="activePlayersTab === 'text'">
         <h2>Participant list editor</h2>
         <p class="player-help">One participant per line. Use <strong>number • name</strong> or enter names only.</p>
+        <div class="free-plan-notice" *ngIf="isPreviewRaffle">
+          <strong>Free plan: players list is limited to 500.</strong>
+          <span>If you want more than 500 players, please <a routerLink="/plans">upgrade your plan</a>.</span>
+        </div>
         <textarea [(ngModel)]="editorText" (blur)="assignMissingNumbers()" rows="8" aria-label="Participant names and raffle numbers"></textarea>
         <button class="primary-btn wide" (click)="savePlayers()">Save Players</button>
         <p class="save-message" *ngIf="participantSaveMessage">{{ participantSaveMessage }}</p>
+        <p class="save-message" *ngIf="participantLimitMessage" role="status">{{ participantLimitMessage }}</p>
       </div>
 
     </div>
