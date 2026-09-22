@@ -3,7 +3,7 @@ export const environment = {
   appBaseUrl: 'https://www.gameoffortunes.com',
   raffleGrpcHttpUrl: 'https://raffle-grpc-http-12420305994.asia-east1.run.app',
   firebaseConfig: {
-    apiKey: 'AIzaSyBDzrpzYiaNc2TiCaNWIc7OvIgEVKCFpVs',
+    apiKey: 'AIzaSyBDzrpzYiaNc2TiCaNWI7cOvIgEVKCFpVs',
     authDomain: 'gameoffortunes-32578.firebaseapp.com',
     projectId: 'gameoffortunes-32578',
     storageBucket: 'gameoffortunes-32578.firebasestorage.app',
