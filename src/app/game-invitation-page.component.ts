@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { Raffle, RaffleService } from './raffle.service';
 
 @Component({
@@ -26,7 +27,7 @@ export class GameInvitationPageComponent implements OnInit {
   assignedNumber = '';
   isExpired = false;
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.route.paramMap.subscribe(async (params) => {
       const gameId = params.get('id');
       if (!gameId) {
@@ -39,20 +40,16 @@ export class GameInvitationPageComponent implements OnInit {
         return;
       }
 
-      const games = await this.raffleService.listRaffles();
-      this.game = games.find((item) => item.gameId === gameId || item.id === gameId) ?? null;
+      const signedInUser = await firstValueFrom(this.raffleService.user$);
+      if (!signedInUser) {
+        await this.router.navigate(['/signin'], {
+          queryParams: { returnUrl: `/games/${gameId}/join` }
+        });
+        return;
+      }
+
+      this.game = await this.raffleService.findRaffle(gameId);
       if (!this.game) {
-        const allGames = await this.raffleService.listRaffles();
-        const expiredGame = allGames.find((item) => item.gameId === gameId || item.id === gameId) ?? null;
-        if (expiredGame) {
-          await this.router.navigate(['/raffle-unavailable'], {
-            queryParams: {
-              title: 'Invitation expired',
-              message: 'This invitation link has expired and is no longer accepting entries.'
-            }
-          });
-          return;
-        }
         await this.router.navigate(['/raffle-unavailable'], {
           queryParams: {
             title: 'Invitation unavailable',
@@ -91,18 +88,17 @@ export class GameInvitationPageComponent implements OnInit {
       ? this.game.players.length + 1
       : Math.floor(10 ** (digitCount - 1) + Math.random() * (10 ** digitCount - 10 ** (digitCount - 1)));
 
-    this.game.players = [...this.game.players, {
+    const player = {
       id: `${this.game.gameUid}-${Date.now()}`,
       name: this.name.trim(),
       assignedNumber,
       drawn: false,
       mobileNumber: this.mobileNumber.trim() || undefined,
       remarks: this.remarks.trim() || undefined
-    }];
-    this.game.remainingDraws = Math.max(this.game.remainingDraws, this.game.players.length);
+    };
 
     try {
-      await this.raffleService.saveRaffle(this.game);
+      await this.raffleService.joinRaffle(this.game, player);
       this.assignedNumber = String(assignedNumber).padStart(digitCount, '0');
       this.joined = true;
     } catch {

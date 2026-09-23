@@ -1,0 +1,16 @@
+:host { display: block; min-height: 70vh; }
+
+.download-shell { display: grid; place-items: center; min-height: 70vh; padding: 1rem; }
+.download-card { width: min(100%, 620px); padding: clamp(1.5rem, 6vw, 3rem); border: 1px solid rgba(255, 203, 92, 0.3); border-radius: 24px; background: linear-gradient(145deg, rgba(27, 20, 35, 0.98), rgba(49, 22, 22, 0.96)); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4); text-align: center; }
+.brand-link { display: inline-block; }
+.brand-link img { display: block; width: auto; height: 92px; max-width: min(240px, 70vw); object-fit: contain; }
+.eyebrow { margin: 1.25rem 0 0.4rem; color: #ffbb4f; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.24em; text-transform: uppercase; }
+h1 { margin: 0; color: #fff0b8; font-size: clamp(2rem, 7vw, 3.5rem); line-height: 1.05; }
+.intro { max-width: 440px; margin: 0.9rem auto 1.5rem; color: #dfc8ef; line-height: 1.5; }
+.download-button { display: inline-flex; align-items: center; gap: 0.55rem; padding: 0.95rem 1.5rem; border: 2px solid #ffc331; border-radius: 999px; color: #2a1000; background: linear-gradient(90deg, #ffda54, #ff8b13); box-shadow: 0 0 20px rgba(255, 128, 18, 0.35); font-weight: 900; text-decoration: none; }
+.download-button span { font-size: 1.35rem; line-height: 0.7; }
+.download-button:hover { transform: translateY(-1px); }
+.status { color: #ffe6a0; }
+.error { color: #fecaca; font-weight: 700; }
+.back-link { display: block; margin-top: 1.5rem; color: #ffcf4d; font-weight: 700; text-decoration: none; }
+.back-link:hover { text-decoration: underline; }

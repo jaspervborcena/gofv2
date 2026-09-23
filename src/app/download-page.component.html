@@ -1,0 +1,17 @@
+<main class="download-shell">
+  <section class="download-card" aria-labelledby="download-title">
+    <a class="brand-link" routerLink="/" aria-label="Back to Game of Fortunes home">
+      <img src="assets/gofv2logo.png" alt="Game of Fortunes" />
+    </a>
+    <p class="eyebrow">Android app</p>
+    <h1 id="download-title">Play Game of Fortunes anywhere.</h1>
+    <p class="intro">Download the latest Android app and take your lucky numbers with you.</p>
+
+    <div *ngIf="loading" class="status" aria-live="polite">Preparing your download...</div>
+    <a *ngIf="downloadUrl" class="download-button" [href]="downloadUrl" download="gameoffortunes.apk">
+      <span aria-hidden="true">⇩</span> Download APK
+    </a>
+    <p *ngIf="error" class="error" role="alert">{{ error }}</p>
+    <a class="back-link" routerLink="/">Back to home</a>
+  </section>
+</main>

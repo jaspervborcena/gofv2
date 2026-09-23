@@ -331,6 +331,36 @@ export class RaffleService {
       .filter((raffle) => this.isRaffleActive(raffle));
   }
 
+  async findRaffle(gameId: string): Promise<Raffle | null> {
+    const authUser = this.firestoreEnabled
+      ? this.auth.currentUser ?? await firstValueFrom(this.user$)
+      : null;
+
+    if (this.firestoreEnabled && authUser) {
+      try {
+        const snapshot = await getDocs(query(
+          collection(this.firestore, 'games'),
+          where('gameId', '==', gameId)
+        ));
+        const remoteGame = snapshot.docs[0];
+        if (remoteGame) {
+          return this.normalizeRaffle({
+            ...(remoteGame.data() as Raffle),
+            id: remoteGame.id,
+            gameUid: remoteGame.id,
+            history: this.normalizeHistory((remoteGame.data() as Raffle).history ?? [])
+          });
+        }
+      } catch {
+        // Fall back to local games when Firebase is unavailable.
+      }
+    }
+
+    return this.readLocal()
+      .map((raffle) => this.normalizeRaffle({ ...raffle, history: this.normalizeHistory(raffle.history ?? []) }))
+      .find((raffle) => raffle.gameId === gameId || raffle.id === gameId) ?? null;
+  }
+
   async saveRaffle(raffle: Raffle): Promise<void> {
     if (this.firestoreEnabled) {
       const data = {
@@ -361,6 +391,32 @@ export class RaffleService {
     }
 
     this.writeLocal(raffle);
+  }
+
+  async joinRaffle(raffle: Raffle, player: Player): Promise<void> {
+    if (this.firestoreEnabled) {
+      const authUser = this.auth.currentUser ?? await firstValueFrom(this.user$);
+      if (!authUser) {
+        throw new Error('You must be signed in to join this game.');
+      }
+
+      const participant: ParticipantRecord = {
+        id: player.id,
+        gameId: raffle.gameId,
+        gameUid: raffle.gameUid,
+        userId: authUser.uid,
+        name: player.name,
+        assignedNumber: player.assignedNumber,
+        status: player.status ?? 'active',
+        joinedAt: new Date().toISOString(),
+        ...(player.mobileNumber ? { mobileNumber: player.mobileNumber } : {}),
+        ...(player.remarks ? { remarks: player.remarks } : {})
+      };
+      await setDoc(doc(this.firestore, 'participants', player.id), participant);
+      return;
+    }
+
+    this.writeLocal({ ...raffle, players: [...raffle.players, player] });
   }
 
   async saveUserProfile(profile: UserProfile): Promise<void> {

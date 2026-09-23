@@ -301,6 +301,9 @@ textarea {
 .hero-card { position: relative; overflow: hidden; display: grid; justify-items: center; width: 100%; margin: 0 auto; padding: 0.65rem 1rem 0; border-color: rgba(255, 191, 43, 0.4); border-radius: 24px; background: linear-gradient(145deg, rgba(10, 5, 19, 0.98), rgba(24, 8, 31, 0.96)); box-shadow: 0 0 0 1px rgba(104, 41, 194, 0.3), 0 25px 70px rgba(0, 0, 0, 0.5); }
 .home-brand { display: flex; width: fit-content; align-items: center; margin: 0 auto 0.65rem; padding: 0.4rem 0.75rem; border: 1px solid rgba(255, 187, 33, 0.55); border-radius: 16px; background: rgba(8, 4, 14, 0.75); }
 .home-brand img { display: block; width: auto; height: 82px; max-width: min(250px, 60vw); object-fit: contain; }
+.download-link { display: inline-flex; align-items: center; gap: 0.45rem; margin: 0 auto 0.7rem; padding: 0.55rem 0.85rem; border: 1px solid rgba(255, 191, 43, 0.55); border-radius: 999px; color: #ffe6a0; background: rgba(255, 255, 255, 0.06); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-decoration: none; }
+.download-link span:first-child { color: #ffca2f; font-size: 1.25rem; line-height: 0.7; }
+.download-link:hover { background: rgba(255, 187, 33, 0.16); transform: translateY(-1px); }
 .hero-card, .hero-panel { max-width: 1240px; }
 .hero-copy { width: 100%; text-align: center; }
 .hero-copy > *, .hero-panel > *, .game-card > * { justify-self: center; text-align: center; }
@@ -331,6 +334,7 @@ textarea {
   .hero-card { padding-top: 0.7rem; border-radius: 18px; }
   .home-brand { margin-bottom: 0.45rem; padding: 0.35rem 0.6rem; }
   .home-brand img { height: 64px; max-width: min(210px, 78vw); }
+  .download-link { margin-bottom: 0.45rem; }
   .hero-copy h1 { margin-bottom: 0.45rem; }
   .game-card { padding-inline: 0.7rem; }
   .launch-button { width: 100%; }
