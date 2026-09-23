@@ -3,10 +3,6 @@
     <a class="home-brand" routerLink="/" aria-label="Game of Fortunes home">
       <img src="assets/gofv2logo.png" alt="Game of Fortunes" />
     </a>
-    <a class="download-link" routerLink="/download" aria-label="Download the Game of Fortunes Android app" title="Download Android app">
-      <span aria-hidden="true">⇩</span>
-      <span>DOWNLOAD APP</span>
-    </a>
     <div class="hero-copy">
       <p class="eyebrow">Welcome to Game of Fortunes</p>
       <h1>Your lucky number is waiting.</h1>
@@ -26,6 +22,25 @@
         </a>
         <a class="launch-button" routerLink="/games/new">🎰 CREATE A RAFFLE</a>
       </div>
+    </div>
+
+    <div class="home-plans" aria-label="Plans">
+      <article class="home-plan home-plan-download">
+        <a class="home-download-button" routerLink="/download" aria-label="Download the Android app" title="Download the Android app">
+          Download
+        </a>
+        <a class="home-download-icon-link" routerLink="/download" aria-label="Download the Android app" title="Download the Android app">
+          <img class="home-download-icon" src="assets/download.png" alt="Android app" />
+        </a>
+      </article>
+      <a class="home-plan home-plan-featured" routerLink="/plans">
+        <strong>PLANS</strong>
+        <span>Choose your plan</span>
+      </a>
+      <a class="home-plan" routerLink="/plans">
+        <strong>PREMIUM</strong>
+        <span>Coming soon</span>
+      </a>
     </div>
 
     <div class="feature-strip">

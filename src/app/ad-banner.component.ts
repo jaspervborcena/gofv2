@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, inject, PLATFORM_ID } from '@angular/core';
+import { AfterViewInit, Component, inject, Input, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 
 @Component({
@@ -18,6 +18,7 @@ import { isPlatformBrowser } from '@angular/common';
 })
 export class AdBannerComponent implements AfterViewInit {
   private readonly platformId = inject(PLATFORM_ID);
+  @Input() adFree = false;
 
   ngAfterViewInit(): void {
     if (isPlatformBrowser(this.platformId)) {

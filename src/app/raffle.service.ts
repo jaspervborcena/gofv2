@@ -10,13 +10,15 @@ import {
   fetchSignInMethodsForEmail
 } from '@angular/fire/auth';
 import type { UserCredential } from 'firebase/auth';
-import { Firestore, collection, doc, getDocs, orderBy, query, setDoc, where, writeBatch } from '@angular/fire/firestore';
+import { Firestore, collection, doc, getDoc, getDocs, orderBy, query, setDoc, where, writeBatch } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
 import QRCode from 'qrcode';
 import { environment } from '../environments/environment';
+import { UserSubscription } from './plan-schema';
 
 export type SpinMode = 'simultaneous' | 'per-digit';
 export type NumberMode = 'random' | 'ordered';
+export type SubscriptionPlan = 'free' | 'basic' | 'standard';
 
 export interface Player {
   id: string;
@@ -35,6 +37,7 @@ export interface UserProfile {
   email?: string;
   photoUrl?: string;
   role: 'guest' | 'host';
+  plan?: SubscriptionPlan;
   createdAt: string;
   lastActiveAt: string;
 }
@@ -425,6 +428,30 @@ export class RaffleService {
     }
 
     await setDoc(doc(this.firestore, 'users', profile.id), profile, { merge: true });
+  }
+
+  async getCurrentUserPlan(userId: string): Promise<SubscriptionPlan> {
+    if (!this.firestoreEnabled) {
+      return 'free';
+    }
+
+    const subscriptionSnapshot = await getDocs(query(
+      collection(this.firestore, 'subscriptions'),
+      where('uid', '==', userId)
+    ));
+    const activeSubscription = subscriptionSnapshot.docs
+      .map((item) => item.data() as UserSubscription)
+      .find((subscription) => {
+        const isUsable = subscription.status === 'trial' || subscription.status === 'active';
+        return isUsable && new Date(subscription.endDate).getTime() > Date.now();
+      });
+    if (activeSubscription?.planType === 'basic' || activeSubscription?.planType === 'standard') {
+      return activeSubscription.planType;
+    }
+
+    const snapshot = await getDoc(doc(this.firestore, 'users', userId));
+    const plan = snapshot.data()?.['plan'];
+    return plan === 'basic' || plan === 'standard' ? plan : 'free';
   }
 
   async listParticipants(gameUid: string): Promise<ParticipantRecord[]> {

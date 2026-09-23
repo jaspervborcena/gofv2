@@ -109,6 +109,18 @@ export class RafflePageComponent implements OnInit {
       this.raffle = raffles.find((item) => item.id === id || item.gameId === id) ?? null;
       if (this.raffle) {
         this.isPreviewRaffle = false;
+        const participantRecords = await this.raffleService.listParticipants(this.raffle.gameUid);
+        if (participantRecords.length) {
+          this.raffle.players = participantRecords.map((participant) => ({
+            id: participant.id,
+            name: participant.name,
+            assignedNumber: participant.assignedNumber,
+            drawn: participant.status === 'winner',
+            status: participant.status,
+            ...(participant.mobileNumber ? { mobileNumber: participant.mobileNumber } : {}),
+            ...(participant.remarks ? { remarks: participant.remarks } : {})
+          }));
+        }
         this.raffleState$.next(this.raffle);
         this.playersText = this.raffle.players.map((player) => player.name).join('\n');
         this.editorText = this.formatEditorText();

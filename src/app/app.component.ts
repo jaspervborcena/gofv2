@@ -16,9 +16,10 @@ export class AppComponent {
   title = 'Game of Fortunes';
   raffleService = inject(RaffleService);
   user: { uid: string; displayName?: string | null; email?: string | null } | null = null;
+  adFree = false;
 
   constructor() {
-    this.raffleService.user$.subscribe((authUser) => {
+    this.raffleService.user$.subscribe(async (authUser) => {
       this.user = authUser
         ? {
             uid: authUser.uid,
@@ -26,6 +27,7 @@ export class AppComponent {
             email: authUser.email
           }
         : null;
+      this.adFree = authUser ? (await this.raffleService.getCurrentUserPlan(authUser.uid)) !== 'free' : false;
     });
   }
 

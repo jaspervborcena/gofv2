@@ -13,7 +13,24 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow create, read, update: if signedIn() && request.auth.uid == userId;
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && (!request.resource.data.keys().hasAny(['plan']) || request.resource.data.plan == 'free');
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.get('plan', 'free') == resource.data.get('plan', 'free');
+
+    }
+
+    match /subscriptions/{subscriptionId} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+
+    match /plans/{planId} {
+      allow read: if true;
+      allow write: if false;
     }
 
     match /games/{gameId} {
