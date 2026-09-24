@@ -13,10 +13,10 @@
     </div>
 
     <nav class="tabs">
-      <button [class.active]="activeTab === 'raffle'" (click)="activeTab = 'raffle'">RAFFLE</button>
-      <button [class.active]="activeTab === 'players'" (click)="activeTab = 'players'">PLAYERS</button>
-      <button [class.active]="activeTab === 'history'" (click)="activeTab = 'history'">HISTORY</button>
-      <button [class.active]="activeTab === 'qr'" (click)="activeTab = 'qr'">QR</button>
+      <button [class.active]="activeTab === 'raffle'" (click)="selectMainTab('raffle')">RAFFLE</button>
+      <button [class.active]="activeTab === 'players'" (click)="selectMainTab('players')">PLAYERS</button>
+      <button [class.active]="activeTab === 'history'" (click)="selectMainTab('history')">HISTORY</button>
+      <button [class.active]="activeTab === 'qr'" (click)="selectMainTab('qr')">QR</button>
     </nav>
 
     <div class="tab-content" *ngIf="activeTab === 'raffle'">
@@ -38,6 +38,11 @@
             <p><span>DRAW MODE</span>{{ raffle.mode === 'per-digit' ? 'Per digit' : 'Simultaneous' }}</p>
           </div>
           <div class="active-status" [class.inactive-status]="!isRaffleCurrent"><i></i> {{ isRaffleCurrent ? 'RAFFLE IS ACTIVE' : 'RAFFLE EXPIRED' }}</div>
+          <a class="choose-plan-card" routerLink="/plans" aria-label="Choose your plan">
+            <span class="choose-plan-icon" aria-hidden="true">♛</span>
+            <span><strong>Choose your plan</strong><small>Unlock more raffle features</small></span>
+            <span class="choose-plan-arrow" aria-hidden="true">›</span>
+          </a>
         </aside>
 
         <div class="machine-zone">
@@ -61,6 +66,9 @@
             </ng-container>
           </div>
           <div class="controls">
+            <p class="spin-limit-message" *ngIf="spinLimitMessage" role="alert">
+              {{ spinLimitMessage }} <a routerLink="/plans">View plans</a>
+            </p>
             <button class="primary-btn spin-btn" [disabled]="isSpinning" (click)="spin()">
               <span *ngIf="!isSpinning">🎰 SPIN TO WIN</span>
               <span *ngIf="isSpinning">SPINNING...</span>
@@ -94,8 +102,8 @@
 
     <div class="tab-content" *ngIf="activeTab === 'players'">
       <div class="player-tabs">
-        <button [class.active]="activePlayersTab === 'names'" (click)="activePlayersTab = 'names'">🎯 Participant names</button>
-        <button [class.active]="activePlayersTab === 'text'" (click)="activePlayersTab = 'text'">📋 Participant list editor</button>
+        <button [class.active]="activePlayersTab === 'names'" (click)="selectPlayersTab('names')">🎯 Participant names</button>
+        <button [class.active]="activePlayersTab === 'text'" (click)="selectPlayersTab('text')">📋 Participant list editor</button>
       </div>
 
       <div class="player-panel" *ngIf="activePlayersTab === 'names'">
@@ -125,9 +133,16 @@
           <strong>Free plan: players list is limited to 500.</strong>
           <span>If you want more than 500 players, please <a routerLink="/plans">upgrade your plan</a>.</span>
         </div>
-        <textarea [(ngModel)]="editorText" (blur)="assignMissingNumbers()" rows="8" aria-label="Participant names and raffle numbers"></textarea>
-        <button class="primary-btn wide" (click)="savePlayers()">Save Players</button>
-        <p class="save-message" *ngIf="participantSaveMessage">{{ participantSaveMessage }}</p>
+        <div class="duplicate-notice" *ngIf="duplicateNames.length" role="alert">
+          <strong>Duplicate names found: {{ duplicateNames.join(', ') }}</strong>
+          <span>Choose whether to keep the copies with new numbers or remove the duplicates.</span>
+          <div class="duplicate-actions">
+            <button type="button" (click)="keepDuplicateNames()">Keep duplicates</button>
+            <button type="button" (click)="removeDuplicateNames()">Remove duplicates</button>
+          </div>
+        </div>
+        <p class="save-message" *ngIf="participantSaveMessage" role="status">{{ participantSaveMessage }}</p>
+        <textarea [(ngModel)]="editorText" (ngModelChange)="handleEditorChange()" (blur)="assignMissingNumbers()" rows="8" aria-label="Participant names and raffle numbers"></textarea>
         <p class="save-message" *ngIf="participantLimitMessage" role="status">{{ participantLimitMessage }}</p>
       </div>
 

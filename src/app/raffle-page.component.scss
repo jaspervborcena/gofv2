@@ -420,6 +420,13 @@ textarea,
 .detail-list span { margin-bottom: 0.15rem; color: #a888dd; }
 .active-status { margin-top: 0.85rem; padding: 0.42rem; border: 1px solid rgba(91, 213, 99, 0.45); border-radius: 999px; color: #5cdb71; font-size: 0.62rem; text-align: center; }
 .active-status i { display: inline-block; width: 0.45rem; height: 0.45rem; margin-right: 0.3rem; border-radius: 50%; background: #5cdb71; box-shadow: 0 0 8px #5cdb71; }
+.choose-plan-card { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.5rem; margin-top: 0.8rem; padding: 0.7rem; border: 1px solid rgba(255, 194, 46, 0.35); border-radius: 12px; color: #fff6d6; background: linear-gradient(145deg, rgba(71, 30, 38, 0.72), rgba(33, 15, 42, 0.8)); text-decoration: none; }
+.choose-plan-card:hover { border-color: rgba(255, 194, 46, 0.75); background: linear-gradient(145deg, rgba(92, 39, 49, 0.82), rgba(43, 19, 55, 0.88)); }
+.choose-plan-icon { color: #ffca36; font-size: 1rem; }
+.choose-plan-card strong, .choose-plan-card small { display: block; }
+.choose-plan-card strong { color: #f8d465; font-size: 0.68rem; }
+.choose-plan-card small { margin-top: 0.2rem; color: #ba9ee1; font-size: 0.55rem; }
+.choose-plan-arrow { color: #ffca36; font-size: 1.25rem; }
 
 .machine-zone { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
 .machine-label { margin-bottom: 0.8rem; color: #ffd75b; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.16em; text-align: center; text-transform: uppercase; transform: translateY(0.8rem); }
@@ -436,6 +443,8 @@ textarea,
 .winning-number strong { color: #fff0a8; font-size: 1.25rem; }
 .winning-number small { color: #dcb8f0; }
 .controls { justify-content: center; margin: 1rem 0 0; }
+.spin-limit-message { width: 100%; margin: 0; color: #fecaca; font-size: 0.78rem; text-align: center; }
+.spin-limit-message a { color: #ffcf4d; font-weight: 800; }
 .spin-btn { min-width: min(280px, 100%); padding: 0.95rem 1rem; border: 2px solid #ffc331; border-radius: 999px; font-size: 1.25rem; box-shadow: 0 0 22px #ff7c1d88, inset 0 -4px 0 #a42d10; }
 .secondary-btn { padding: 0.6rem 0.8rem; }
 .draw-result { align-self: center; margin: 0.8rem 0 0; padding: 0.45rem 1rem; border-radius: 8px; text-align: center; }

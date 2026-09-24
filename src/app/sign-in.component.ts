@@ -107,6 +107,9 @@ export class SignInComponent {
         displayName: credential.user.displayName ?? '',
         email: credential.user.email ?? this.email.trim(),
         role: 'guest',
+        plan: 'free',
+        spinsRemaining: 25,
+        spinPeriod: new Date().toISOString().slice(0, 7),
         createdAt: now,
         lastActiveAt: now
       });

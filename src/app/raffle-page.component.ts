@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -14,14 +14,14 @@ import { DrawItem, NumberMode, Player, Raffle, RaffleService, SpinMode } from '.
   templateUrl: './raffle-page.component.html',
   styleUrl: './raffle-page.component.scss'
 })
-export class RafflePageComponent implements OnInit {
+export class RafflePageComponent implements OnDestroy, OnInit {
   private readonly raffleService = inject(RaffleService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly spinSound = new Audio('/assets/slot-spin.mp3');
   private readonly stopSound = new Audio('/assets/slot-stop.mp3');
   private readonly winSound = new Audio('/assets/slot-win.mp3');
   private readonly raffleState$ = new BehaviorSubject<Raffle | null>(null);
+  private spinTickTimers: number[] = [];
 
   raffle: Raffle | null = null;
   isPreviewRaffle = false;
@@ -30,9 +30,14 @@ export class RafflePageComponent implements OnInit {
   historySubTab: 'history' | 'winners' = 'history';
   playersText = '';
   editorText = '';
+  private savedEditorText = '';
+  private editorSaveTimeout?: number;
+  private duplicateMessageTimeout?: number;
   joinedName = '';
   participantSaveMessage = '';
+  duplicateNames: string[] = [];
   participantLimitMessage = '';
+  spinLimitMessage = '';
   readonly freePlayerLimit = 500;
   exclusionMessage = '';
   private exclusionMessageTimeout?: number;
@@ -47,6 +52,156 @@ export class RafflePageComponent implements OnInit {
   rightPanelOpen = false;
   participantPage = 1;
   participantPageSize = 20;
+
+  ngOnDestroy(): void {
+    this.clearSpinTickTimers();
+    if (this.editorSaveTimeout) {
+      window.clearTimeout(this.editorSaveTimeout);
+    }
+    if (this.duplicateMessageTimeout) {
+      window.clearTimeout(this.duplicateMessageTimeout);
+    }
+  }
+
+  get editorHasChanges(): boolean {
+    return this.editorText !== this.savedEditorText;
+  }
+
+  async selectMainTab(tab: 'raffle' | 'players' | 'history' | 'qr'): Promise<void> {
+    if (!(await this.confirmEditorChanges())) {
+      return;
+    }
+
+    this.activeTab = tab;
+  }
+
+  async selectPlayersTab(tab: 'names' | 'text'): Promise<void> {
+    if (tab !== 'text' && !(await this.confirmEditorChanges())) {
+      return;
+    }
+
+    this.activePlayersTab = tab;
+  }
+
+  handleEditorChange(): void {
+    this.detectDuplicateNames();
+    this.scheduleEditorSave();
+  }
+
+  keepDuplicateNames(): void {
+    const seen = new Map<string, number>();
+    this.editorText = this.editorText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const name = this.editorLineName(line);
+        const key = name.toLocaleLowerCase();
+        const occurrence = (seen.get(key) ?? 0) + 1;
+        seen.set(key, occurrence);
+        const displayName = occurrence > 1 ? `${name} (${occurrence})` : name;
+        return occurrence > 1 ? displayName : line;
+      })
+      .join('\n');
+    this.duplicateNames = [];
+    this.assignMissingNumbers();
+    this.showDuplicateActionMessage('Duplicates kept and renamed.');
+    this.scheduleEditorSave();
+  }
+
+  removeDuplicateNames(): void {
+    const seen = new Set<string>();
+    this.editorText = this.editorText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .filter((line) => {
+        const key = this.editorLineName(line).toLocaleLowerCase();
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      })
+      .join('\n');
+    this.duplicateNames = [];
+    this.assignMissingNumbers();
+    this.showDuplicateActionMessage('Duplicate names removed.');
+    this.scheduleEditorSave();
+  }
+
+  private detectDuplicateNames(): void {
+    const counts = new Map<string, string>();
+    this.editorText.split('\n').map((line) => line.trim()).filter(Boolean).forEach((line) => {
+      const name = this.editorLineName(line);
+      counts.set(name.toLocaleLowerCase(), name);
+    });
+    const occurrences = new Map<string, number>();
+    this.editorText.split('\n').map((line) => line.trim()).filter(Boolean).forEach((line) => {
+      const key = this.editorLineName(line).toLocaleLowerCase();
+      occurrences.set(key, (occurrences.get(key) ?? 0) + 1);
+    });
+    this.duplicateNames = [...occurrences.entries()]
+      .filter(([, count]) => count > 1)
+      .map(([key]) => counts.get(key) ?? key);
+    if (this.duplicateNames.length && this.editorSaveTimeout) {
+      window.clearTimeout(this.editorSaveTimeout);
+      this.editorSaveTimeout = undefined;
+    }
+  }
+
+  private editorLineName(line: string): string {
+    const parts = line.split('•').map((part) => part.trim());
+    return parts.length > 1 && /^\d+$/.test(parts[0]) ? parts.slice(1).join(' • ') : parts[0];
+  }
+
+  private showDuplicateActionMessage(message: string): void {
+    this.participantSaveMessage = message;
+    if (this.duplicateMessageTimeout) {
+      window.clearTimeout(this.duplicateMessageTimeout);
+    }
+    this.duplicateMessageTimeout = window.setTimeout(() => {
+      this.participantSaveMessage = '';
+      this.duplicateMessageTimeout = undefined;
+    }, 900);
+  }
+
+  scheduleEditorSave(): void {
+    if (this.duplicateNames.length) {
+      return;
+    }
+    this.participantSaveMessage = 'Auto Saving changes...';
+    if (this.editorSaveTimeout) {
+      window.clearTimeout(this.editorSaveTimeout);
+    }
+
+    this.editorSaveTimeout = window.setTimeout(() => {
+      void this.savePlayers().catch((error) => {
+        this.participantSaveMessage = error instanceof Error
+          ? `Auto save failed: ${error.message}`
+          : 'Auto save failed. Please try again.';
+      });
+    }, 900);
+  }
+
+  private async confirmEditorChanges(): Promise<boolean> {
+    if (!this.editorHasChanges || this.activePlayersTab !== 'text') {
+      return true;
+    }
+
+    const saveChanges = window.confirm('You have unsaved participant changes. Click OK to save before leaving, or Cancel to discard them.');
+    if (saveChanges) {
+      try {
+        await this.savePlayers();
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    this.editorText = this.savedEditorText;
+    return true;
+  }
 
   get activePlayers(): Player[] {
     return (this.raffle?.players ?? []).filter((player) => !player.drawn);
@@ -100,6 +255,7 @@ export class RafflePageComponent implements OnInit {
         this.raffleState$.next(this.raffle);
         this.playersText = this.raffle.players.map((player) => player.name).join('\n');
         this.editorText = this.formatEditorText();
+        this.savedEditorText = this.editorText;
         this.reelPositions = Array(this.raffle.digitCount ?? 3).fill(0);
         this.reels = Array(this.raffle.digitCount ?? 3).fill('0');
         return;
@@ -124,6 +280,7 @@ export class RafflePageComponent implements OnInit {
         this.raffleState$.next(this.raffle);
         this.playersText = this.raffle.players.map((player) => player.name).join('\n');
         this.editorText = this.formatEditorText();
+        this.savedEditorText = this.editorText;
         this.playerNumberMode = this.raffle.numberMode;
         const digitCount = this.raffle.digitCount ?? 3;
         this.reelPositions = Array(digitCount).fill(0);
@@ -173,6 +330,7 @@ export class RafflePageComponent implements OnInit {
       drawn: false
     }));
     this.editorText = this.formatEditorText();
+    this.savedEditorText = this.editorText;
     this.participantPage = 1;
     this.raffle.remainingDraws = Math.max(this.raffle.remainingDraws, this.raffle.players.length);
     this.raffle.numberMode = this.playerNumberMode;
@@ -364,17 +522,24 @@ export class RafflePageComponent implements OnInit {
       return;
     }
 
+    const spinAllowance = await this.raffleService.consumeSpin();
+    if (!spinAllowance.allowed) {
+      this.spinLimitMessage = 'You do not have enough spins left. Please subscribe to continue.';
+      return;
+    }
+    this.spinLimitMessage = '';
+
     this.isSpinning = true;
     this.lastWinner = null;
-    this.spinSound.currentTime = 0;
-    this.spinSound.loop = true;
-    void this.spinSound.play().catch(() => undefined);
+    this.clearSpinTickTimers();
     const winner = players[Math.floor(Math.random() * players.length)];
     const targetReels = this.formatNumber(winner.assignedNumber).split('').map((digit) => Number(digit));
 
     const digitStates = targetReels.map(() => ({ spinPos: 0 }));
-    const spinSpeed = 50; // very fast rotations per second - shows lots of number changes
     const maxSpinPos = 80; // rows, kept within the repeated reel strip
+    const digitCount = this.raffle.digitCount ?? targetReels.length;
+    const fastDuration = 5 + Math.max(0, Math.min(3, digitCount - 3)) * 2;
+    const slowdownDuration = 3;
 
     // Create GSAP timeline
     const tl = gsap.timeline({
@@ -384,8 +549,7 @@ export class RafflePageComponent implements OnInit {
       },
       onComplete: async () => {
         // Animation complete - lock in final values
-        this.spinSound.pause();
-        this.spinSound.currentTime = 0;
+        this.clearSpinTickTimers();
         this.stopSound.currentTime = 0;
         void this.stopSound.play().catch(() => undefined);
         this.reelPositions = targetReels.map((val) => val);
@@ -422,15 +586,46 @@ export class RafflePageComponent implements OnInit {
       const delay = perDigit ? index * 0.5 : 0;
       tl.to(state, {
         spinPos: maxSpinPos,
-        duration: 2.5,
+        duration: fastDuration,
         ease: 'power1.inOut'
       }, delay);
       tl.to(state, {
         spinPos: targetReels[index],
-        duration: 3.5,
+        duration: slowdownDuration,
         ease: 'power3.out'
-      }, 2.5 + delay);
+      }, fastDuration + delay);
     });
+    this.scheduleSpinTicks(fastDuration, slowdownDuration);
+  }
+
+  private scheduleSpinTicks(fastDuration: number, slowdownDuration: number): void {
+    const totalDuration = (fastDuration + slowdownDuration) * 1000;
+    const slowdownStart = fastDuration * 1000;
+    const startedAt = performance.now();
+
+    const playTick = (): void => {
+      const elapsed = performance.now() - startedAt;
+      if (elapsed >= totalDuration || !this.isSpinning) {
+        return;
+      }
+
+      this.stopSound.pause();
+      this.stopSound.currentTime = 0;
+      void this.stopSound.play().catch(() => undefined);
+
+      const slowdownProgress = Math.max(0, Math.min(1, (elapsed - slowdownStart) / (slowdownDuration * 1000)));
+      const delay = elapsed < slowdownStart
+        ? 140
+        : 500 + Math.pow(slowdownProgress, 1.8) * 3000;
+      this.spinTickTimers.push(window.setTimeout(playTick, delay));
+    };
+
+    playTick();
+  }
+
+  private clearSpinTickTimers(): void {
+    this.spinTickTimers.forEach((timer) => window.clearTimeout(timer));
+    this.spinTickTimers = [];
   }
 
   private createRandomNumber(usedNumbers?: Set<number>): number {

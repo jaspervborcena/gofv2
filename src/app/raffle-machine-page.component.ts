@@ -22,12 +22,8 @@ export class RaffleMachinePageComponent implements OnDestroy, OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly raffleService = inject(RaffleService);
   standaloneRaffle = false;
-  private readonly spinSound = new Audio('/assets/slot-spin.mp3');
   private readonly stopSound = new Audio('/assets/slot-stop.mp3');
   private readonly winSound = new Audio('/assets/slot-win.mp3');
-  private spinAudioContext?: AudioContext;
-  private spinOscillator?: OscillatorNode;
-  private spinGain?: GainNode;
 
   raffle: Raffle | null = null;
   gameName = 'Lucky Draws';
@@ -36,7 +32,7 @@ export class RaffleMachinePageComponent implements OnDestroy, OnInit {
   reels = ['0', '0', '0'];
   reelPositions = [0, 0, 0];
   reelStrip = Array.from({ length: 100 }, (_, index) => index % 10);
-  reelDurations = [2000, 2800, 3500, 4200, 4900, 5600];
+  reelDurations = [1000, 3000, 5000, 7000, 9000, 11000];
   confettiPieces = Array.from({ length: 28 }, (_, index) => index);
   reelTransitionEnabled = false;
   isSpinning = false;
@@ -413,15 +409,22 @@ export class RaffleMachinePageComponent implements OnDestroy, OnInit {
     this.isSpinning = true;
     this.winner = null;
     this.winnerBoxVisible = false;
-    this.startSpinAudio();
     const winner = this.entries[Math.floor(Math.random() * this.entries.length)];
-    const digits = winner.number.split('');
-    const cycleCount = 5;
+    const digitCount = this.raffle?.digitCount ?? winner.number.length;
+    const digits = winner.number.padStart(digitCount, '0').split('');
+    const cycleCount = 1;
     const targetPositions = digits.map((digit) => cycleCount * 10 + Number(digit));
-    const startPositions = targetPositions.map((position) => position + 40);
+    const startPositions = targetPositions.map((position) => position + cycleCount * 10);
+    const fastUpPositions = targetPositions.map((position) => position - cycleCount * 10);
     const isPerDigit = this.raffle?.mode === 'per-digit';
-    const finalDuration = this.reelDurations[digits.length - 1] ?? 3500;
-    const durations = digits.map((_, index) => isPerDigit ? (this.reelDurations[index] ?? finalDuration) : finalDuration);
+    const normalizedDigitCount = Math.max(3, Math.min(6, digitCount));
+    const baseDuration = 5000 + (normalizedDigitCount - 3) * 2000;
+    const slowdownDuration = 3000;
+    const finalDuration = baseDuration + slowdownDuration;
+    const durations = digits.map((_, index) => {
+      const duration = isPerDigit ? (this.reelDurations[index] ?? baseDuration) : baseDuration;
+      return duration + slowdownDuration;
+    });
     this.reelTransitionEnabled = false;
     this.reelPositions = startPositions;
     const animationStart = performance.now();
@@ -430,21 +433,25 @@ export class RaffleMachinePageComponent implements OnDestroy, OnInit {
       this.reelPositions = startPositions.map((start, index) => {
         const duration = durations[index];
         const progress = Math.min(1, elapsed / duration);
-        const easedProgress = 1 - Math.pow(1 - progress, 3);
-        return start + (targetPositions[index] - start) * easedProgress;
+        const slowdownStart = Math.max(0, duration - slowdownDuration);
+        const upProgress = slowdownStart ? Math.min(1, elapsed / slowdownStart) : 1;
+        const slowdownProgress = slowdownStart ? Math.max(0, (elapsed - slowdownStart) / slowdownDuration) : progress;
+        const easedSlowdown = 1 - Math.pow(1 - slowdownProgress, 3);
+        if (elapsed < slowdownStart) {
+          const fastUpProgress = 1 - Math.pow(1 - upProgress, 2.4);
+          return Math.round(start + (fastUpPositions[index] - start) * fastUpProgress);
+        }
+
+        return Math.round(fastUpPositions[index] + (targetPositions[index] - fastUpPositions[index]) * easedSlowdown);
       });
       if (elapsed < finalDuration) {
         this.spinAnimationFrame = window.requestAnimationFrame(animateReels);
       }
     };
     this.spinAnimationFrame = window.requestAnimationFrame(animateReels);
-    this.spinTimers = digits.map((_, index) => window.setTimeout(() => {
-      this.stopSound.currentTime = 0;
-      void this.stopSound.play().catch(() => undefined);
-    }, durations[index]));
+    this.scheduleSpinTicks(finalDuration, Math.max(0, finalDuration - slowdownDuration));
 
     window.setTimeout(async () => {
-      this.stopSpinAudio();
       this.reels = digits;
       this.winner = winner;
       this.winnerBoxVisible = true;
@@ -486,40 +493,32 @@ export class RaffleMachinePageComponent implements OnDestroy, OnInit {
     }, finalDuration);
   }
 
-  private startSpinAudio(): void {
-    this.spinSound.currentTime = 0;
-    this.spinSound.loop = true;
-    void this.spinSound.play().catch(() => {
-      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AudioContextClass) {
+  private scheduleSpinTicks(totalDuration: number, slowdownStart: number): void {
+    const startedAt = performance.now();
+    const playTick = (): void => {
+      const elapsed = performance.now() - startedAt;
+      if (elapsed >= totalDuration || !this.isSpinning) {
         return;
       }
 
-      this.spinAudioContext = this.spinAudioContext ?? new AudioContextClass();
-      void this.spinAudioContext.resume();
-      this.spinOscillator = this.spinAudioContext.createOscillator();
-      this.spinGain = this.spinAudioContext.createGain();
-      this.spinOscillator.type = 'square';
-      this.spinOscillator.frequency.value = 110;
-      this.spinGain.gain.value = 0.035;
-      this.spinOscillator.connect(this.spinGain);
-      this.spinGain.connect(this.spinAudioContext.destination);
-      this.spinOscillator.start();
-    });
+      this.stopSound.pause();
+      this.stopSound.currentTime = 0;
+      void this.stopSound.play().catch(() => undefined);
+
+      const slowdownProgress = slowdownStart
+        ? Math.max(0, Math.min(1, (elapsed - slowdownStart) / (totalDuration - slowdownStart)))
+        : 1;
+      const tickDelay = elapsed < slowdownStart
+        ? 140
+        : 500 + Math.pow(slowdownProgress, 1.8) * 3000;
+      this.spinTimers.push(window.setTimeout(playTick, tickDelay));
+    };
+
+    playTick();
   }
 
   closeWinnerBox(): void {
     this.winnerBoxVisible = false;
-  }
-
-  private stopSpinAudio(): void {
-    this.spinSound.pause();
-    this.spinSound.currentTime = 0;
-    this.spinOscillator?.stop();
-    this.spinOscillator?.disconnect();
-    this.spinGain?.disconnect();
-    this.spinOscillator = undefined;
-    this.spinGain = undefined;
   }
 
   private async notifyWinner(winner: RaffleEntry): Promise<void> {
