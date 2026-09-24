@@ -1,6 +1,9 @@
 export type SubscriptionPlan = 'freemium' | 'basic' | 'standard';
 export type SubscriptionStatus = 'trial' | 'active' | 'past_due' | 'cancelled' | 'expired';
 
+export const FREE_MAX_PLAYERS = 200;
+export const FREE_MONTHLY_SPINS = 25;
+
 export interface PlanDefinition {
   id: SubscriptionPlan;
   name: 'Free' | 'Basic' | 'Standard';
@@ -39,8 +42,8 @@ export const planCatalog: PlanDefinition[] = [
     priceCents: 0,
     currency: 'PHP',
     billingInterval: 'month',
-    maxPlayers: 500,
-    monthlySpins: 25,
+    maxPlayers: FREE_MAX_PLAYERS,
+    monthlySpins: FREE_MONTHLY_SPINS,
     adsEnabled: true,
     features: ['Raffle machine and history', 'Participant list editor'],
     active: true

@@ -112,8 +112,8 @@
       <div class="player-panel" *ngIf="activePlayersTab === 'names'">
         <div class="player-panel-heading"><div><h2>🎯 Participant names</h2><p>{{ raffle.players.length }} players joined</p></div><span class="live-pill">Live</span></div>
         <div class="free-plan-notice" *ngIf="isPreviewRaffle">
-          <strong>Free plan: players list is limited to 500.</strong>
-          <span>If you want more than 500 players, please <a routerLink="/plans">upgrade your plan</a>.</span>
+          <strong>Free plan: players list is limited to 200.</strong>
+          <span>If you want more than 200 players, please <a routerLink="/plans">upgrade your plan</a>.</span>
         </div>
         <div class="join-row"><input [(ngModel)]="joinedName" (keydown.enter)="joinEntry()" placeholder="Add your name to the raffle" /><button class="primary-btn" type="button" (click)="joinEntry()">Join</button></div>
         <p class="save-message" *ngIf="participantLimitMessage" role="status">{{ participantLimitMessage }}</p>
@@ -133,14 +133,13 @@
         <h2>Participant list editor</h2>
         <p class="player-help">One participant per line. Use <strong>number • name</strong> or enter names only.</p>
         <div class="free-plan-notice" *ngIf="isPreviewRaffle">
-          <strong>Free plan: players list is limited to 500.</strong>
-          <span>If you want more than 500 players, please <a routerLink="/plans">upgrade your plan</a>.</span>
+          <strong>Free plan: players list is limited to 200.</strong>
+          <span>If you want more than 200 players, please <a routerLink="/plans">upgrade your plan</a>.</span>
         </div>
         <div class="duplicate-notice" *ngIf="duplicateNames.length" role="alert">
           <strong>Duplicate names found: {{ duplicateNames.join(', ') }}</strong>
-          <span>Choose whether to keep the copies with new numbers or remove the duplicates.</span>
+          <span>Duplicate names are not allowed. Remove the extra entries before saving.</span>
           <div class="duplicate-actions">
-            <button type="button" (click)="keepDuplicateNames()">Keep duplicates</button>
             <button type="button" (click)="removeDuplicateNames()">Remove duplicates</button>
           </div>
         </div>

@@ -11,7 +11,7 @@
         <h2>$0 <small>/month</small><em>₱0/month</em></h2>
         <p>Perfect for trying out Game of Fortunes.</p>
         <ul>
-          <li>Up to 500 players</li>
+          <li>Up to 200 players</li>
           <li>25 spins per month</li>
           <li>Raffle machine and history</li>
           <li>Participant list editor</li>
@@ -31,7 +31,7 @@
           <li>Ad-free experience</li>
           <li>Priority support</li>
         </ul>
-        <button class="plan-button" type="button" disabled>Upgrade to Basic</button>
+        <button class="plan-button" type="button" (click)="openUpgrade('basic')">Upgrade to Basic</button>
       </article>
 
       <article class="plan-card">
@@ -48,8 +48,83 @@
           <li>Early access to new features</li>
           <li>Priority support</li>
         </ul>
-        <button class="plan-button" type="button" disabled>Upgrade to Standard</button>
+        <button class="plan-button" type="button" (click)="openUpgrade('standard')">Upgrade to Standard</button>
       </article>
     </div>
   </section>
 </main>
+
+<div class="upgrade-backdrop" *ngIf="upgradeOpen" (click)="closeUpgrade()">
+  <section class="upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-title" (click)="$event.stopPropagation()">
+    <header class="upgrade-header">
+      <div>
+        <h2 id="upgrade-title">🚀 Upgrade Subscription</h2>
+        <p>Unlock more features for Game of Fortunes</p>
+      </div>
+      <button class="close-button" type="button" aria-label="Close upgrade dialog" (click)="closeUpgrade()">×</button>
+    </header>
+
+    <form class="upgrade-form" (ngSubmit)="submitUpgrade()">
+      <label>
+        <span>Store</span>
+        <input value="Game of Fortunes" readonly>
+      </label>
+
+      <div class="form-grid">
+        <label>
+          <span>Plan</span>
+          <select [(ngModel)]="selectedPlan" name="selectedPlan">
+            <option value="basic">Basic Plan (₱60/mo)</option>
+            <option value="standard">Standard Plan (₱599/mo)</option>
+          </select>
+        </label>
+        <label>
+          <span>Duration (months)</span>
+          <input type="number" min="1" max="12" [(ngModel)]="duration" name="duration">
+        </label>
+      </div>
+
+      <div class="form-grid">
+        <label>
+          <span>Promo Code <small>(optional)</small></span>
+          <div class="code-field">
+            <input [(ngModel)]="promoCode" name="promoCode" placeholder="Enter code">
+            <button type="button" class="apply-button">Apply</button>
+          </div>
+        </label>
+        <label>
+          <span>Referral Code <small>(optional)</small></span>
+          <input [(ngModel)]="referralCode" name="referralCode" placeholder="Enter referral">
+        </label>
+      </div>
+
+      <div class="price-summary">
+        <span>Plan Price: <strong>₱{{ monthlyPrice }}</strong> / mo</span>
+        <span>Duration: <strong>{{ duration }} month(s)</strong></span>
+        <span>Total Due: <strong>₱{{ totalPrice }}</strong></span>
+      </div>
+
+      <fieldset>
+        <legend>Payment Details</legend>
+        <div class="payment-options">
+          <label [class.selected]="paymentMethod === 'paypal'">
+            <input type="radio" [(ngModel)]="paymentMethod" name="paymentMethod" value="paypal">
+            PayPal Card
+          </label>
+          <label [class.selected]="paymentMethod === 'maya'">
+            <input type="radio" [(ngModel)]="paymentMethod" name="paymentMethod" value="maya">
+            Maya Checkout + QR
+          </label>
+        </div>
+        <p class="payment-note">Pay securely with Maya or any Visa, Mastercard, or credit/debit card via PayPal.</p>
+        <p class="amount-due">Amount due: <strong>₱{{ totalPrice }}</strong></p>
+      </fieldset>
+
+      <p class="submitted-message" *ngIf="submitted">Your upgrade request is ready. Payment processing will be connected here.</p>
+      <footer class="upgrade-actions">
+        <button class="cancel-button" type="button" (click)="closeUpgrade()">Cancel</button>
+        <button class="submit-button" type="submit">Submit Upgrade Request</button>
+      </footer>
+    </form>
+  </section>
+</div>

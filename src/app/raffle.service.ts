@@ -14,7 +14,7 @@ import { Firestore, collection, doc, getDoc, getDocs, orderBy, query, runTransac
 import { firstValueFrom } from 'rxjs';
 import QRCode from 'qrcode';
 import { environment } from '../environments/environment';
-import { planCatalog, UserSubscription } from './plan-schema';
+import { FREE_MONTHLY_SPINS, planCatalog, UserSubscription } from './plan-schema';
 
 export type SpinMode = 'simultaneous' | 'per-digit';
 export type NumberMode = 'random' | 'ordered';
@@ -38,6 +38,7 @@ export interface UserProfile {
   photoUrl?: string;
   role: 'guest' | 'host';
   plan?: SubscriptionPlan;
+  playersCount?: number;
   spinsRemaining?: number;
   spinPeriod?: string;
   createdAt: string;
@@ -200,6 +201,7 @@ export class RaffleService {
     const credential = await signInWithPopup(this.auth, new GoogleAuthProvider());
     const signedInUser = credential.user;
     await this.ensureUserSpinFields(signedInUser.uid);
+    const plan = await this.getCurrentUserPlan(signedInUser.uid);
     const now = new Date().toISOString();
     try {
       await this.saveUserProfile({
@@ -209,8 +211,8 @@ export class RaffleService {
         email: signedInUser.email ?? undefined,
         photoUrl: signedInUser.photoURL ?? undefined,
         role: 'guest',
-        plan: 'free',
-        spinsRemaining: 25,
+        plan,
+        spinsRemaining: FREE_MONTHLY_SPINS,
         spinPeriod: new Date().toISOString().slice(0, 7),
         createdAt: now,
         lastActiveAt: now
@@ -404,6 +406,9 @@ export class RaffleService {
       };
       await setDoc(doc(this.firestore, 'games', raffle.id), data, { merge: true });
       await this.syncGameCollections(raffle);
+      await setDoc(doc(this.firestore, 'users', raffle.creatorId), {
+        playersCount: raffle.players.length
+      }, { merge: true });
       return;
     }
 
@@ -434,6 +439,31 @@ export class RaffleService {
     }
 
     this.writeLocal({ ...raffle, players: [...raffle.players, player] });
+  }
+
+  async saveParticipant(raffle: Raffle, player: Player): Promise<void> {
+    if (!this.firestoreEnabled) {
+      return;
+    }
+
+    const authUser = this.auth.currentUser ?? await firstValueFrom(this.user$);
+    if (!authUser) {
+      throw new Error('You must be signed in to join this game.');
+    }
+
+    const participant: ParticipantRecord = {
+      id: player.id,
+      gameId: raffle.gameId,
+      gameUid: raffle.gameUid,
+      userId: authUser.uid,
+      name: player.name,
+      assignedNumber: player.assignedNumber,
+      status: player.status ?? 'active',
+      joinedAt: new Date().toISOString(),
+      ...(player.mobileNumber ? { mobileNumber: player.mobileNumber } : {}),
+      ...(player.remarks ? { remarks: player.remarks } : {})
+    };
+    await setDoc(doc(this.firestore, 'participants', player.id), participant, { merge: true });
   }
 
   async saveUserProfile(profile: UserProfile): Promise<void> {
@@ -484,25 +514,19 @@ export class RaffleService {
     const period = new Date().toISOString().slice(0, 7);
     const plan = await this.getCurrentUserPlan(userId);
     const catalogPlan = planCatalog.find((item) => item.id === (plan === 'free' ? 'freemium' : plan));
-    const monthlyLimit = catalogPlan?.monthlySpins ?? 25;
-    const guestProfile = await this.readGuestSpinProfile();
+    const monthlyLimit = catalogPlan?.monthlySpins ?? FREE_MONTHLY_SPINS;
     const updates: Record<string, string | number> = {};
 
     if (typeof data['plan'] !== 'string') {
       updates['plan'] = plan;
     }
     if (typeof data['spinsRemaining'] !== 'number' || data['spinPeriod'] !== period) {
-      updates['spinsRemaining'] = guestProfile?.spinPeriod === period
-        ? Math.min(monthlyLimit, guestProfile.spinsRemaining)
-        : monthlyLimit;
+      updates['spinsRemaining'] = monthlyLimit;
       updates['spinPeriod'] = period;
     }
 
     if (Object.keys(updates).length) {
       await setDoc(userRef, updates, { merge: true });
-    }
-    if (guestProfile) {
-      await this.clearGuestSpinProfile();
     }
   }
 
@@ -514,7 +538,7 @@ export class RaffleService {
 
     const plan = await this.getCurrentUserPlan(authUser.uid);
     const catalogPlan = planCatalog.find((item) => item.id === (plan === 'free' ? 'freemium' : plan));
-    const monthlyLimit = catalogPlan?.monthlySpins ?? 25;
+    const monthlyLimit = catalogPlan?.monthlySpins ?? FREE_MONTHLY_SPINS;
     const period = new Date().toISOString().slice(0, 7);
     const userRef = doc(this.firestore, 'users', authUser.uid);
     let remaining = 0;

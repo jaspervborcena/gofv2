@@ -19,10 +19,46 @@ h1 { margin: 0; color: #fff0b8; font-size: clamp(2rem, 5vw, 3.2rem); }
 .plan-button.secondary { color: #ffdc69; border: 1px solid rgba(255, 207, 77, 0.5); background: transparent; }
 .plan-button:disabled { opacity: 0.65; cursor: not-allowed; }
 
+.upgrade-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 1rem; background: rgba(8, 5, 18, 0.72); }
+.upgrade-modal { width: min(100%, 860px); max-height: min(92vh, 760px); overflow: auto; border: 1px solid rgba(155, 82, 177, 0.55); border-radius: 16px; color: #eee4f0; background: #17101f; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55); }
+.upgrade-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 1rem 1.1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.upgrade-header h2 { margin: 0; color: #fff0b8; font-size: 1.45rem; }
+.upgrade-header p { margin: 0.65rem 0 0; color: #d8c9df; font-size: 1rem; }
+.close-button { padding: 0; border: 0; color: #fff6d6; background: transparent; font-size: 2rem; line-height: 1; cursor: pointer; }
+.upgrade-form { display: grid; gap: 1rem; padding: 1rem 1.1rem 1.1rem; }
+.upgrade-form label { display: grid; gap: 0.45rem; min-width: 0; }
+.upgrade-form label > span, fieldset legend { color: #fff0b8; font-size: 1.05rem; font-weight: 700; }
+.upgrade-form small { color: #bcaec4; font-size: 0.8em; font-weight: 400; }
+.upgrade-form input, .upgrade-form select { box-sizing: border-box; width: 100%; min-height: 44px; padding: 0.65rem 0.8rem; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 8px; color: #f8eff9; background: #241c2a; font: inherit; }
+.upgrade-form input::placeholder { color: #988ba1; }
+.upgrade-form input[readonly] { color: #d8c9df; background: #211728; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.code-field { display: grid; grid-template-columns: 1fr auto; }
+.code-field input { border-radius: 7px 0 0 7px; }
+.apply-button { border: 1px solid rgba(255, 207, 77, 0.5); border-left: 0; border-radius: 0 6px 6px 0; color: #241100; background: #ffd34e; font: inherit; font-weight: 700; cursor: pointer; }
+.price-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding: 0.8rem; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px; color: #f4edf5; background: #261d2d; font-size: 1.05rem; }
+.price-summary strong, .amount-due strong { color: #ffd34e; }
+fieldset { margin: 0; padding: 0; border: 0; }
+fieldset legend { margin-bottom: 0.7rem; }
+.payment-options { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.payment-options label { display: flex; grid-template-columns: auto 1fr; align-items: center; gap: 0.45rem; width: auto; padding: 0.65rem 0.8rem; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px; color: #eee4f0; background: #211728; font-weight: 500; cursor: pointer; }
+.payment-options label.selected { border-color: #ffd34e; color: #fff0b8; background: rgba(255, 211, 78, 0.14); }
+.payment-options input { min-height: auto; width: auto; }
+.payment-note { margin: 0.8rem 0 0; color: #c9b9d1; }
+.amount-due { margin: 0.5rem 0 0; color: #eee4f0; font-size: 1.2rem; }
+.amount-due strong { margin-left: 0.35rem; color: #ffd34e; font-size: 1.45rem; }
+.submitted-message { margin: 0; padding: 0.7rem; border-radius: 6px; color: #185c38; background: #eaf8f0; }
+.upgrade-actions { display: flex; justify-content: flex-end; gap: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.cancel-button, .submit-button { min-height: 44px; padding: 0.65rem 1rem; border: 0; border-radius: 8px; font: inherit; cursor: pointer; }
+.cancel-button { color: #eee4f0; background: #2b2131; }
+.submit-button { color: #241100; background: linear-gradient(90deg, #ffd34e, #ff9d1a); font-weight: 800; }
+
 @media (max-width: 600px) {
   .plans-shell { padding: 0.5rem 0.65rem 1rem; }
   .plans-card { padding: 1rem; border-radius: 16px; }
   .plans-grid { grid-template-columns: 1fr; }
+  .form-grid, .price-summary { grid-template-columns: 1fr; }
+  .upgrade-actions { position: sticky; bottom: -1rem; margin-inline: -1.1rem; padding: 0.8rem 1.1rem; background: #17101f; }
 }
 
 @media (min-width: 601px) and (max-width: 900px) {

@@ -77,7 +77,9 @@ h2 {
 .tabs button {
   border: 0;
   border-radius: 999px;
-  padding: 0.8rem 1rem;
+  padding: 0.9rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 800;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -397,7 +399,7 @@ textarea,
 .game-title .eyebrow { color: #ffb82e; font-size: 0.65rem; }
 
 .tabs { justify-content: center; margin: 0.4rem 0 0.75rem; }
-.tabs button { padding: 0.45rem 0.85rem; background: transparent; border-radius: 5px; font-size: 0.68rem; letter-spacing: 0.13em; }
+.tabs button { padding: 0.65rem 1rem; background: transparent; border-radius: 5px; font-size: 0.82rem; letter-spacing: 0.13em; }
 .tabs button.active { color: #ffd34e; background: rgba(255, 174, 0, 0.12); }
 
 .raffle-stage {
@@ -609,18 +611,20 @@ textarea,
 .machine-crown { position: absolute; z-index: 5; top: -2.25rem; left: 50%; height: auto; transform: translateX(-50%); color: #ffd343; font-size: 1.65rem; line-height: 1; text-shadow: 0 0 12px #ff9e00; }
 .reel-lights { display: none; }
 
-/* Compact participant styling to match the raffle board scale. */
-.player-tabs { gap: 0.35rem; padding-bottom: 0.5rem; }
-.player-tabs button { padding: 0.45rem 0.7rem; border: 1px solid rgba(255, 255, 255, 0.08); font-size: 0.68rem; letter-spacing: 0.01em; }
-.player-panel { gap: 0.55rem; margin-top: 0.6rem; padding: 0.75rem; border-radius: 13px; }
-.player-panel h2 { font-size: 1.05rem; }
-.player-panel-heading p, .player-help { font-size: 0.72rem; }
-.live-pill { padding: 0.25rem 0.55rem; font-size: 0.68rem; }
-.join-row input { padding: 0.6rem 0.75rem; font-size: 0.75rem; }
-.join-row .primary-btn { padding: 0.6rem 0.9rem; font-size: 0.75rem; }
-.player-panel .player-list { gap: 0.3rem; }
-.player-panel .player-row { min-height: 2.15rem; padding: 0.55rem 0.7rem; font-size: 0.78rem; }
-.player-dot { width: 0.55rem; height: 0.55rem; margin-right: 0.45rem; }
+/* Participant panel styling follows the compact dark raffle reference. */
+.player-tabs { gap: 0.4rem; padding-bottom: 0.65rem; }
+.player-tabs button { padding: 0.55rem 0.85rem; border: 1px solid rgba(255, 255, 255, 0.1); color: #eee6f4; background: #211728; font-size: 0.78rem; letter-spacing: 0.01em; }
+.player-tabs button.active { color: #241100; background: linear-gradient(90deg, #ffd34e, #ff9d1a); }
+.player-panel { gap: 0.65rem; margin-top: 0.65rem; padding: 0.85rem; border: 1px solid rgba(155, 82, 177, 0.48); border-radius: 15px; background: #17101f; }
+.player-panel h2 { color: #fff0b8; font-size: 1.25rem; line-height: 1.15; }
+.player-panel-heading p, .player-help { color: #eee4f0; font-size: 0.82rem; }
+.live-pill { padding: 0.3rem 0.7rem; color: #8ff0b4; background: #174b35; font-size: 0.76rem; }
+.join-row { gap: 0.65rem; }
+.join-row input { min-height: 2.75rem; padding: 0.65rem 0.85rem; border: 1px solid rgba(255, 255, 255, 0.8); color: #fff; background: #241c2a; font-size: 0.9rem; }
+.join-row .primary-btn { min-height: 2.75rem; padding: 0.65rem 1.1rem; color: #261000; background: linear-gradient(90deg, #ffd34e, #ff9d1a); font-size: 0.9rem; font-weight: 800; }
+.player-panel .player-list { gap: 0.4rem; }
+.player-panel .player-row { min-height: 2.6rem; padding: 0.65rem 0.85rem; border: 1px solid rgba(255, 255, 255, 0.02); color: #f4edf5; background: #261d2d; font-size: 0.95rem; }
+.player-dot { width: 0.65rem; height: 0.65rem; margin-right: 0.55rem; background: #ffd34e; }
 .player-panel textarea { min-height: 180px; padding: 0.7rem; font-size: 0.78rem; }
 .player-panel .primary-btn.wide { padding: 0.65rem 0.8rem; font-size: 0.78rem; }
 .history-tabs { margin-bottom: 0.1rem; }

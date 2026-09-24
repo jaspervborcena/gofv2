@@ -1,7 +1,7 @@
 export const environment = {
   production: true,
   appBaseUrl: 'https://www.gameoffortunes.com',
-  raffleGrpcHttpUrl: 'https://raffle-grpc-http-12420305994.asia-east1.run.app',
+  paymentApiUrl: 'https://game-of-fortunes-payment-api-jozxtuutyq-de.a.run.app',
   firebaseConfig: {
     apiKey: 'AIzaSyBDzrpzYiaNc2TiCaNWI7cOvIgEVKCFpVs',
     authDomain: 'gameoffortunes-32578.firebaseapp.com',

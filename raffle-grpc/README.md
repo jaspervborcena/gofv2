@@ -1,6 +1,6 @@
-# Raffle gRPC service
+# Game of Fortunes Payment API
 
-A separate NestJS service for streaming completed raffle winners to gRPC clients such as Postman.
+NestJS HTTP API for raffle winner events and authenticated PayPal/Maya payment order creation.
 
 ## Install and run
 
@@ -12,25 +12,44 @@ npm start
 
 The service exposes:
 
-- gRPC: `localhost:50051`
 - Winner publish bridge: `POST http://localhost:3001/winners`
+- PayPal order creation: `POST http://localhost:3001/payments/paypal/order`
+- Maya checkout creation: `POST http://localhost:3001/payments/maya/checkout`
 
-## Postman
+Payment endpoints require a Firebase ID token:
 
-1. Create a gRPC request to `localhost:50051`.
-2. Import `proto/raffle.proto` when prompted.
-3. Invoke `raffle.RaffleService/SubscribeWinners`.
-4. Send:
+```http
+Authorization: Bearer <firebase-id-token>
+```
+
+Copy `.env.example` to the deployment environment and configure provider secrets there. Never put provider secrets in Angular or commit a `.env` file. Firebase Admin uses Application Default Credentials on Cloud Run.
+
+Payment request body:
+
+```json
+{
+  "packageId": "basic",
+  "durationMonths": 1,
+  "promoCode": "optional",
+  "referralCode": "optional"
+}
+```
+
+The backend calculates the amount from `packageId` and `durationMonths`; client-provided prices are ignored. It stores a pending `payment_orders` document before creating the provider order.
+
+Provider webhooks still need to be added before production payment activation. Payment orders must only become paid after server-side provider verification.
+
+## Winner event compatibility
+
+The winner HTTP bridge remains available for the Angular raffle flow at the new `game-of-fortunes-payment-api` service. Native gRPC transport is no longer used.
+
+For a direct smoke test:
 
 ```json
 {
   "raffleId": "raffle-001"
 }
 ```
-
-Keep the invocation open. The Angular app posts completed winners to the HTTP bridge, and the service forwards them to every subscriber for that raffle.
-
-For a direct smoke test without Angular:
 
 ```powershell
 Invoke-RestMethod -Method Post -Uri http://localhost:3001/winners -ContentType 'application/json' -Body '{"raffleId":"raffle-001","spinId":"spin-001","winnerId":"123","winnerName":"Jasper","prize":""}'

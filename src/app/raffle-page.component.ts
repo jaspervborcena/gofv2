@@ -6,6 +6,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { gsap } from 'gsap';
 import { BehaviorSubject } from 'rxjs';
 import { DrawItem, NumberMode, Player, Raffle, RaffleService, SpinMode } from './raffle.service';
+import { FREE_MAX_PLAYERS } from './plan-schema';
 
 @Component({
   selector: 'app-raffle-page',
@@ -33,12 +34,13 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   private savedEditorText = '';
   private editorSaveTimeout?: number;
   private duplicateMessageTimeout?: number;
+  private participantMessageTimeout?: number;
   joinedName = '';
   participantSaveMessage = '';
   duplicateNames: string[] = [];
   participantLimitMessage = '';
   spinLimitMessage = '';
-  readonly freePlayerLimit = 500;
+  readonly freePlayerLimit = FREE_MAX_PLAYERS;
   exclusionMessage = '';
   private exclusionMessageTimeout?: number;
   playerNumberMode: NumberMode = 'random';
@@ -60,6 +62,9 @@ export class RafflePageComponent implements OnDestroy, OnInit {
     }
     if (this.duplicateMessageTimeout) {
       window.clearTimeout(this.duplicateMessageTimeout);
+    }
+    if (this.participantMessageTimeout) {
+      window.clearTimeout(this.participantMessageTimeout);
     }
   }
 
@@ -89,24 +94,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   }
 
   keepDuplicateNames(): void {
-    const seen = new Map<string, number>();
-    this.editorText = this.editorText
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => {
-        const name = this.editorLineName(line);
-        const key = name.toLocaleLowerCase();
-        const occurrence = (seen.get(key) ?? 0) + 1;
-        seen.set(key, occurrence);
-        const displayName = occurrence > 1 ? `${name} (${occurrence})` : name;
-        return occurrence > 1 ? displayName : line;
-      })
-      .join('\n');
-    this.duplicateNames = [];
-    this.assignMissingNumbers();
-    this.showDuplicateActionMessage('Duplicates kept and renamed.');
-    this.scheduleEditorSave();
+    this.removeDuplicateNames();
   }
 
   removeDuplicateNames(): void {
@@ -320,6 +308,12 @@ export class RafflePageComponent implements OnDestroy, OnInit {
       });
 
     const names = entries.map((entry) => entry.name);
+    const duplicateNames = this.findDuplicateNames(names);
+    if (duplicateNames.length) {
+      this.duplicateNames = duplicateNames;
+      this.participantSaveMessage = `Duplicate names are not allowed: ${duplicateNames.join(', ')}.`;
+      return;
+    }
     this.playersText = names.join('\n');
     this.raffle.players = entries
       .filter((entry) => entry.name)
@@ -350,9 +344,9 @@ export class RafflePageComponent implements OnDestroy, OnInit {
       .map((line) => line.trim())
       .filter(Boolean);
 
-    if (this.isPreviewRaffle && lines.length > this.freePlayerLimit) {
+    if (lines.length > this.freePlayerLimit) {
       lines = lines.slice(0, this.freePlayerLimit);
-      this.participantLimitMessage = 'Free plan limit reached: only 500 players can be added. Please upgrade for more.';
+      this.participantLimitMessage = `Player limit reached: only ${this.freePlayerLimit} players can be added.`;
     }
 
     this.editorText = lines.map((line, index) => {
@@ -386,26 +380,70 @@ export class RafflePageComponent implements OnDestroy, OnInit {
       return;
     }
 
-    if (this.isPreviewRaffle && this.activePlayers.length >= this.freePlayerLimit) {
-      this.participantLimitMessage = 'Free plan limit reached: only 500 players can be added. Please upgrade for more.';
+    if (this.raffle.players.length >= this.freePlayerLimit) {
+      this.participantLimitMessage = `Player limit reached: only ${this.freePlayerLimit} players can be added.`;
+      return;
+    }
+
+    const duplicate = this.raffle.players.find((player) => player.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase());
+    if (duplicate) {
+      this.showParticipantMessage(`The name "${name}" has already joined this raffle.`);
       return;
     }
 
     const assignedNumber = this.playerNumberMode === 'ordered'
       ? this.raffle.players.length + 1
       : this.createRandomNumber();
-    this.raffle.players = [...this.raffle.players, {
+    const player: Player = {
       id: `${this.raffle.id}-${Date.now()}`,
       name,
       assignedNumber,
       drawn: false
-    }];
+    };
+
+    try {
+      if (!this.isPreviewRaffle && this.raffle.gameId) {
+        await this.raffleService.saveParticipant(this.raffle, player);
+      }
+    } catch (error) {
+      this.participantLimitMessage = error instanceof Error
+        ? `Could not save participant: ${error.message}`
+        : 'Could not save participant. Please try again.';
+      return;
+    }
+
+    this.raffle.players = [...this.raffle.players, player];
     this.joinedName = '';
     this.playersText = this.raffle.players.map((player) => player.name).join('\n');
     this.editorText = this.formatEditorText();
     this.participantPage = this.participantPageCount;
     this.raffle.remainingDraws = Math.max(this.raffle.remainingDraws, this.raffle.players.length);
     await this.saveRaffleIfPersisted();
+    this.participantLimitMessage = '';
+  }
+
+  private findDuplicateNames(names: string[]): string[] {
+    const seen = new Set<string>();
+    const duplicates = new Map<string, string>();
+    names.forEach((name) => {
+      const normalizedName = name.trim().toLocaleLowerCase();
+      if (seen.has(normalizedName)) {
+        duplicates.set(normalizedName, name.trim());
+      }
+      seen.add(normalizedName);
+    });
+    return [...duplicates.values()];
+  }
+
+  private showParticipantMessage(message: string): void {
+    this.participantLimitMessage = message;
+    if (this.participantMessageTimeout) {
+      window.clearTimeout(this.participantMessageTimeout);
+    }
+    this.participantMessageTimeout = window.setTimeout(() => {
+      this.participantLimitMessage = '';
+      this.participantMessageTimeout = undefined;
+    }, 2000);
   }
 
   setPlayerNumberMode(mode: NumberMode): void {

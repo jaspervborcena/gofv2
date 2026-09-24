@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RaffleService } from './raffle.service';
+import { FREE_MONTHLY_SPINS } from './plan-schema';
 
 @Component({
   selector: 'app-sign-in',
@@ -108,7 +109,8 @@ export class SignInComponent {
         email: credential.user.email ?? this.email.trim(),
         role: 'guest',
         plan: 'free',
-        spinsRemaining: 25,
+        playersCount: 0,
+        spinsRemaining: FREE_MONTHLY_SPINS,
         spinPeriod: new Date().toISOString().slice(0, 7),
         createdAt: now,
         lastActiveAt: now

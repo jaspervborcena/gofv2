@@ -1,5 +1,5 @@
 {
-  "name": "raffle-grpc",
+  "name": "game-of-fortunes-payment-api",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -8,16 +8,15 @@
     "start:dev": "ts-node --transpile-only src/main.ts"
   },
   "dependencies": {
-    "@grpc/grpc-js": "^1.13.4",
-    "@grpc/proto-loader": "^0.7.13",
     "@nestjs/common": "^11.0.11",
     "@nestjs/core": "^11.0.11",
-    "@nestjs/microservices": "^11.0.11",
     "@nestjs/platform-express": "^11.0.11",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "firebase-admin": "^13.4.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.1",
     "@types/node": "^22.13.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"

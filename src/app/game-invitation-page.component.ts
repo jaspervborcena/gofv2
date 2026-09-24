@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Raffle, RaffleService } from './raffle.service';
+import { FREE_MAX_PLAYERS } from './plan-schema';
 
 @Component({
   selector: 'app-game-invitation-page',
@@ -42,6 +43,7 @@ export class GameInvitationPageComponent implements OnInit {
 
       const signedInUser = await firstValueFrom(this.raffleService.user$);
       if (!signedInUser) {
+        this.saveInvitationDraft(gameId);
         await this.router.navigate(['/signin'], {
           queryParams: { returnUrl: `/games/${gameId}/join` }
         });
@@ -49,6 +51,7 @@ export class GameInvitationPageComponent implements OnInit {
       }
 
       this.game = await this.raffleService.findRaffle(gameId);
+      this.restoreInvitationDraft(gameId);
       if (!this.game) {
         await this.router.navigate(['/raffle-unavailable'], {
           queryParams: {
@@ -81,6 +84,11 @@ export class GameInvitationPageComponent implements OnInit {
       return;
     }
 
+    if (this.game.players.length >= FREE_MAX_PLAYERS) {
+      this.errorMessage = `This raffle already has ${FREE_MAX_PLAYERS} players and cannot accept more entries.`;
+      return;
+    }
+
     this.isJoining = true;
     this.errorMessage = '';
     const digitCount = this.game.digitCount ?? 3;
@@ -99,10 +107,11 @@ export class GameInvitationPageComponent implements OnInit {
 
     try {
       await this.raffleService.joinRaffle(this.game, player);
+      this.clearInvitationDraft(this.game.gameId);
       this.assignedNumber = String(assignedNumber).padStart(digitCount, '0');
       this.joined = true;
     } catch {
-      this.errorMessage = 'We could not join this game. Please try again.';
+      this.errorMessage = 'You could not join this game. Please sign in and try again.';
     } finally {
       this.isJoining = false;
     }
@@ -111,6 +120,48 @@ export class GameInvitationPageComponent implements OnInit {
   openGame(): void {
     if (this.game) {
       this.router.navigate(['/raffles', this.game.gameId]);
+    }
+  }
+
+  private invitationDraftKey(gameId: string): string {
+    return `gofv2-invitation-draft-${gameId}`;
+  }
+
+  private saveInvitationDraft(gameId: string): void {
+    if (typeof sessionStorage === 'undefined') {
+      return;
+    }
+
+    sessionStorage.setItem(this.invitationDraftKey(gameId), JSON.stringify({
+      name: this.name,
+      mobileNumber: this.mobileNumber,
+      remarks: this.remarks
+    }));
+  }
+
+  private restoreInvitationDraft(gameId: string): void {
+    if (typeof sessionStorage === 'undefined') {
+      return;
+    }
+
+    const draft = sessionStorage.getItem(this.invitationDraftKey(gameId));
+    if (!draft) {
+      return;
+    }
+
+    try {
+      const values = JSON.parse(draft) as { name?: string; mobileNumber?: string; remarks?: string };
+      this.name = values.name ?? '';
+      this.mobileNumber = values.mobileNumber ?? '';
+      this.remarks = values.remarks ?? '';
+    } catch {
+      this.clearInvitationDraft(gameId);
+    }
+  }
+
+  private clearInvitationDraft(gameId: string): void {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem(this.invitationDraftKey(gameId));
     }
   }
 }

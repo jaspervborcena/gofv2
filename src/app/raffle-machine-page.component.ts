@@ -527,7 +527,7 @@ export class RaffleMachinePageComponent implements OnDestroy, OnInit {
     }
 
     try {
-      await fetch(`${environment.raffleGrpcHttpUrl}/winners`, {
+      await fetch(`${environment.paymentApiUrl}/winners`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
