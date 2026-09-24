@@ -21,7 +21,7 @@ export class GameSetupPageComponent implements OnInit {
   spinMode: SpinMode = 'simultaneous';
   startAt = this.toDateTimeLocalValue(new Date());
   startAtDraft = this.startAt;
-  closeAt = this.toDateTimeLocalValue(new Date(Date.now() + 24 * 60 * 60 * 1000));
+  closeAt = this.toDateTimeLocalValue(new Date(new Date(this.startAt).getTime() + 24 * 60 * 60 * 1000));
   closeAtDraft = this.closeAt;
   closeTimeCustomized = false;
   remarks = '';
@@ -45,12 +45,11 @@ export class GameSetupPageComponent implements OnInit {
   onStartTimeDraftChange(value: string): void {
     this.startAtDraft = value;
     this.startAt = value;
-    if (!this.closeTimeCustomized) {
-      const startDate = new Date(value);
-      if (!Number.isNaN(startDate.getTime())) {
-        this.closeAtDraft = this.toDateTimeLocalValue(new Date(startDate.getTime() + 24 * 60 * 60 * 1000));
-        this.closeAt = this.closeAtDraft;
-      }
+    const startDate = new Date(value);
+    if (!Number.isNaN(startDate.getTime())) {
+      this.closeTimeCustomized = false;
+      this.closeAtDraft = this.toDateTimeLocalValue(new Date(startDate.getTime() + 24 * 60 * 60 * 1000));
+      this.closeAt = this.closeAtDraft;
     }
   }
 

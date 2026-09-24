@@ -522,7 +522,16 @@ export class RafflePageComponent implements OnDestroy, OnInit {
       return;
     }
 
-    const spinAllowance = await this.raffleService.consumeSpin();
+    let spinAllowance: { allowed: boolean; spinsRemaining: number };
+    try {
+      spinAllowance = await this.raffleService.consumeSpin();
+    } catch (error) {
+      this.spinLimitMessage = error instanceof Error
+        ? `Unable to check spins: ${error.message}`
+        : 'Unable to check your spins. Please try again.';
+      this.isSpinning = false;
+      return;
+    }
     if (!spinAllowance.allowed) {
       this.spinLimitMessage = 'You do not have enough spins left. Please subscribe to continue.';
       return;

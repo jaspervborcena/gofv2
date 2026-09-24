@@ -28,6 +28,9 @@ export class AppComponent {
           }
         : null;
       this.adFree = authUser ? (await this.raffleService.getCurrentUserPlan(authUser.uid)) !== 'free' : false;
+      if (authUser) {
+        await this.raffleService.ensureUserSpinFields(authUser.uid);
+      }
     });
   }
 

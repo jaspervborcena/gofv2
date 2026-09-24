@@ -9,7 +9,10 @@
         <h1>{{ raffle.name }}</h1>
         <span>ROLL · REVEAL · WIN</span>
       </div>
-      <a class="sound-button create-game-button" routerLink="/games/new" aria-label="Create a new game">⌁</a>
+      <a class="sound-button create-game-button" routerLink="/games/new" aria-label="Create a new game" title="Create a new game">
+        <span aria-hidden="true">⌁</span>
+        <small>Create game</small>
+      </a>
     </div>
 
     <nav class="tabs">

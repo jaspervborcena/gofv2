@@ -16,14 +16,11 @@
       <label>
         Start time
         <input [(ngModel)]="startAtDraft" (ngModelChange)="onStartTimeDraftChange($event)" name="startAt" type="datetime-local" required />
-        <small class="selected-time">Selected: {{ startAt }}</small>
       </label>
 
       <label>
         Close time
         <input [(ngModel)]="closeAtDraft" (ngModelChange)="onCloseTimeDraftChange($event)" [min]="startAt" [max]="latestCloseAt" name="closeAt" type="datetime-local" required />
-        <small class="selected-time">Selected: {{ closeAt }}</small>
-        <small class="time-hint">Default is 24 hours after start. Maximum is one month after start.</small>
       </label>
 
       <label>

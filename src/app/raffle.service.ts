@@ -192,6 +192,7 @@ export class RaffleService {
 
     const credential = await signInWithPopup(this.auth, new GoogleAuthProvider());
     const signedInUser = credential.user;
+    await this.ensureUserSpinFields(signedInUser.uid);
     const now = new Date().toISOString();
     try {
       await this.saveUserProfile({
@@ -233,7 +234,8 @@ export class RaffleService {
       throw new Error('Firebase auth is not configured for this app.');
     }
 
-    await signInWithEmailAndPassword(this.auth, email, password);
+    const credential = await signInWithEmailAndPassword(this.auth, email, password);
+    await this.ensureUserSpinFields(credential.user.uid);
   }
 
   async signUpWithEmail(email: string, password: string): Promise<UserCredential> {
@@ -440,16 +442,21 @@ export class RaffleService {
       return 'free';
     }
 
-    const subscriptionSnapshot = await getDocs(query(
-      collection(this.firestore, 'subscriptions'),
-      where('uid', '==', userId)
-    ));
-    const activeSubscription = subscriptionSnapshot.docs
-      .map((item) => item.data() as UserSubscription)
-      .find((subscription) => {
-        const isUsable = subscription.status === 'trial' || subscription.status === 'active';
-        return isUsable && new Date(subscription.endDate).getTime() > Date.now();
-      });
+    let activeSubscription: UserSubscription | undefined;
+    try {
+      const subscriptionSnapshot = await getDocs(query(
+        collection(this.firestore, 'subscriptions'),
+        where('uid', '==', userId)
+      ));
+      activeSubscription = subscriptionSnapshot.docs
+        .map((item) => item.data() as UserSubscription)
+        .find((subscription) => {
+          const isUsable = subscription.status === 'trial' || subscription.status === 'active';
+          return isUsable && new Date(subscription.endDate).getTime() > Date.now();
+        });
+    } catch {
+      // A user without a readable subscription falls back to the profile plan.
+    }
     if (activeSubscription?.planType === 'basic' || activeSubscription?.planType === 'standard') {
       return activeSubscription.planType;
     }
@@ -457,6 +464,33 @@ export class RaffleService {
     const snapshot = await getDoc(doc(this.firestore, 'users', userId));
     const plan = snapshot.data()?.['plan'];
     return plan === 'basic' || plan === 'standard' ? plan : 'free';
+  }
+
+  async ensureUserSpinFields(userId: string): Promise<void> {
+    if (!this.firestoreEnabled) {
+      return;
+    }
+
+    const userRef = doc(this.firestore, 'users', userId);
+    const snapshot = await getDoc(userRef);
+    const data = snapshot.data() ?? {};
+    const period = new Date().toISOString().slice(0, 7);
+    const plan = await this.getCurrentUserPlan(userId);
+    const catalogPlan = planCatalog.find((item) => item.id === (plan === 'free' ? 'freemium' : plan));
+    const monthlyLimit = catalogPlan?.monthlySpins ?? 25;
+    const updates: Record<string, string | number> = {};
+
+    if (typeof data['plan'] !== 'string') {
+      updates['plan'] = plan;
+    }
+    if (typeof data['spinsRemaining'] !== 'number' || data['spinPeriod'] !== period) {
+      updates['spinsRemaining'] = monthlyLimit;
+      updates['spinPeriod'] = period;
+    }
+
+    if (Object.keys(updates).length) {
+      await setDoc(userRef, updates, { merge: true });
+    }
   }
 
   async consumeSpin(): Promise<{ allowed: boolean; spinsRemaining: number }> {

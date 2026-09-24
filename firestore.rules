@@ -20,6 +20,7 @@ service cloud.firestore {
       allow update: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.get('plan', 'free') == resource.data.get('plan', 'free')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['spinsRemaining', 'spinPeriod', 'plan'])
         && (request.resource.data.get('spinPeriod', '') != resource.data.get('spinPeriod', '')
           || request.resource.data.get('spinsRemaining', 0) <= resource.data.get('spinsRemaining', 0));
 
