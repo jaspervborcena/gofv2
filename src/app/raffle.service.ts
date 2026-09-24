@@ -44,6 +44,13 @@ export interface UserProfile {
   lastActiveAt: string;
 }
 
+interface GuestSpinProfile {
+  id: 'guest';
+  plan: 'free';
+  spinsRemaining: number;
+  spinPeriod: string;
+}
+
 export interface ParticipantRecord {
   id: string;
   gameId: string;
@@ -478,25 +485,31 @@ export class RaffleService {
     const plan = await this.getCurrentUserPlan(userId);
     const catalogPlan = planCatalog.find((item) => item.id === (plan === 'free' ? 'freemium' : plan));
     const monthlyLimit = catalogPlan?.monthlySpins ?? 25;
+    const guestProfile = await this.readGuestSpinProfile();
     const updates: Record<string, string | number> = {};
 
     if (typeof data['plan'] !== 'string') {
       updates['plan'] = plan;
     }
     if (typeof data['spinsRemaining'] !== 'number' || data['spinPeriod'] !== period) {
-      updates['spinsRemaining'] = monthlyLimit;
+      updates['spinsRemaining'] = guestProfile?.spinPeriod === period
+        ? Math.min(monthlyLimit, guestProfile.spinsRemaining)
+        : monthlyLimit;
       updates['spinPeriod'] = period;
     }
 
     if (Object.keys(updates).length) {
       await setDoc(userRef, updates, { merge: true });
     }
+    if (guestProfile) {
+      await this.clearGuestSpinProfile();
+    }
   }
 
   async consumeSpin(): Promise<{ allowed: boolean; spinsRemaining: number }> {
     const authUser = this.auth.currentUser ?? await firstValueFrom(this.user$);
     if (!authUser) {
-      return { allowed: true, spinsRemaining: -1 };
+      return this.consumeGuestSpin();
     }
 
     const plan = await this.getCurrentUserPlan(authUser.uid);
@@ -529,6 +542,73 @@ export class RaffleService {
     });
 
     return { allowed, spinsRemaining: remaining };
+  }
+
+  private async consumeGuestSpin(): Promise<{ allowed: boolean; spinsRemaining: number }> {
+    const period = new Date().toISOString().slice(0, 7);
+    const profile = await this.readGuestSpinProfile();
+    const spinsRemaining = profile?.spinPeriod === period ? profile.spinsRemaining : 25;
+    if (spinsRemaining <= 0) {
+      await this.writeGuestSpinProfile({ id: 'guest', plan: 'free', spinsRemaining: 0, spinPeriod: period });
+      return { allowed: false, spinsRemaining: 0 };
+    }
+
+    const nextProfile: GuestSpinProfile = {
+      id: 'guest',
+      plan: 'free',
+      spinsRemaining: spinsRemaining - 1,
+      spinPeriod: period
+    };
+    await this.writeGuestSpinProfile(nextProfile);
+    return { allowed: true, spinsRemaining: nextProfile.spinsRemaining };
+  }
+
+  private openGuestSpinDatabase(): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('gofv2-local', 1);
+      request.onupgradeneeded = () => request.result.createObjectStore('profiles', { keyPath: 'id' });
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  private async readGuestSpinProfile(): Promise<GuestSpinProfile | null> {
+    if (typeof indexedDB === 'undefined') {
+      return null;
+    }
+
+    const database = await this.openGuestSpinDatabase();
+    return new Promise((resolve, reject) => {
+      const request = database.transaction('profiles', 'readonly').objectStore('profiles').get('guest');
+      request.onsuccess = () => resolve((request.result as GuestSpinProfile | undefined) ?? null);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  private async writeGuestSpinProfile(profile: GuestSpinProfile): Promise<void> {
+    if (typeof indexedDB === 'undefined') {
+      return;
+    }
+
+    const database = await this.openGuestSpinDatabase();
+    await new Promise<void>((resolve, reject) => {
+      const request = database.transaction('profiles', 'readwrite').objectStore('profiles').put(profile);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  private async clearGuestSpinProfile(): Promise<void> {
+    if (typeof indexedDB === 'undefined') {
+      return;
+    }
+
+    const database = await this.openGuestSpinDatabase();
+    await new Promise<void>((resolve, reject) => {
+      const request = database.transaction('profiles', 'readwrite').objectStore('profiles').delete('guest');
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
   }
 
   async listParticipants(gameUid: string): Promise<ParticipantRecord[]> {

@@ -327,6 +327,13 @@ textarea,
 
 @media (max-width: 900px) {
   .detail-header {
+  .machine-zone,
+  .slot-machine-container,
+  .slot-machine { width: 100%; min-width: 0; max-width: 100%; }
+  .slot-machine-container { padding: 0.35rem; overflow: hidden; }
+  .slot-machine { grid-auto-columns: minmax(0, 1fr); gap: 0.18rem; padding: 0.25rem; }
+  .reel-column { min-width: 0; height: 135px; }
+  .reel-item { min-width: 0; font-size: clamp(1.35rem, 10vw, 2.1rem); }
     flex-direction: column;
     align-items: flex-start;
   }
