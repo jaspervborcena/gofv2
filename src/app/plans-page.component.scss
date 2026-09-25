@@ -36,6 +36,9 @@ h1 { margin: 0; color: #fff0b8; font-size: clamp(2rem, 5vw, 3.2rem); }
 .code-field { display: grid; grid-template-columns: 1fr auto; }
 .code-field input { border-radius: 7px 0 0 7px; }
 .apply-button { border: 1px solid rgba(255, 207, 77, 0.5); border-left: 0; border-radius: 0 6px 6px 0; color: #241100; background: #ffd34e; font: inherit; font-weight: 700; cursor: pointer; }
+.apply-button:disabled { opacity: 0.6; cursor: wait; }
+.coupon-message { margin: 0; color: #ffc8c8; font-size: 0.95rem; }
+.coupon-message.valid { color: #f1e6a5; }
 .price-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding: 0.8rem; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px; color: #f4edf5; background: #261d2d; font-size: 1.05rem; }
 .price-summary strong, .amount-due strong { color: #ffd34e; }
 fieldset { margin: 0; padding: 0; border: 0; }
@@ -48,10 +51,12 @@ fieldset legend { margin-bottom: 0.7rem; }
 .amount-due { margin: 0.5rem 0 0; color: #eee4f0; font-size: 1.2rem; }
 .amount-due strong { margin-left: 0.35rem; color: #ffd34e; font-size: 1.45rem; }
 .submitted-message { margin: 0; padding: 0.7rem; border-radius: 6px; color: #185c38; background: #eaf8f0; }
+.payment-error { margin: 0; padding: 0.7rem; border: 1px solid rgba(255, 116, 116, 0.4); border-radius: 8px; color: #ffd2d2; background: rgba(156, 35, 50, 0.2); }
 .upgrade-actions { display: flex; justify-content: flex-end; gap: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255, 255, 255, 0.1); }
 .cancel-button, .submit-button { min-height: 44px; padding: 0.65rem 1rem; border: 0; border-radius: 8px; font: inherit; cursor: pointer; }
 .cancel-button { color: #eee4f0; background: #2b2131; }
 .submit-button { color: #241100; background: linear-gradient(90deg, #ffd34e, #ff9d1a); font-weight: 800; }
+.submit-button:disabled { opacity: 0.6; cursor: wait; }
 
 @media (max-width: 600px) {
   .plans-shell { padding: 0.5rem 0.65rem 1rem; }

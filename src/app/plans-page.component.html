@@ -73,14 +73,14 @@
       <div class="form-grid">
         <label>
           <span>Plan</span>
-          <select [(ngModel)]="selectedPlan" name="selectedPlan">
+          <select [(ngModel)]="selectedPlan" (ngModelChange)="clearCoupon()" name="selectedPlan">
             <option value="basic">Basic Plan (₱60/mo)</option>
             <option value="standard">Standard Plan (₱599/mo)</option>
           </select>
         </label>
         <label>
           <span>Duration (months)</span>
-          <input type="number" min="1" max="12" [(ngModel)]="duration" name="duration">
+          <input type="number" min="1" max="12" [(ngModel)]="duration" (ngModelChange)="clearCoupon()" name="duration">
         </label>
       </div>
 
@@ -89,7 +89,7 @@
           <span>Promo Code <small>(optional)</small></span>
           <div class="code-field">
             <input [(ngModel)]="promoCode" name="promoCode" placeholder="Enter code">
-            <button type="button" class="apply-button">Apply</button>
+            <button type="button" class="apply-button" (click)="applyPromoCode()" [disabled]="loading">Apply</button>
           </div>
         </label>
         <label>
@@ -97,6 +97,8 @@
           <input [(ngModel)]="referralCode" name="referralCode" placeholder="Enter referral">
         </label>
       </div>
+
+      <p class="coupon-message" [class.valid]="couponValid" *ngIf="couponMessage" role="status">{{ couponMessage }}</p>
 
       <div class="price-summary">
         <span>Plan Price: <strong>₱{{ monthlyPrice }}</strong> / mo</span>
@@ -120,10 +122,11 @@
         <p class="amount-due">Amount due: <strong>₱{{ totalPrice }}</strong></p>
       </fieldset>
 
-      <p class="submitted-message" *ngIf="submitted">Your upgrade request is ready. Payment processing will be connected here.</p>
+      <p class="payment-error" *ngIf="errorMessage" role="alert">{{ errorMessage }}</p>
+      <p class="submitted-message" *ngIf="submitted">{{ successMessage || 'Redirecting you to PayPal...' }}</p>
       <footer class="upgrade-actions">
         <button class="cancel-button" type="button" (click)="closeUpgrade()">Cancel</button>
-        <button class="submit-button" type="submit">Submit Upgrade Request</button>
+        <button class="submit-button" type="submit" [disabled]="loading">{{ loading ? 'Checking...' : (couponValid && totalPrice === 0 ? 'Activate Free Subscription' : 'Continue to PayPal') }}</button>
       </footer>
     </form>
   </section>

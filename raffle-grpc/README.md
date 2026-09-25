@@ -15,6 +15,7 @@ The service exposes:
 - Winner publish bridge: `POST http://localhost:3001/winners`
 - PayPal order creation: `POST http://localhost:3001/payments/paypal/order`
 - Maya checkout creation: `POST http://localhost:3001/payments/maya/checkout`
+- PayPal webhook: `POST http://localhost:3001/webhooks/paypal`
 
 Payment endpoints require a Firebase ID token:
 
@@ -37,7 +38,7 @@ Payment request body:
 
 The backend calculates the amount from `packageId` and `durationMonths`; client-provided prices are ignored. It stores a pending `payment_orders` document before creating the provider order.
 
-Provider webhooks still need to be added before production payment activation. Payment orders must only become paid after server-side provider verification.
+PayPal webhooks are verified through PayPal before a matching payment order can become paid. Register `https://game-of-fortunes-payment-api-jozxtuutyq-de.a.run.app/webhooks/paypal` in the PayPal app and store its webhook ID as `PAYPAL_WEBHOOK_ID`. Maya webhook verification still needs to be added before Maya payment activation.
 
 ## Winner event compatibility
 

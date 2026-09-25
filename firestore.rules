@@ -37,6 +37,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /coupons/{couponId} {
+      allow read: if signedIn()
+        && resource.data.couponCode == couponId;
+      allow write: if false;
+    }
+
     match /games/{gameId} {
       allow create: if signedIn()
         && request.resource.data.creatorId == request.auth.uid;
