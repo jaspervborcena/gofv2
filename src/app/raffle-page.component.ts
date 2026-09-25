@@ -94,7 +94,30 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   }
 
   keepDuplicateNames(): void {
-    this.removeDuplicateNames();
+    const usedNames = new Set<string>();
+    this.editorText = this.editorText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const baseName = this.editorLineName(line);
+        let name = baseName;
+        let copyNumber = 2;
+        while (usedNames.has(name.toLocaleLowerCase())) {
+          name = `${baseName}(${copyNumber})`;
+          copyNumber += 1;
+        }
+        usedNames.add(name.toLocaleLowerCase());
+        const parts = line.split('•').map((part) => part.trim());
+        return parts.length > 1 && /^\d+$/.test(parts[0])
+          ? `${parts[0]} • ${name}`
+          : name;
+      })
+      .join('\n');
+    this.duplicateNames = [];
+    this.assignMissingNumbers();
+    this.showDuplicateActionMessage('Duplicate copies kept.');
+    this.scheduleEditorSave();
   }
 
   removeDuplicateNames(): void {

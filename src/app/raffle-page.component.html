@@ -141,6 +141,7 @@
           <span>Duplicate names are not allowed. Remove the extra entries before saving.</span>
           <div class="duplicate-actions">
             <button type="button" (click)="removeDuplicateNames()">Remove duplicates</button>
+            <button type="button" (click)="keepDuplicateNames()">Keep copies</button>
           </div>
         </div>
         <p class="save-message" *ngIf="participantSaveMessage" role="status">{{ participantSaveMessage }}</p>

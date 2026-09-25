@@ -625,6 +625,14 @@ textarea,
 .player-panel .player-list { gap: 0.4rem; }
 .player-panel .player-row { min-height: 2.6rem; padding: 0.65rem 0.85rem; border: 1px solid rgba(255, 255, 255, 0.02); color: #f4edf5; background: #261d2d; font-size: 0.95rem; }
 .player-dot { width: 0.65rem; height: 0.65rem; margin-right: 0.55rem; background: #ffd34e; }
+.duplicate-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.duplicate-actions button { min-height: 2.45rem; padding: 0.55rem 0.85rem; border: 1px solid transparent; border-radius: 9px; cursor: pointer; font: inherit; font-size: 0.78rem; font-weight: 800; transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease; }
+.duplicate-actions button:first-child { border-color: rgba(255, 130, 130, 0.35); color: #ffc4c4; background: rgba(153, 42, 67, 0.24); }
+.duplicate-actions button:last-child { color: #261000; background: linear-gradient(90deg, #ffd34e, #ff9d1a); box-shadow: 0 5px 14px rgba(255, 157, 26, 0.16); }
+.duplicate-actions button:hover { transform: translateY(-1px); }
+.duplicate-actions button:first-child:hover { border-color: rgba(255, 130, 130, 0.65); background: rgba(153, 42, 67, 0.4); }
+.duplicate-actions button:last-child:hover { box-shadow: 0 8px 18px rgba(255, 157, 26, 0.28); }
+.duplicate-actions button:focus-visible { outline: 2px solid #fff0b8; outline-offset: 2px; }
 .player-panel textarea { min-height: 180px; padding: 0.7rem; font-size: 0.78rem; }
 .player-panel .primary-btn.wide { padding: 0.65rem 0.8rem; font-size: 0.78rem; }
 .history-tabs { margin-bottom: 0.1rem; }

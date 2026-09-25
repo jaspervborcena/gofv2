@@ -41,15 +41,6 @@ export class GameInvitationPageComponent implements OnInit {
         return;
       }
 
-      const signedInUser = await firstValueFrom(this.raffleService.user$);
-      if (!signedInUser) {
-        this.saveInvitationDraft(gameId);
-        await this.router.navigate(['/signin'], {
-          queryParams: { returnUrl: `/games/${gameId}/join` }
-        });
-        return;
-      }
-
       this.game = await this.raffleService.findRaffle(gameId);
       this.restoreInvitationDraft(gameId);
       if (!this.game) {
@@ -86,6 +77,15 @@ export class GameInvitationPageComponent implements OnInit {
 
     if (this.game.players.length >= FREE_MAX_PLAYERS) {
       this.errorMessage = `This raffle already has ${FREE_MAX_PLAYERS} players and cannot accept more entries.`;
+      return;
+    }
+
+    const signedInUser = await firstValueFrom(this.raffleService.user$);
+    if (!signedInUser) {
+      this.saveInvitationDraft(this.game.gameId);
+      await this.router.navigate(['/signin'], {
+        queryParams: { returnUrl: `/games/${this.game.gameId}/join` }
+      });
       return;
     }
 
