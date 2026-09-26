@@ -488,7 +488,18 @@ export class RaffleService {
       return;
     }
 
-    await setDoc(doc(this.firestore, 'users', profile.id), profile, { merge: true });
+    const userRef = doc(this.firestore, 'users', profile.id);
+    const existingProfile = await getDoc(userRef);
+    if (existingProfile.exists()) {
+      await updateDoc(userRef, {
+        fullName: profile.displayName ?? '',
+        nickname: '',
+        phoneNumber: ''
+      });
+      return;
+    }
+
+    await setDoc(userRef, profile);
   }
 
   async saveProfileNames(userId: string, fullName: string, nickname: string, phoneNumber: string): Promise<void> {
