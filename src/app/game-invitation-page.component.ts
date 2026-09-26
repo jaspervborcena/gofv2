@@ -20,6 +20,8 @@ export class GameInvitationPageComponent implements OnInit {
 
   game: Raffle | null = null;
   name = '';
+  useCustomNumber = false;
+  customNumber = '';
   mobileNumber = '';
   remarks = '';
   errorMessage = '';
@@ -80,6 +82,30 @@ export class GameInvitationPageComponent implements OnInit {
       return;
     }
 
+    const digitCount = this.game.digitCount ?? 3;
+    const usedNumbers = new Set(this.game.players.map((player) => player.assignedNumber));
+    const assignedNumber = this.useCustomNumber
+      ? this.parseCustomNumber(this.customNumber, digitCount)
+      : this.game.numberMode === 'ordered'
+      ? this.game.players.length + 1
+      : this.createRandomNumber(digitCount, usedNumbers);
+    if (assignedNumber === null) {
+      this.errorMessage = `Enter a number from 1 to ${10 ** digitCount - 1}.`;
+      return;
+    }
+
+    const duplicateName = this.game.players.some((player) => player.name.trim().toLocaleLowerCase() === this.name.trim().toLocaleLowerCase());
+    if (duplicateName) {
+      this.errorMessage = `The name "${this.name.trim()}" has already joined this raffle.`;
+      return;
+    }
+
+    const duplicateNumber = this.game.players.some((player) => player.assignedNumber === assignedNumber);
+    if (duplicateNumber) {
+      this.errorMessage = `The number ${String(assignedNumber).padStart(digitCount, '0')} is already in use.`;
+      return;
+    }
+
     const signedInUser = await firstValueFrom(this.raffleService.user$);
     if (!signedInUser) {
       this.saveInvitationDraft(this.game.gameId);
@@ -91,10 +117,6 @@ export class GameInvitationPageComponent implements OnInit {
 
     this.isJoining = true;
     this.errorMessage = '';
-    const digitCount = this.game.digitCount ?? 3;
-    const assignedNumber = this.game.numberMode === 'ordered'
-      ? this.game.players.length + 1
-      : Math.floor(10 ** (digitCount - 1) + Math.random() * (10 ** digitCount - 10 ** (digitCount - 1)));
 
     const player = {
       id: `${this.game.gameUid}-${Date.now()}`,
@@ -134,6 +156,8 @@ export class GameInvitationPageComponent implements OnInit {
 
     sessionStorage.setItem(this.invitationDraftKey(gameId), JSON.stringify({
       name: this.name,
+      useCustomNumber: this.useCustomNumber,
+      customNumber: this.customNumber,
       mobileNumber: this.mobileNumber,
       remarks: this.remarks
     }));
@@ -150,8 +174,10 @@ export class GameInvitationPageComponent implements OnInit {
     }
 
     try {
-      const values = JSON.parse(draft) as { name?: string; mobileNumber?: string; remarks?: string };
+      const values = JSON.parse(draft) as { name?: string; useCustomNumber?: boolean; customNumber?: string; mobileNumber?: string; remarks?: string };
       this.name = values.name ?? '';
+      this.useCustomNumber = values.useCustomNumber ?? false;
+      this.customNumber = values.customNumber ?? '';
       this.mobileNumber = values.mobileNumber ?? '';
       this.remarks = values.remarks ?? '';
     } catch {
@@ -163,5 +189,24 @@ export class GameInvitationPageComponent implements OnInit {
     if (typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem(this.invitationDraftKey(gameId));
     }
+  }
+
+  private parseCustomNumber(value: string, digitCount: number): number | null {
+    if (!/^\d+$/.test(value.trim()) || value.trim().length > digitCount) {
+      return null;
+    }
+
+    const number = Number(value.trim());
+    return number >= 1 && number <= 10 ** digitCount - 1 ? number : null;
+  }
+
+  private createRandomNumber(digitCount: number, usedNumbers: Set<number>): number {
+    const minimum = 10 ** (digitCount - 1);
+    const maximum = 10 ** digitCount - 1;
+    let number = Math.floor(minimum + Math.random() * (maximum - minimum + 1));
+    while (usedNumbers.has(number)) {
+      number = Math.floor(minimum + Math.random() * (maximum - minimum + 1));
+    }
+    return number;
   }
 }

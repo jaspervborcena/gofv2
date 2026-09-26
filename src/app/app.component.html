@@ -2,7 +2,72 @@
   <div class="app-shell">
     <div class="top-right">
       <span *ngIf="user" class="welcome">Welcome {{ userDisplayName }}!</span>
-      <button *ngIf="user" class="link-btn" (click)="raffleService.signOut()">Log out</button>
+      <div *ngIf="user" class="profile-wrap">
+        <button
+          class="profile-trigger"
+          type="button"
+          aria-label="Open profile"
+          aria-haspopup="dialog"
+          [attr.aria-expanded]="profileOpen"
+          (click)="$event.stopPropagation(); toggleProfile()">
+          <img *ngIf="user.photoURL" [src]="user.photoURL" alt="">
+          <span *ngIf="!user.photoURL">{{ userInitials }}</span>
+        </button>
+        <section *ngIf="profileOpen" class="profile-popover" role="dialog" aria-label="Your profile" (click)="$event.stopPropagation()">
+          <header class="profile-header">
+            <div>
+              <p class="profile-kicker">Your profile</p>
+              <h2>{{ profileSummary?.fullName || userDisplayName }}</h2>
+            </div>
+            <button class="profile-close" type="button" aria-label="Close profile" (click)="profileOpen = false">×</button>
+          </header>
+          <p *ngIf="profileLoading" class="profile-message" role="status">Loading profile…</p>
+          <p *ngIf="profileError" class="profile-message profile-error" role="alert">{{ profileError }}</p>
+          <ng-container *ngIf="profileSummary as profile">
+            <div class="profile-badges">
+              <span>{{ profile.role }}</span>
+              <span>{{ profile.planName }} plan</span>
+            </div>
+            <dl class="profile-details">
+              <div class="profile-field profile-edit-field">
+                <label for="profile-full-name">Full name</label>
+                <div class="profile-edit-row">
+                  <input id="profile-full-name" [(ngModel)]="profileFullName" name="profileFullName" autocomplete="name" maxlength="100">
+                  <button class="profile-save" type="button" aria-label="Save full name" title="Save full name" [disabled]="!fullNameChanged || profileSaving" (click)="saveProfileNames()">✓</button>
+                </div>
+              </div>
+              <div class="profile-field profile-edit-field">
+                <label for="profile-nickname">Nickname</label>
+                <div class="profile-edit-row">
+                  <input id="profile-nickname" [(ngModel)]="profileNickname" name="profileNickname" autocomplete="nickname" maxlength="40">
+                  <button class="profile-save" type="button" aria-label="Save nickname" title="Save nickname" [disabled]="!nicknameChanged || profileSaving" (click)="saveProfileNames()">✓</button>
+                </div>
+              </div>
+              <div class="profile-field profile-edit-field">
+                <label for="profile-phone-number">Phone</label>
+                <div class="profile-edit-row">
+                  <input id="profile-phone-number" [(ngModel)]="profilePhoneNumber" name="profilePhoneNumber" type="text" inputmode="tel" autocomplete="tel" maxlength="32">
+                  <button class="profile-save" type="button" aria-label="Save phone number" title="Save phone number" [disabled]="!phoneNumberChanged || profileSaving" (click)="saveProfileNames()">✓</button>
+                </div>
+              </div>
+              <div><dt>Email</dt><dd>{{ profile.email || 'Not provided' }}</dd></div>
+            </dl>
+            <p *ngIf="profileSaveMessage" class="profile-message" role="status">{{ profileSaveMessage }}</p>
+            <div class="profile-spins">
+              <span>Monthly spins</span>
+              <strong>{{ profile.spinsRemaining }} <small>/ {{ profile.monthlySpinLimit }}</small></strong>
+            </div>
+            <div class="profile-stats" aria-label="Game statistics">
+              <div><strong>{{ profile.statsAvailable ? profile.gamesParticipated : '—' }}</strong><span>Joined</span></div>
+              <div><strong>{{ profile.statsAvailable ? profile.wins : '—' }}</strong><span>Wins</span></div>
+              <div><strong>{{ profile.statsAvailable ? profile.losses : '—' }}</strong><span>Losses</span></div>
+              <div><strong>{{ profile.gamesHosted }}</strong><span>Hosted</span></div>
+            </div>
+            <p *ngIf="!profile.statsAvailable" class="profile-message">Some game stats are unavailable. Check Firestore access rules.</p>
+          </ng-container>
+          <button *ngIf="user" class="profile-logout" type="button" (click)="signOut()">Log out</button>
+        </section>
+      </div>
       <a *ngIf="!user" class="link-btn" routerLink="/signin">Sign in</a>
     </div>
   </div>
@@ -11,5 +76,6 @@
 
 <main class="app-shell">
   <router-outlet></router-outlet>
+  <app-features-footer></app-features-footer>
   <app-ad-banner *ngIf="!adFree"></app-ad-banner>
 </main>

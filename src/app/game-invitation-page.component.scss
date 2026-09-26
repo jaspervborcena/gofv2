@@ -8,6 +8,8 @@ h1 { margin: 0; color: #fff0b8; }
 .description, .details { margin: 0; color: #e0c9ff; line-height: 1.6; }
 .join-form { display: grid; gap: 1rem; margin-top: 0.75rem; }
 .join-form label { display: grid; gap: 0.4rem; color: #fff6d6; font-weight: 700; }
+.join-form .number-toggle { display: flex; align-items: center; gap: 0.55rem; color: #e0c9ff; font-size: 0.9rem; }
+.number-toggle input { width: auto; accent-color: #ffcf4d; }
 .join-form label span { color: #bda9db; font-weight: 400; }
 input, textarea { width: 100%; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 12px; padding: 0.8rem 0.9rem; background: rgba(255, 255, 255, 0.06); color: #fff; font: inherit; }
 textarea { resize: vertical; }

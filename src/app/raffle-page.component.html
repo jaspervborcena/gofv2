@@ -94,13 +94,6 @@
         </aside>
       </div>
 
-      <div class="feature-strip">
-        <div><b>✦</b><span><strong>100% FAIR</strong>Random &amp; transparent draw</span></div>
-        <div><b>♙</b><span><strong>SECURE</strong>Your data is safe with us</span></div>
-        <div><b>◉</b><span><strong>LIVE DRAW</strong>Real-time draw experience</span></div>
-        <div><b>ϟ</b><span><strong>INSTANT WIN</strong>Winners are announced immediately</span></div>
-        <div><b>✹</b><span><strong>TRUSTED</strong>Thousands of happy participants</span></div>
-      </div>
     </div>
 
     <div class="tab-content" *ngIf="activeTab === 'players'">
@@ -115,7 +108,15 @@
           <strong>Free plan: players list is limited to 200.</strong>
           <span>If you want more than 200 players, please <a routerLink="/plans">upgrade your plan</a>.</span>
         </div>
-        <div class="join-row"><input [(ngModel)]="joinedName" (keydown.enter)="joinEntry()" placeholder="Add your name to the raffle" /><button class="primary-btn" type="button" (click)="joinEntry()">Join</button></div>
+        <label class="number-toggle">
+          <input type="checkbox" [(ngModel)]="useJoinedNumber" />
+          I want to enter my own number
+        </label>
+        <div class="join-row">
+          <input *ngIf="useJoinedNumber" [(ngModel)]="joinedNumber" (keydown.enter)="joinEntry()" type="text" inputmode="numeric" [attr.maxlength]="raffle.digitCount ?? 3" placeholder="Number" aria-label="Participant number" />
+          <input [(ngModel)]="joinedName" (keydown.enter)="joinEntry()" placeholder="Add your name to the raffle" />
+          <button class="primary-btn" type="button" (click)="joinEntry()">Join</button>
+        </div>
         <p class="save-message" *ngIf="participantLimitMessage" role="status">{{ participantLimitMessage }}</p>
         <div class="player-list">
           <div class="player-row" *ngFor="let player of visiblePlayers">

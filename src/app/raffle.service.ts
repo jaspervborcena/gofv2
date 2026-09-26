@@ -10,7 +10,7 @@ import {
   fetchSignInMethodsForEmail
 } from '@angular/fire/auth';
 import type { UserCredential } from 'firebase/auth';
-import { Firestore, collection, doc, getDoc, getDocs, orderBy, query, runTransaction, setDoc, where, writeBatch } from '@angular/fire/firestore';
+import { Firestore, collection, deleteField, doc, getDoc, getDocs, orderBy, query, runTransaction, setDoc, updateDoc, where, writeBatch } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
 import QRCode from 'qrcode';
 import { environment } from '../environments/environment';
@@ -22,6 +22,7 @@ export type SubscriptionPlan = 'free' | 'basic' | 'standard';
 
 export interface Player {
   id: string;
+  userId?: string;
   name: string;
   assignedNumber: number;
   drawn: boolean;
@@ -43,6 +44,22 @@ export interface UserProfile {
   spinPeriod?: string;
   createdAt: string;
   lastActiveAt: string;
+}
+
+export interface UserProfileSummary {
+  fullName: string;
+  nickname: string;
+  email: string;
+  phoneNumber: string;
+  role: 'Host' | 'Player';
+  planName: string;
+  spinsRemaining: number;
+  monthlySpinLimit: number;
+  gamesHosted: number;
+  gamesParticipated: number;
+  statsAvailable: boolean;
+  wins: number;
+  losses: number;
 }
 
 interface GuestSpinProfile {
@@ -184,7 +201,7 @@ export class RaffleService {
       : '';
 
     if (code === 'permission-denied' || code === 'firestore/permission-denied') {
-      return 'You do not have permission to save this game. Please sign in and check your Firestore security rules.';
+      return 'Firestore rejected this update. Make sure the latest firestore.rules are deployed, then try again.';
     }
     if (code === 'unavailable') {
       return 'Firestore is temporarily unavailable. Check your connection and try again.';
@@ -472,6 +489,123 @@ export class RaffleService {
     }
 
     await setDoc(doc(this.firestore, 'users', profile.id), profile, { merge: true });
+  }
+
+  async saveProfileNames(userId: string, fullName: string, nickname: string, phoneNumber: string): Promise<void> {
+    if (!this.firestoreEnabled) {
+      throw new Error('Firebase is not available. Profile changes could not be saved.');
+    }
+
+    await updateDoc(doc(this.firestore, 'users', userId), {
+      fullName: fullName.trim(),
+      nickname: nickname.trim(),
+      phoneNumber: phoneNumber.trim(),
+      firstName: deleteField(),
+      lastName: deleteField()
+    });
+  }
+
+  async getUserProfileSummary(userId: string): Promise<UserProfileSummary> {
+    if (!this.firestoreEnabled) {
+      return {
+        fullName: '',
+        nickname: '',
+        email: '',
+        phoneNumber: '',
+        role: 'Player',
+        planName: 'Free',
+        spinsRemaining: FREE_MONTHLY_SPINS,
+        monthlySpinLimit: FREE_MONTHLY_SPINS,
+        gamesHosted: 0,
+        gamesParticipated: 0,
+        statsAvailable: false,
+        wins: 0,
+        losses: 0
+      };
+    }
+
+    const [profileSnapshot, participantResult, hostedGamesResult] = await Promise.all([
+      getDoc(doc(this.firestore, 'users', userId)).catch(() => null),
+      getDocs(query(collection(this.firestore, 'participants'), where('userId', '==', userId)))
+        .then((snapshot) => snapshot.docs.map((item) => ({
+          ...(item.data() as ParticipantRecord),
+          id: item.id
+        })))
+        .catch(() => null),
+      getDocs(query(collection(this.firestore, 'games'), where('creatorId', '==', userId)))
+        .then((snapshot) => snapshot.docs.map((item) => item.id))
+        .catch(() => null)
+    ]);
+    const profile = profileSnapshot?.data() ?? {};
+    const participants = participantResult ?? [];
+    const hostedGameIds = hostedGamesResult ?? [];
+    let statsAvailable = participantResult !== null && hostedGamesResult !== null;
+    const participantsByGame = new Map<string, ParticipantRecord[]>();
+    participants.forEach((participant) => {
+      const gameParticipants = participantsByGame.get(participant.gameUid) ?? [];
+      gameParticipants.push(participant);
+      participantsByGame.set(participant.gameUid, gameParticipants);
+    });
+
+    const gameResults = await Promise.all([...participantsByGame.keys()].map((gameUid) =>
+      getDoc(doc(this.firestore, 'games', gameUid)).catch(() => null)
+    ));
+    if (gameResults.some((gameSnapshot) => !gameSnapshot)) {
+      statsAvailable = false;
+    }
+    let wins = 0;
+    let losses = 0;
+    gameResults.forEach((gameSnapshot, index) => {
+      const game = gameSnapshot?.data() as Partial<Raffle> | undefined;
+      if (!game) {
+        return;
+      }
+      const gameUid = [...participantsByGame.keys()][index];
+      const gameParticipants = participantsByGame.get(gameUid) ?? [];
+      const participantIds = new Set(gameParticipants.map((participant) => participant.id));
+      const history = Array.isArray(game.history) ? game.history : [];
+      const won = history.some((item) => !!item.participantId && participantIds.has(item.participantId));
+      if (won) {
+        wins += 1;
+        return;
+      }
+
+      const closeAt = Date.parse(game.closeAt ?? game.closedAt ?? '');
+      if (game.remainingDraws === 0 || (Number.isFinite(closeAt) && closeAt <= Date.now())) {
+        losses += 1;
+      }
+    });
+
+    const authUser = this.auth.currentUser;
+    const fullName = String(profile['displayName'] ?? '').trim() || authUser?.displayName?.trim() || '';
+    const email = String(profile['email'] ?? '').trim() || authUser?.email || '';
+    const latestPhone = [...participants]
+      .sort((left, right) => String(right.joinedAt ?? '').localeCompare(String(left.joinedAt ?? '')))
+      .find((participant) => participant.mobileNumber)?.mobileNumber;
+    let plan: SubscriptionPlan = 'free';
+    try {
+      plan = await this.getCurrentUserPlan(userId);
+    } catch {
+      const savedPlan = profile['plan'];
+      plan = savedPlan === 'basic' || savedPlan === 'standard' ? savedPlan : 'free';
+    }
+    const catalogPlan = planCatalog.find((item) => item.id === (plan === 'free' ? 'freemium' : plan));
+
+    return {
+      fullName: String(profile['fullName'] ?? '').trim() || fullName,
+      nickname: String(profile['nickname'] ?? '').trim(),
+      email,
+      phoneNumber: String(profile['phoneNumber'] ?? '').trim() || authUser?.phoneNumber || latestPhone || '',
+      role: hostedGameIds.length ? 'Host' : 'Player',
+      planName: catalogPlan?.name ?? 'Free',
+      spinsRemaining: Number(profile['spinsRemaining'] ?? catalogPlan?.monthlySpins ?? FREE_MONTHLY_SPINS),
+      monthlySpinLimit: catalogPlan?.monthlySpins ?? FREE_MONTHLY_SPINS,
+      gamesHosted: hostedGameIds.length,
+      gamesParticipated: participantsByGame.size,
+      statsAvailable,
+      wins,
+      losses
+    };
   }
 
   async getCurrentUserPlan(userId: string): Promise<SubscriptionPlan> {

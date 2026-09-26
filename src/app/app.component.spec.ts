@@ -19,7 +19,24 @@ describe('AppComponent', () => {
           provide: RaffleService,
           useValue: {
             user$: userSubject.asObservable(),
-            signOut: jasmine.createSpy('signOut')
+            signOut: jasmine.createSpy('signOut'),
+            getCurrentUserPlan: jasmine.createSpy('getCurrentUserPlan').and.resolveTo('free'),
+            ensureUserSpinFields: jasmine.createSpy('ensureUserSpinFields').and.resolveTo(undefined),
+            getUserProfileSummary: jasmine.createSpy('getUserProfileSummary').and.resolveTo({
+              fullName: 'Player Example',
+              nickname: '',
+              email: 'player@example.com',
+              phoneNumber: '',
+              role: 'Player',
+              planName: 'Free',
+              spinsRemaining: 25,
+              monthlySpinLimit: 25,
+              gamesHosted: 0,
+              gamesParticipated: 0,
+              statsAvailable: true,
+              wins: 0,
+              losses: 0
+            })
           }
         }
       ]

@@ -11,4 +11,11 @@ export class WebhookController {
     await this.paymentService.handlePayPalWebhook(headers, event);
     return { received: true };
   }
+
+  @Post('maya')
+  @HttpCode(HttpStatus.OK)
+  async maya(@Body() event: Record<string, any>): Promise<{ received: boolean }> {
+    await this.paymentService.handleMayaWebhook(event);
+    return { received: true };
+  }
 }

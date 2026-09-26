@@ -19,14 +19,14 @@ h1 { margin: 0; color: #fff0b8; font-size: clamp(2rem, 5vw, 3.2rem); }
 .plan-button.secondary { color: #ffdc69; border: 1px solid rgba(255, 207, 77, 0.5); background: transparent; }
 .plan-button:disabled { opacity: 0.65; cursor: not-allowed; }
 
-.upgrade-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 1rem; background: rgba(8, 5, 18, 0.72); }
-.upgrade-modal { width: min(100%, 860px); max-height: min(92vh, 760px); overflow: auto; border: 1px solid rgba(155, 82, 177, 0.55); border-radius: 16px; color: #eee4f0; background: #17101f; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55); }
-.upgrade-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 1rem 1.1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.upgrade-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 0.75rem; background: rgba(8, 5, 18, 0.72); }
+.upgrade-modal { width: min(100%, 780px); max-height: min(90vh, 690px); overflow: auto; border: 1px solid rgba(155, 82, 177, 0.55); border-radius: 14px; color: #eee4f0; background: #17101f; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55); }
+.upgrade-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 0.75rem 0.9rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
 .upgrade-header h2 { margin: 0; color: #fff0b8; font-size: 1.45rem; }
 .upgrade-header p { margin: 0.65rem 0 0; color: #d8c9df; font-size: 1rem; }
 .close-button { padding: 0; border: 0; color: #fff6d6; background: transparent; font-size: 2rem; line-height: 1; cursor: pointer; }
-.upgrade-form { display: grid; gap: 1rem; padding: 1rem 1.1rem 1.1rem; }
-.upgrade-form label { display: grid; gap: 0.45rem; min-width: 0; }
+.upgrade-form { display: grid; gap: 0.65rem; padding: 0.75rem 0.9rem 0.85rem; }
+.upgrade-form label { display: grid; gap: 0.3rem; min-width: 0; }
 .upgrade-form label > span, fieldset legend { color: #fff0b8; font-size: 1.05rem; font-weight: 700; }
 .upgrade-form small { color: #bcaec4; font-size: 0.8em; font-weight: 400; }
 .upgrade-form input, .upgrade-form select { box-sizing: border-box; width: 100%; min-height: 44px; padding: 0.65rem 0.8rem; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 8px; color: #f8eff9; background: #241c2a; font: inherit; }
@@ -39,17 +39,25 @@ h1 { margin: 0; color: #fff0b8; font-size: clamp(2rem, 5vw, 3.2rem); }
 .apply-button:disabled { opacity: 0.6; cursor: wait; }
 .coupon-message { margin: 0; color: #ffc8c8; font-size: 0.95rem; }
 .coupon-message.valid { color: #f1e6a5; }
-.price-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding: 0.8rem; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px; color: #f4edf5; background: #261d2d; font-size: 1.05rem; }
+.price-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; padding: 0.6rem 0.7rem; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px; color: #f4edf5; background: #261d2d; font-size: 0.98rem; }
 .price-summary strong, .amount-due strong { color: #ffd34e; }
+.payment-method-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; width: min(100%, 390px); margin: 0 auto; padding: 0.25rem; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 9px; background: #211728; }
+.payment-method-tabs button { min-height: 36px; border: 0; border-radius: 6px; color: #d8c9df; background: transparent; font: inherit; font-size: 0.88rem; cursor: pointer; }
+.payment-method-tabs button.active { color: #241100; background: linear-gradient(90deg, #ffd34e, #ff9d1a); font-weight: 800; }
 fieldset { margin: 0; padding: 0; border: 0; }
 fieldset legend { margin-bottom: 0.7rem; }
-.payment-options { display: flex; flex-wrap: wrap; gap: 0.6rem; }
-.payment-options label { display: flex; grid-template-columns: auto 1fr; align-items: center; gap: 0.45rem; width: auto; padding: 0.65rem 0.8rem; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px; color: #eee4f0; background: #211728; font-weight: 500; cursor: pointer; }
-.payment-options label.selected { border-color: #ffd34e; color: #fff0b8; background: rgba(255, 211, 78, 0.14); }
-.payment-options input { min-height: auto; width: auto; }
-.payment-note { margin: 0.8rem 0 0; color: #c9b9d1; }
-.amount-due { margin: 0.5rem 0 0; color: #eee4f0; font-size: 1.2rem; }
-.amount-due strong { margin-left: 0.35rem; color: #ffd34e; font-size: 1.45rem; }
+.paypal-checkout { display: grid; gap: 0.3rem; width: min(100%, 390px); margin: 0 auto; }
+.paypal-checkout h3 { margin: 0.2rem 0 0; color: #fff0b8; font-size: 0.88rem; }
+.paypal-button-slot { min-height: 42px; }
+.card-button-slot { margin-bottom: 0.1rem; }
+.maya-checkout { display: grid; justify-items: center; gap: 0.45rem; width: min(100%, 390px); margin: 0 auto; text-align: center; }
+.maya-checkout-button { width: 100%; min-height: 42px; border: 0; border-radius: 6px; color: #211500; background: linear-gradient(90deg, #ffd34e, #ff9d1a); font: inherit; font-weight: 800; cursor: pointer; }
+.maya-checkout-button:disabled { opacity: 0.6; cursor: wait; }
+.maya-qr { width: 144px; height: 144px; padding: 0.4rem; border-radius: 8px; background: white; }
+.maya-status { margin: 0; color: #d8c9df; font-size: 0.82rem; text-align: center; }
+.payment-note { margin: 0.35rem 0 0; color: #c9b9d1; font-size: 0.9rem; }
+.amount-due { margin: 0.1rem 0 0; color: #eee4f0; font-size: 1.05rem; }
+.amount-due strong { margin-left: 0.35rem; color: #ffd34e; font-size: 1.25rem; }
 .submitted-message { margin: 0; padding: 0.7rem; border-radius: 6px; color: #185c38; background: #eaf8f0; }
 .payment-error { margin: 0; padding: 0.7rem; border: 1px solid rgba(255, 116, 116, 0.4); border-radius: 8px; color: #ffd2d2; background: rgba(156, 35, 50, 0.2); }
 .upgrade-actions { display: flex; justify-content: flex-end; gap: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255, 255, 255, 0.1); }
@@ -63,7 +71,9 @@ fieldset legend { margin-bottom: 0.7rem; }
   .plans-card { padding: 1rem; border-radius: 16px; }
   .plans-grid { grid-template-columns: 1fr; }
   .form-grid, .price-summary { grid-template-columns: 1fr; }
-  .upgrade-actions { position: sticky; bottom: -1rem; margin-inline: -1.1rem; padding: 0.8rem 1.1rem; background: #17101f; }
+  .upgrade-backdrop { padding: 0.4rem; }
+  .upgrade-modal { max-height: 94dvh; }
+  .upgrade-actions { position: sticky; bottom: -0.85rem; margin-inline: -0.9rem; padding: 0.65rem 0.9rem; background: #17101f; }
 }
 
 @media (min-width: 601px) and (max-width: 900px) {

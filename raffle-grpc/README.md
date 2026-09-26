@@ -14,8 +14,12 @@ The service exposes:
 
 - Winner publish bridge: `POST http://localhost:3001/winners`
 - PayPal order creation: `POST http://localhost:3001/payments/paypal/order`
+- PayPal public client configuration: `GET http://localhost:3001/payments/paypal/config`
+- PayPal order capture: `POST http://localhost:3001/payments/paypal/capture`
 - Maya checkout creation: `POST http://localhost:3001/payments/maya/checkout`
+- Maya payment status: `POST http://localhost:3001/payments/maya/orders/:paymentOrderId/status`
 - PayPal webhook: `POST http://localhost:3001/webhooks/paypal`
+- Maya webhook: `POST http://localhost:3001/webhooks/maya`
 
 Payment endpoints require a Firebase ID token:
 
@@ -38,7 +42,7 @@ Payment request body:
 
 The backend calculates the amount from `packageId` and `durationMonths`; client-provided prices are ignored. It stores a pending `payment_orders` document before creating the provider order.
 
-PayPal webhooks are verified through PayPal before a matching payment order can become paid. Register `https://game-of-fortunes-payment-api-jozxtuutyq-de.a.run.app/webhooks/paypal` in the PayPal app and store its webhook ID as `PAYPAL_WEBHOOK_ID`. Maya webhook verification still needs to be added before Maya payment activation.
+PayPal webhooks are verified through PayPal before a matching payment order can become paid. Register `https://game-of-fortunes-payment-api-jozxtuutyq-de.a.run.app/webhooks/paypal` in the PayPal app and store its webhook ID as `PAYPAL_WEBHOOK_ID`. Maya checkout creates a unique hosted checkout URL for each order, which the app displays as a QR code. Payment status is verified by retrieving that Checkout record and matching its reference, amount, and currency before activating the subscription. Register `https://game-of-fortunes-payment-api-jozxtuutyq-de.a.run.app/webhooks/maya` for `PAYMENT_SUCCESS` notifications. Use sandbox keys with `https://pg-sandbox.paymaya.com` and production keys with `https://pg.maya.ph`.
 
 ## Winner event compatibility
 

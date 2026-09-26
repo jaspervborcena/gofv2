@@ -7,6 +7,14 @@
     <p class="details">Join with a name to receive your {{ game.digitCount ?? 3 }}-digit raffle number.</p>
 
     <form class="join-form" (ngSubmit)="acceptInvitation()">
+      <label class="number-toggle">
+        <input type="checkbox" [(ngModel)]="useCustomNumber" name="useCustomNumber" />
+        I want to enter my own number
+      </label>
+      <label *ngIf="useCustomNumber">
+        Your number
+        <input [(ngModel)]="customNumber" name="customNumber" type="text" inputmode="numeric" [attr.maxlength]="game.digitCount ?? 3" placeholder="Enter your number" />
+      </label>
       <label>
         Your name
         <input [(ngModel)]="name" name="name" required maxlength="80" placeholder="Enter your name" />

@@ -36,6 +36,8 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   private duplicateMessageTimeout?: number;
   private participantMessageTimeout?: number;
   joinedName = '';
+  useJoinedNumber = false;
+  joinedNumber = '';
   participantSaveMessage = '';
   duplicateNames: string[] = [];
   participantLimitMessage = '';
@@ -280,6 +282,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
         if (participantRecords.length) {
           this.raffle.players = participantRecords.map((participant) => ({
             id: participant.id,
+            userId: participant.userId,
             name: participant.name,
             assignedNumber: participant.assignedNumber,
             drawn: participant.status === 'winner',
@@ -340,12 +343,20 @@ export class RafflePageComponent implements OnDestroy, OnInit {
     this.playersText = names.join('\n');
     this.raffle.players = entries
       .filter((entry) => entry.name)
-      .map((entry, index) => ({
-      id: `${this.raffle!.id}-${index}`,
-      name: entry.name,
-      assignedNumber: entry.assignedNumber,
-      drawn: false
-    }));
+      .map((entry, index) => {
+        const existingPlayer = this.raffle!.players.find((player) =>
+          player.name.trim().toLocaleLowerCase() === entry.name.trim().toLocaleLowerCase());
+        return {
+          id: existingPlayer?.id ?? `${this.raffle!.id}-${index}`,
+          userId: existingPlayer?.userId,
+          name: entry.name,
+          assignedNumber: entry.assignedNumber,
+          drawn: existingPlayer?.drawn ?? false,
+          status: existingPlayer?.status,
+          mobileNumber: existingPlayer?.mobileNumber,
+          remarks: existingPlayer?.remarks
+        };
+      });
     this.editorText = this.formatEditorText();
     this.savedEditorText = this.editorText;
     this.participantPage = 1;
@@ -408,15 +419,29 @@ export class RafflePageComponent implements OnDestroy, OnInit {
       return;
     }
 
+    const digitCount = this.raffle.digitCount ?? 3;
+    const usedNumbers = new Set(this.raffle.players.map((player) => player.assignedNumber));
+    const assignedNumber = this.useJoinedNumber
+      ? this.parseJoinedNumber(this.joinedNumber, digitCount)
+      : this.playerNumberMode === 'ordered'
+      ? this.raffle.players.length + 1
+      : this.createRandomNumber(usedNumbers);
+    if (assignedNumber === null) {
+      this.showParticipantMessage(`Enter a number from 1 to ${10 ** digitCount - 1}.`);
+      return;
+    }
+
     const duplicate = this.raffle.players.find((player) => player.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase());
     if (duplicate) {
       this.showParticipantMessage(`The name "${name}" has already joined this raffle.`);
       return;
     }
 
-    const assignedNumber = this.playerNumberMode === 'ordered'
-      ? this.raffle.players.length + 1
-      : this.createRandomNumber();
+    const duplicateNumber = this.raffle.players.find((player) => player.assignedNumber === assignedNumber);
+    if (duplicateNumber) {
+      this.showParticipantMessage(`The number ${this.formatNumber(assignedNumber)} is already in use.`);
+      return;
+    }
     const player: Player = {
       id: `${this.raffle.id}-${Date.now()}`,
       name,
@@ -437,12 +462,22 @@ export class RafflePageComponent implements OnDestroy, OnInit {
 
     this.raffle.players = [...this.raffle.players, player];
     this.joinedName = '';
+    this.joinedNumber = '';
     this.playersText = this.raffle.players.map((player) => player.name).join('\n');
     this.editorText = this.formatEditorText();
     this.participantPage = this.participantPageCount;
     this.raffle.remainingDraws = Math.max(this.raffle.remainingDraws, this.raffle.players.length);
     await this.saveRaffleIfPersisted();
     this.participantLimitMessage = '';
+  }
+
+  private parseJoinedNumber(value: string, digitCount: number): number | null {
+    if (!/^\d+$/.test(value.trim()) || value.trim().length > digitCount) {
+      return null;
+    }
+
+    const number = Number(value.trim());
+    return number >= 1 && number <= 10 ** digitCount - 1 ? number : null;
   }
 
   private findDuplicateNames(names: string[]): string[] {

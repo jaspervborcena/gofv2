@@ -11,7 +11,7 @@
         <h2>$0 <small>/month</small><em>₱0/month</em></h2>
         <p>Perfect for trying out Game of Fortunes.</p>
         <ul>
-          <li>Up to 200 players</li>
+          <li>Up to 160 players</li>
           <li>25 spins per month</li>
           <li>Raffle machine and history</li>
           <li>Participant list editor</li>
@@ -21,13 +21,11 @@
 
       <article class="plan-card featured">
         <span class="plan-label">BASIC</span>
-        <h2>$1 <small>/month</small><em>₱60/month</em></h2>
+        <h2>$1.99 <small>/month</small><em>₱149/month</em></h2>
         <p>Perfect for small communities and events.</p>
         <ul>
-          <li>Up to 1,000 players</li>
+          <li>Up to 2,000 players</li>
           <li>500 spins per month</li>
-          <li>Raffle machine and history</li>
-          <li>Participant list editor</li>
           <li>Ad-free experience</li>
           <li>Priority support</li>
         </ul>
@@ -39,14 +37,11 @@
         <h2>$9.99 <small>/month</small><em>₱599/month</em></h2>
         <p>Built for larger communities and frequent raffles.</p>
         <ul>
-          <li>Up to 20,000 players</li>
+          <li>Up to 10,000 players</li>
           <li>3,000 spins per month</li>
           <li>Advanced raffle tools</li>
           <li>Full raffle history</li>
-          <li>Participant management</li>
-          <li>Ad-free experience</li>
           <li>Early access to new features</li>
-          <li>Priority support</li>
         </ul>
         <button class="plan-button" type="button" (click)="openUpgrade('standard')">Upgrade to Standard</button>
       </article>
@@ -65,16 +60,11 @@
     </header>
 
     <form class="upgrade-form" (ngSubmit)="submitUpgrade()">
-      <label>
-        <span>Store</span>
-        <input value="Game of Fortunes" readonly>
-      </label>
-
       <div class="form-grid">
         <label>
           <span>Plan</span>
           <select [(ngModel)]="selectedPlan" (ngModelChange)="clearCoupon()" name="selectedPlan">
-            <option value="basic">Basic Plan (₱60/mo)</option>
+            <option value="basic">Basic Plan (₱149/mo)</option>
             <option value="standard">Standard Plan (₱599/mo)</option>
           </select>
         </label>
@@ -106,27 +96,31 @@
         <span>Total Due: <strong>₱{{ totalPrice }}</strong></span>
       </div>
 
-      <fieldset>
-        <legend>Payment Details</legend>
-        <div class="payment-options">
-          <label [class.selected]="paymentMethod === 'paypal'">
-            <input type="radio" [(ngModel)]="paymentMethod" name="paymentMethod" value="paypal">
-            PayPal Card
-          </label>
-          <label [class.selected]="paymentMethod === 'maya'">
-            <input type="radio" [(ngModel)]="paymentMethod" name="paymentMethod" value="maya">
-            Maya Checkout + QR
-          </label>
-        </div>
-        <p class="payment-note">Pay securely with Maya or any Visa, Mastercard, or credit/debit card via PayPal.</p>
-        <p class="amount-due">Amount due: <strong>₱{{ totalPrice }}</strong></p>
-      </fieldset>
+      <div class="payment-method-tabs" *ngIf="!(couponValid && totalPrice === 0) && !submitted" role="tablist" aria-label="Payment method">
+        <button type="button" role="tab" [attr.aria-selected]="paymentMethod === 'paypal'" [class.active]="paymentMethod === 'paypal'" (click)="selectPaymentMethod('paypal')">PayPal &amp; cards</button>
+        <button type="button" role="tab" [attr.aria-selected]="paymentMethod === 'maya'" [class.active]="paymentMethod === 'maya'" (click)="selectPaymentMethod('maya')">Maya QR</button>
+      </div>
 
+      <section class="paypal-checkout" *ngIf="paymentMethod === 'paypal' && !(couponValid && totalPrice === 0) && !submitted" aria-label="PayPal and card payment options">
+        <h3>Pay with PayPal</h3>
+        <div #paypalButtonContainer class="paypal-button-slot"></div>
+        <h3>Pay with debit or credit card</h3>
+        <div #cardButtonContainer class="paypal-button-slot card-button-slot"></div>
+        <p class="payment-note">Card checkout is securely processed by PayPal. No PayPal account needed.</p>
+      </section>
+      <section class="maya-checkout" *ngIf="paymentMethod === 'maya' && !(couponValid && totalPrice === 0) && !submitted" aria-label="Maya QR payment">
+        <button class="maya-checkout-button" type="button" (click)="createMayaCheckout()" [disabled]="mayaCheckoutLoading">
+          {{ mayaCheckoutLoading ? 'Creating Maya checkout…' : (mayaQrImage ? 'Generate a new Maya QR' : 'Continue with Maya') }}
+        </button>
+        <img *ngIf="mayaQrImage" class="maya-qr" [src]="mayaQrImage" alt="Maya checkout QR code">
+        <p class="payment-note">This QR is unique to this order. Scan it with Maya or another supported QRPh app.</p>
+        <p class="maya-status" *ngIf="mayaStatusMessage" role="status">{{ mayaStatusMessage }}</p>
+      </section>
       <p class="payment-error" *ngIf="errorMessage" role="alert">{{ errorMessage }}</p>
       <p class="submitted-message" *ngIf="submitted">{{ successMessage || 'Redirecting you to PayPal...' }}</p>
       <footer class="upgrade-actions">
         <button class="cancel-button" type="button" (click)="closeUpgrade()">Cancel</button>
-        <button class="submit-button" type="submit" [disabled]="loading">{{ loading ? 'Checking...' : (couponValid && totalPrice === 0 ? 'Activate Free Subscription' : 'Continue to PayPal') }}</button>
+        <button *ngIf="couponValid && totalPrice === 0" class="submit-button" type="submit" [disabled]="loading">{{ loading ? 'Activating...' : 'Activate Free Subscription' }}</button>
       </footer>
     </form>
   </section>
