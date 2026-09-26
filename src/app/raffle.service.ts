@@ -491,10 +491,11 @@ export class RaffleService {
     const userRef = doc(this.firestore, 'users', profile.id);
     const existingProfile = await getDoc(userRef);
     if (existingProfile.exists()) {
+      const existingData = existingProfile.data();
       await updateDoc(userRef, {
-        fullName: profile.displayName ?? '',
-        nickname: '',
-        phoneNumber: ''
+        fullName: profile.displayName ?? String(existingData['fullName'] ?? ''),
+        nickname: String(existingData['nickname'] ?? ''),
+        phoneNumber: String(existingData['phoneNumber'] ?? '')
       });
       return;
     }
