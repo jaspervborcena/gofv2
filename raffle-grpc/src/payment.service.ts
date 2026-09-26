@@ -633,15 +633,15 @@ export class PaymentService {
   }
 
   private async createMayaCheckout(paymentOrderId: string, packageId: PlanId, durationMonths: number, amount: number): Promise<{ checkoutId: string; redirectUrl: string }> {
-    const publicKey = process.env.MAYA_PUBLIC_KEY;
-    if (!publicKey) {
+    const secretKey = process.env.MAYA_SECRET_KEY;
+    if (!secretKey) {
       throw new InternalServerErrorException('Maya is not configured on the payment backend.');
     }
 
     const response = await fetch(`${this.getMayaApiBaseUrl()}/checkout/v1/checkouts`, {
       method: 'POST',
       headers: {
-        Authorization: `Basic ${Buffer.from(`${publicKey}:`).toString('base64')}`,
+        Authorization: `Basic ${Buffer.from(`${secretKey}:`).toString('base64')}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -657,7 +657,7 @@ export class PaymentService {
     });
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
-        throw new BadGatewayException('Maya Checkout rejected the configured public key. Check that it belongs to the configured Maya environment.');
+        throw new BadGatewayException('Maya Checkout rejected the configured secret key. Check that it belongs to the configured Maya environment.');
       }
       throw new BadGatewayException('Maya Checkout could not create this order.');
     }
