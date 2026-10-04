@@ -119,6 +119,7 @@
             <div>
               <strong>Round {{ item.roundNumber || '—' }}</strong>
               <span>{{ item.drawnNumber }} • {{ item.winnerName }}<ng-container *ngIf="item.participantMobileNumber"> • {{ item.participantMobileNumber }}</ng-container></span>
+              <span class="history-remarks" *ngIf="getHistoryRemarks(item) as remarks">Remarks: {{ remarks }}</span>
               <time [attr.datetime]="item.timestamp">{{ item.timestamp | date:'medium' }}</time>
             </div>
             <span class="history-status">Winner</span>

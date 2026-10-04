@@ -484,6 +484,8 @@ textarea,
 .winner-row small { color: #a895bd; font-size: 0.52rem; }
 .winner-arrow { color: #ceb8e0; font-size: 1.2rem; }
 .empty-panel { color: #ffffff; font-size: 0.82rem; line-height: 1.5; }
+.history-item > div { display: grid; min-width: 0; gap: 0.2rem; }
+.history-remarks { margin: 0; color: #e0c9ff; font-size: 0.78rem; line-height: 1.4; overflow-wrap: anywhere; }
 .view-winners { width: 100%; margin-top: 1rem; padding: 0.55rem; border: 1px solid #b97a1d; border-radius: 999px; color: #ffd452; background: transparent; cursor: pointer; font-size: 0.65rem; font-weight: 800; }
 .exclude-winner-button { display: block; width: min(100%, 220px); margin: 0.55rem auto 0; }
 .draw-result .winner-text { margin: 0; }

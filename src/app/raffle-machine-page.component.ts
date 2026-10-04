@@ -131,6 +131,12 @@ export class RaffleMachinePageComponent implements OnDestroy, OnInit {
     return this.gameHistory.filter((item) => item.winnerStatus === 'active' && item.excludedFromList === true);
   }
 
+  getHistoryRemarks(item: DrawItem): string {
+    return item.participantRemarks
+      ?? this.raffle?.players.find((player) => player.id === item.participantId)?.remarks
+      ?? '';
+  }
+
   winnerTag(entry: RaffleEntry): string | null {
     const record = [...(this.raffle?.history ?? [])]
       .reverse()
@@ -480,7 +486,8 @@ export class RaffleMachinePageComponent implements OnDestroy, OnInit {
             participantId: winningPlayer?.id,
             participantName: winner.name,
             winnerStatus: 'active',
-              ...(winningPlayer?.mobileNumber ? { participantMobileNumber: winningPlayer.mobileNumber } : {})
+            ...(winningPlayer?.mobileNumber ? { participantMobileNumber: winningPlayer.mobileNumber } : {}),
+            ...(winningPlayer?.remarks ? { participantRemarks: winningPlayer.remarks } : {})
           }
         ];
         this.raffle.lastWinner = winner.name;

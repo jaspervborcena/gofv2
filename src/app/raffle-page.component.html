@@ -160,7 +160,7 @@
       <div class="player-panel" *ngIf="historySubTab === 'history'">
         <h2>Game History</h2><p class="player-help">Players who have already won</p>
         <div class="history-list" *ngIf="raffle.history.length; else emptyPlayerHistory">
-          <div class="history-item" *ngFor="let item of raffle.history.slice().reverse()"><div><strong>Round {{ item.roundNumber || '—' }}</strong><p>#{{ item.drawnNumber }} • {{ item.winnerName }}</p></div><span>{{ item.timestamp | date:'medium' }}</span></div>
+          <div class="history-item" *ngFor="let item of raffle.history.slice().reverse()"><div><strong>Round {{ item.roundNumber || '—' }}</strong><p>#{{ item.drawnNumber }} • {{ item.winnerName }}</p><p class="history-remarks" *ngIf="getHistoryRemarks(item) as remarks">Remarks: {{ remarks }}</p></div><span>{{ item.timestamp | date:'medium' }}</span></div>
         </div>
         <ng-template #emptyPlayerHistory><p class="empty-state">No winners have been recorded yet.</p></ng-template>
       </div>

@@ -625,6 +625,12 @@ export class RafflePageComponent implements OnDestroy, OnInit {
     return (this.raffle?.history ?? []).filter((item) => item.excludedFromList === true);
   }
 
+  getHistoryRemarks(item: DrawItem): string {
+    return item.participantRemarks
+      ?? this.raffle?.players.find((player) => player.id === item.participantId)?.remarks
+      ?? '';
+  }
+
   async restoreWinner(historyId?: string): Promise<void> {
     if (!this.raffle) {
       return;
@@ -862,6 +868,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
             timestamp: new Date().toISOString(),
             participantId: winner.id,
             participantName: winner.name,
+            ...(winner.remarks ? { participantRemarks: winner.remarks } : {}),
             winnerStatus: 'active',
           }
         ];

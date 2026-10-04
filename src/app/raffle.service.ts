@@ -112,6 +112,7 @@ export interface DrawItem {
   participantId?: string;
   participantName?: string;
   participantMobileNumber?: string;
+  participantRemarks?: string;
   winnerStatus: 'active' | 'processed';
   excludedFromList?: boolean;
   processedAt?: string;
@@ -138,6 +139,7 @@ export interface WinnerRecord {
   userId: string;
   participantId?: string;
   participantName: string;
+  participantRemarks?: string;
   roundNumber: string;
   wonAt: string;
   winnerStatus: 'active' | 'processed';
@@ -1050,6 +1052,7 @@ export class RaffleService {
         userId: item.participantId ?? item.winnerName,
         participantId: item.participantId,
         participantName: item.participantName ?? item.winnerName,
+        ...(item.participantRemarks ? { participantRemarks: item.participantRemarks } : {}),
         roundNumber: item.roundNumber ?? '',
         wonAt: item.timestamp,
         winnerStatus: item.winnerStatus,
