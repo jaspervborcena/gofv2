@@ -78,6 +78,7 @@
                     <strong>#{{ game.gameId }} · {{ game.name }}</strong>
                     <span>{{ game.role }}<ng-container *ngIf="game.createdAt"> · {{ game.createdAt | date:'MMM d, y' }}</ng-container></span>
                   </div>
+                  <a *ngIf="game.isOpen && game.role !== 'Participated'" class="profile-game-link" [routerLink]="['/raffles', game.gameId]" (click)="profileOpen = false">Resume</a>
                   <span *ngIf="!game.isOpen" class="profile-game-closed">Closed</span>
                 </article>
               </div>
