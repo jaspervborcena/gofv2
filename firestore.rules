@@ -21,6 +21,24 @@ service cloud.firestore {
         && request.resource.data.version is string;
     }
 
+    function usesLegacyAuditMetadata() {
+      return !request.resource.data.keys().hasAny(['expireAt'])
+        && !request.resource.data.keys().hasAny(['version']);
+    }
+
+    function hasCompatibleAuditMetadata() {
+      return hasValidAuditMetadata() || usesLegacyAuditMetadata();
+    }
+
+    function preservesAuditMetadata() {
+      return request.resource.data.get('createdAt', null) == resource.data.get('createdAt', null)
+        && request.resource.data.get('updatedAt', null) == resource.data.get('updatedAt', null)
+        && request.resource.data.get('createdBy', null) == resource.data.get('createdBy', null)
+        && request.resource.data.get('updatedBy', null) == resource.data.get('updatedBy', null)
+        && request.resource.data.get('expireAt', null) == resource.data.get('expireAt', null)
+        && request.resource.data.get('version', null) == resource.data.get('version', null);
+    }
+
     function preservesCreationMetadata() {
       return (!resource.data.keys().hasAny(['createdAt'])
           || request.resource.data.createdAt == resource.data.createdAt)
@@ -44,7 +62,8 @@ service cloud.firestore {
       return changedKeys.hasOnly(['spinsRemaining', 'spinPeriod', 'plan', 'playersCount', 'version'])
         && request.resource.data.get('plan', 'free') == resource.data.get('plan', 'free')
         && (!changedKeys.hasAny(['playersCount']) || request.resource.data.get('playersCount', 0) <= 200)
-        && (request.resource.data.get('spinPeriod', '') != resource.data.get('spinPeriod', '')
+        && (changedKeys.hasOnly(['version'])
+          || request.resource.data.get('spinPeriod', '') != resource.data.get('spinPeriod', '')
           || request.resource.data.get('spinsRemaining', 0) <= resource.data.get('spinsRemaining', 0));
     }
 
@@ -78,12 +97,12 @@ service cloud.firestore {
     match /games/{gameId} {
       allow create: if signedIn()
         && request.resource.data.creatorId == request.auth.uid
-        && request.resource.data.createdBy == request.auth.uid
-        && hasValidAuditMetadata();
+        && (usesLegacyAuditMetadata()
+          || (request.resource.data.createdBy == request.auth.uid && hasValidAuditMetadata()));
       allow read: if signedIn();
       allow update: if signedIn()
         && resource.data.creatorId == request.auth.uid
-        && hasValidAuditMetadata()
+        && (hasValidAuditMetadata() || preservesAuditMetadata())
         && preservesCreationMetadata();
       allow delete: if signedIn()
         && resource.data.creatorId == request.auth.uid;
@@ -96,35 +115,35 @@ service cloud.firestore {
         || (signedIn()
           && request.resource.data.userId == request.auth.uid
           && exists(/databases/$(database)/documents/games/$(request.resource.data.gameUid))))
-        && hasValidAuditMetadata();
+        && hasCompatibleAuditMetadata();
       allow update: if ownsGame(request.resource.data.gameUid)
-        && hasValidAuditMetadata()
+        && (hasValidAuditMetadata() || preservesAuditMetadata())
         && preservesCreationMetadata();
       allow delete: if ownsGame(resource.data.gameUid);
     }
 
     match /invitations/{invitationId} {
       allow create: if ownsGame(request.resource.data.gameUid)
-        && request.resource.data.createdBy == request.auth.uid
-        && hasValidAuditMetadata();
+        && (usesLegacyAuditMetadata()
+          || (request.resource.data.createdBy == request.auth.uid && hasValidAuditMetadata()));
       allow read: if ownsGame(resource.data.gameUid);
     }
 
     match /history/{historyId} {
       allow read: if ownsGame(resource.data.gameUid);
       allow create: if ownsGame(request.resource.data.gameUid)
-        && hasValidAuditMetadata();
+        && hasCompatibleAuditMetadata();
       allow update: if ownsGame(request.resource.data.gameUid)
-        && hasValidAuditMetadata()
+        && (hasValidAuditMetadata() || preservesAuditMetadata())
         && preservesCreationMetadata();
     }
 
     match /winners/{winnerId} {
       allow read: if ownsGame(resource.data.gameUid);
       allow create: if ownsGame(request.resource.data.gameUid)
-        && hasValidAuditMetadata();
+        && hasCompatibleAuditMetadata();
       allow update: if ownsGame(request.resource.data.gameUid)
-        && hasValidAuditMetadata()
+        && (hasValidAuditMetadata() || preservesAuditMetadata())
         && preservesCreationMetadata();
     }
 
