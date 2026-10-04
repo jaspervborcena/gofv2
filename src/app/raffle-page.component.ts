@@ -1,11 +1,11 @@
-import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, HostListener, NgZone, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ActivatedRoute, Router } from '@angular/router';
 import { gsap } from 'gsap';
 import confetti from 'canvas-confetti';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { DrawItem, NumberMode, Player, Raffle, RaffleService, SpinMode } from './raffle.service';
 import { FREE_MAX_PLAYERS, planCatalog } from './plan-schema';
 
@@ -20,6 +20,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   private readonly raffleService = inject(RaffleService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly zone = inject(NgZone);
   private readonly stopSound = new Audio('/assets/slot-stop.mp3');
   private readonly winSound = new Audio('/assets/slot-win.mp3');
   private readonly raffleState$ = new BehaviorSubject<Raffle | null>(null);
@@ -29,8 +30,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   private spinSlowdownDuration = 0;
 
   raffle: Raffle | null = null;
-  participantGameEntry: Player | null = null;
-  isParticipantView = false;
+  isGameCreator = false;
   isPreviewRaffle = false;
   activeTab: 'raffle' | 'players' | 'history' | 'qr' = 'raffle';
   activePlayersTab: 'names' | 'text' = 'names';
@@ -42,6 +42,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   private duplicateMessageTimeout?: number;
   private participantMessageTimeout?: number;
   private confettiTimers: number[] = [];
+  private stopWatchingParticipants?: () => void;
   joinedName = '';
   useJoinedNumber = false;
   joinedNumber = '';
@@ -58,6 +59,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   reelPositions = [0, 0, 0];
   lastWinner: { name: string; number: string } | null = null;
   isSpinning = false;
+  isRefreshingParticipants = false;
   spinExitDialogOpen = false;
   spinProgress = 0;
   leftPanelOpen = false;
@@ -65,6 +67,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   participantPage = 1;
   participantPageSize = 20;
   ngOnDestroy(): void {
+    this.stopParticipantListener();
     this.raffleService.setRaffleSpinning(false);
     this.clearSpinTickTimers();
     this.spinTimeline?.kill();
@@ -90,6 +93,10 @@ export class RafflePageComponent implements OnDestroy, OnInit {
     return this.editorText !== this.savedEditorText;
   }
 
+  get canManageGame(): boolean {
+    return this.isPreviewRaffle || this.isGameCreator;
+  }
+
   async selectMainTab(tab: 'raffle' | 'players' | 'history' | 'qr'): Promise<void> {
     if (!(await this.confirmEditorChanges())) {
       return;
@@ -104,6 +111,30 @@ export class RafflePageComponent implements OnDestroy, OnInit {
     }
 
     this.activePlayersTab = tab;
+  }
+
+  async refreshParticipants(): Promise<void> {
+    const gameUid = this.raffle?.gameUid;
+    if (!gameUid || !this.canManageGame || this.isPreviewRaffle || this.isRefreshingParticipants) {
+      return;
+    }
+
+    this.isRefreshingParticipants = true;
+    this.participantLimitMessage = '';
+    try {
+      const participants = await this.raffleService.listParticipants(gameUid);
+      if (this.raffle?.gameUid === gameUid) {
+        this.applyParticipantRecords(participants);
+      }
+    } catch (error) {
+      if (this.raffle?.gameUid === gameUid) {
+        this.participantLimitMessage = error instanceof Error
+          ? `Could not refresh participants: ${error.message}`
+          : 'Could not refresh participants. Please try again.';
+      }
+    } finally {
+      this.isRefreshingParticipants = false;
+    }
   }
 
   handleEditorChange(): void {
@@ -277,8 +308,9 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   ngOnInit(): void {
     this.updateParticipantPageSize();
     this.route.paramMap.subscribe(async (params) => {
-      this.isParticipantView = false;
-      this.participantGameEntry = null;
+      this.stopParticipantListener();
+      this.isGameCreator = false;
+      this.isPreviewRaffle = false;
       const id = params.get('id');
       if (!id) {
         this.isPreviewRaffle = true;
@@ -294,25 +326,15 @@ export class RafflePageComponent implements OnDestroy, OnInit {
 
       this.raffle = await this.raffleService.findRaffle(id);
       if (this.raffle) {
-        this.isPreviewRaffle = false;
-        const currentUserId = this.raffleService.currentUserId;
-        if (this.raffle.creatorId !== currentUserId) {
+        const currentUser = await firstValueFrom(this.raffleService.user$);
+        this.isGameCreator = this.raffle.creatorId === currentUser?.uid;
+        if (!this.isGameCreator) {
+          const currentUserId = currentUser?.uid ?? null;
           const participant = currentUserId
             ? await this.raffleService.findUserParticipantForGame(this.raffle.gameUid, currentUserId)
             : null;
           if (participant) {
-            this.isParticipantView = true;
-            this.participantGameEntry = {
-              id: participant.id,
-              userId: participant.userId,
-              name: participant.name,
-              assignedNumber: participant.assignedNumber,
-              ...(participant.ticketCode ? { ticketCode: participant.ticketCode } : {}),
-              drawn: participant.status === 'winner',
-              status: participant.status,
-              ...(participant.mobileNumber ? { mobileNumber: participant.mobileNumber } : {}),
-              ...(participant.remarks ? { remarks: participant.remarks } : {})
-            };
+            await this.router.navigate(['/games', this.raffle.gameId, 'join']);
             return;
           }
 
@@ -335,17 +357,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
         this.playerLimit = catalogPlan?.maxPlayers ?? FREE_MAX_PLAYERS;
         const participantRecords = await this.raffleService.listParticipants(this.raffle.gameUid);
         if (participantRecords.length) {
-          this.raffle.players = participantRecords.map((participant) => ({
-            id: participant.id,
-            userId: participant.userId,
-            name: participant.name,
-            assignedNumber: participant.assignedNumber,
-            ...(participant.ticketCode ? { ticketCode: participant.ticketCode } : {}),
-            drawn: participant.status === 'winner',
-            status: participant.status,
-            ...(participant.mobileNumber ? { mobileNumber: participant.mobileNumber } : {}),
-            ...(participant.remarks ? { remarks: participant.remarks } : {})
-          }));
+          this.applyParticipantRecords(participantRecords);
         }
         this.raffleState$.next(this.raffle);
         this.playersText = this.raffle.players.map((player) => player.name).join('\n');
@@ -355,6 +367,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
         const digitCount = this.raffle.digitCount ?? 3;
         this.reelPositions = Array(digitCount).fill(0);
         this.reels = Array(digitCount).fill('0');
+        this.watchGameParticipants(this.raffle.gameUid);
         return;
       }
 
@@ -367,6 +380,60 @@ export class RafflePageComponent implements OnDestroy, OnInit {
         }
       });
     });
+  }
+
+  private watchGameParticipants(gameUid: string): void {
+    this.stopParticipantListener();
+    let isInitialSnapshot = true;
+    this.stopWatchingParticipants = this.raffleService.watchParticipants(
+      gameUid,
+      (participants) => this.zone.run(() => {
+        if (this.raffle?.gameUid !== gameUid || !this.isGameCreator) {
+          return;
+        }
+        if (isInitialSnapshot && participants.length === 0) {
+          isInitialSnapshot = false;
+          return;
+        }
+        isInitialSnapshot = false;
+        this.applyParticipantRecords(participants);
+      }),
+      (error) => this.zone.run(() => {
+        if (this.raffle?.gameUid === gameUid) {
+          this.participantLimitMessage = `Live participant updates stopped: ${error.message}`;
+        }
+      })
+    );
+  }
+
+  private stopParticipantListener(): void {
+    this.stopWatchingParticipants?.();
+    this.stopWatchingParticipants = undefined;
+  }
+
+  private applyParticipantRecords(participants: Awaited<ReturnType<RaffleService['listParticipants']>>): void {
+    if (!this.raffle) {
+      return;
+    }
+
+    this.raffle.players = participants.map((participant) => ({
+      id: participant.id,
+      userId: participant.userId,
+      name: participant.name,
+      assignedNumber: participant.assignedNumber,
+      ...(participant.ticketCode ? { ticketCode: participant.ticketCode } : {}),
+      drawn: participant.status === 'winner',
+      status: participant.status,
+      ...(participant.mobileNumber ? { mobileNumber: participant.mobileNumber } : {}),
+      ...(participant.remarks ? { remarks: participant.remarks } : {})
+    }));
+    this.playersText = this.raffle.players.map((player) => player.name).join('\n');
+    if (!this.editorHasChanges) {
+      this.editorText = this.formatEditorText();
+      this.savedEditorText = this.editorText;
+    }
+    this.participantPage = Math.min(this.participantPage, this.participantPageCount);
+    this.raffleState$.next(this.raffle);
   }
 
   async savePlayers(): Promise<void> {
@@ -553,7 +620,9 @@ export class RafflePageComponent implements OnDestroy, OnInit {
       return;
     }
 
-    this.raffle.players = [...this.raffle.players, player];
+    if (!this.raffle.players.some((existingPlayer) => existingPlayer.id === player.id)) {
+      this.raffle.players = [...this.raffle.players, player];
+    }
     this.joinedName = '';
     this.joinedNumber = '';
     this.playersText = this.raffle.players.map((player) => player.name).join('\n');
@@ -790,7 +859,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   }
 
   async spin(): Promise<void> {
-    if (!this.raffle || this.isSpinning || !this.isRaffleCurrent) {
+    if (!this.raffle || !this.canManageGame || this.isSpinning || !this.isRaffleCurrent) {
       return;
     }
 

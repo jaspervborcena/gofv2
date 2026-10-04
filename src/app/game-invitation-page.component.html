@@ -36,13 +36,12 @@
 
   <ng-template #invitationState>
     <section class="invitation-card">
-      <p class="eyebrow" *ngIf="joined">You are in</p>
-      <h1 *ngIf="joined">Invitation accepted</h1>
+      <p class="eyebrow" *ngIf="joined">YOUR ENTRY</p>
+      <h1 *ngIf="joined">Your number</h1>
       <p class="assigned-number" *ngIf="joined">Your number: <strong>{{ assignedNumber }}</strong></p>
       <p class="error-message" *ngIf="!joined && errorMessage">{{ errorMessage }}</p>
       <p class="error-message" *ngIf="isExpired">This page has expired. The game is no longer accepting entries.</p>
-      <button class="primary-btn" type="button" *ngIf="joined" (click)="openGame()">View game</button>
-      <a class="back-link" routerLink="/" *ngIf="!joined">Back home</a>
+      <a class="back-link" routerLink="/">Back home</a>
     </section>
   </ng-template>
 </main>

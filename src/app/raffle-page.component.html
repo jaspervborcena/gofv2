@@ -1,4 +1,4 @@
-<main class="app-shell" *ngIf="raffle && !isParticipantView; else loading">
+<main class="app-shell" *ngIf="raffle && canManageGame; else loading">
   <section class="raffle-detail" [class.players-view]="activeTab === 'players'" [attr.aria-busy]="isSpinning" [attr.inert]="spinExitDialogOpen ? '' : null">
     <div class="game-topbar">
       <a class="brand-button" [routerLink]="isSpinning ? null : '/'" (click)="handleBrandClick($event)" aria-label="Go to Game of Fortunes home">
@@ -103,7 +103,15 @@
       </div>
 
       <div class="player-panel" *ngIf="activePlayersTab === 'names'">
-        <div class="player-panel-heading"><div><h2>🎯 Participant names</h2><p>{{ raffle.players.length }} players joined</p></div><span class="live-pill">Live</span></div>
+        <div class="player-panel-heading">
+          <div><h2>🎯 Participant names</h2><p>{{ raffle.players.length }} players joined</p></div>
+          <div class="player-panel-actions">
+            <span class="live-pill">Live</span>
+            <button *ngIf="!isPreviewRaffle" class="refresh-players-button" [class.refreshing]="isRefreshingParticipants" type="button" aria-label="Refresh participants" title="Refresh participants" [disabled]="isRefreshingParticipants || isSpinning" (click)="refreshParticipants()">
+              <span aria-hidden="true">↻</span>
+            </button>
+          </div>
+        </div>
         <div class="free-plan-notice" *ngIf="isPreviewRaffle">
           <strong>Free plan: players list is limited to 200.</strong>
           <span>If you want more than 200 players, please <a routerLink="/plans">upgrade your plan</a>.</span>
@@ -200,28 +208,6 @@
       </div>
     </section>
   </div>
-</main>
-
-<main class="app-shell" *ngIf="raffle && isParticipantView">
-  <section class="raffle-detail participant-game-view">
-    <div class="game-topbar">
-      <a class="brand-button" routerLink="/" aria-label="Go to Game of Fortunes home">
-        <img src="assets/gofv2logo.png" alt="Game of Fortunes" />
-      </a>
-      <div class="game-title">
-        <p class="eyebrow">PLAYER GAME</p>
-        <h1>{{ raffle.name }}</h1>
-        <span>GAME #{{ raffle.gameId }}</span>
-      </div>
-      <span class="participant-game-status" [class.closed]="!isRaffleCurrent">{{ isRaffleCurrent ? 'OPEN' : 'CLOSED' }}</span>
-    </div>
-    <section class="player-panel participant-ticket" *ngIf="participantGameEntry as entry">
-      <p class="eyebrow">YOUR ENTRY</p>
-      <strong>{{ formatPlayerNumber(entry) }}</strong>
-      <span>{{ entry.name }}</span>
-    </section>
-    <a class="participant-home-link" routerLink="/">Back home</a>
-  </section>
 </main>
 
 <ng-template #loading>

@@ -55,6 +55,17 @@ export class GameInvitationPageComponent implements OnInit {
         return;
       }
 
+      const signedInUser = await firstValueFrom(this.raffleService.user$);
+      const participant = signedInUser
+        ? await this.raffleService.findUserParticipantForGame(this.game.gameUid, signedInUser.uid)
+        : null;
+      if (participant) {
+        this.name = participant.name;
+        this.assignedNumber = String(participant.assignedNumber).padStart(this.game.digitCount ?? 3, '0');
+        this.joined = true;
+        return;
+      }
+
       if (this.game && !this.raffleService.isRaffleActive(this.game)) {
         await this.router.navigate(['/raffle-unavailable'], {
           queryParams: {
@@ -136,12 +147,6 @@ export class GameInvitationPageComponent implements OnInit {
       this.errorMessage = 'You could not join this game. Please sign in and try again.';
     } finally {
       this.isJoining = false;
-    }
-  }
-
-  openGame(): void {
-    if (this.game) {
-      this.router.navigate(['/raffles', this.game.gameId]);
     }
   }
 

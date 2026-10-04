@@ -13,7 +13,7 @@ import {
   fetchSignInMethodsForEmail
 } from '@angular/fire/auth';
 import type { UserCredential } from 'firebase/auth';
-import { Firestore, collection, deleteField, doc, getDoc, getDocs, orderBy, query, runTransaction, setDoc, updateDoc, where, writeBatch } from '@angular/fire/firestore';
+import { Firestore, collection, deleteField, doc, getDoc, getDocs, onSnapshot, orderBy, query, runTransaction, setDoc, updateDoc, where, writeBatch } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
 import QRCode from 'qrcode';
 import { environment } from '../environments/environment';
@@ -940,6 +940,24 @@ export class RaffleService {
     return snapshot.docs
       .map((item) => ({ ...(item.data() as ParticipantRecord), id: item.id }))
       .filter((item) => item.gameUid === gameUid);
+  }
+
+  watchParticipants(
+    gameUid: string,
+    onChange: (participants: ParticipantRecord[]) => void,
+    onError: (error: Error) => void
+  ): () => void {
+    if (!this.firestoreEnabled) {
+      return () => undefined;
+    }
+
+    const participantsQuery = query(
+      collection(this.firestore, 'participants'),
+      where('gameUid', '==', gameUid)
+    );
+    return onSnapshot(participantsQuery, (snapshot) => {
+      onChange(snapshot.docs.map((item) => ({ ...(item.data() as ParticipantRecord), id: item.id })));
+    }, onError);
   }
 
   async findUserParticipantForGame(gameUid: string, userId: string): Promise<ParticipantRecord | null> {
