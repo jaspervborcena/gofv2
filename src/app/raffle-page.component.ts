@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ActivatedRoute, Router } from '@angular/router';
 import { gsap } from 'gsap';
+import confetti from 'canvas-confetti';
 import { BehaviorSubject } from 'rxjs';
 import { DrawItem, NumberMode, Player, Raffle, RaffleService, SpinMode } from './raffle.service';
 import { FREE_MAX_PLAYERS, planCatalog } from './plan-schema';
@@ -40,6 +41,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   private editorSaveTimeout?: number;
   private duplicateMessageTimeout?: number;
   private participantMessageTimeout?: number;
+  private confettiTimers: number[] = [];
   joinedName = '';
   useJoinedNumber = false;
   joinedNumber = '';
@@ -62,7 +64,6 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   rightPanelOpen = false;
   participantPage = 1;
   participantPageSize = 20;
-
   ngOnDestroy(): void {
     this.raffleService.setRaffleSpinning(false);
     this.clearSpinTickTimers();
@@ -70,6 +71,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
     this.spinTimeline = undefined;
     this.stopSound.pause();
     this.winSound.pause();
+    this.clearConfetti();
     if (this.editorSaveTimeout) {
       window.clearTimeout(this.editorSaveTimeout);
     }
@@ -690,6 +692,29 @@ export class RafflePageComponent implements OnDestroy, OnInit {
 
   dismissWinnerDialog(): void {
     this.lastWinner = null;
+    this.clearConfetti();
+  }
+
+  private fireWinnerConfetti(): void {
+    this.confettiTimers = Array.from({ length: 9 }, (_, index) => window.setTimeout(() => {
+      confetti({
+        particleCount: 28,
+        angle: index % 2 === 0 ? 68 : 112,
+        spread: 48,
+        startVelocity: 58,
+        ticks: 240,
+        gravity: 0.85,
+        origin: { x: 0.08 + (index / 8) * 0.84, y: 0.98 },
+        colors: ['#ffd700', '#ff6b6b', '#62e6c5', '#ffffff'],
+        disableForReducedMotion: true
+      });
+    }, index * 100));
+  }
+
+  private clearConfetti(): void {
+    this.confettiTimers.forEach((timer) => window.clearTimeout(timer));
+    this.confettiTimers = [];
+    confetti.reset();
   }
 
   handleBrandClick(event: MouseEvent): void {
@@ -759,7 +784,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   }
 
   async spin(): Promise<void> {
-    if (!this.raffle || this.isSpinning) {
+    if (!this.raffle || this.isSpinning || !this.isRaffleCurrent) {
       return;
     }
 
@@ -791,6 +816,9 @@ export class RafflePageComponent implements OnDestroy, OnInit {
     this.clearSpinTickTimers();
     const winner = players[Math.floor(Math.random() * players.length)];
     const ticketNumber = this.formatPlayerNumber(winner);
+    const hasAlphanumericTickets = players.some((player) => /[A-Z]/i.test(this.formatPlayerNumber(player)));
+    const reelSymbols = hasAlphanumericTickets ? '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' : '0123456789';
+    this.reelStrip = Array.from({ length: 100 }, (_, index) => reelSymbols[index % reelSymbols.length]);
     const targetReels = ticketNumber.split('').map((character) => this.reelStrip.indexOf(character));
 
     const digitStates = targetReels.map(() => ({ spinPos: 0 }));
@@ -815,6 +843,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
         this.reelPositions = targetReels.map((val) => val);
         this.reels = ticketNumber.split('');
         this.lastWinner = { name: winner.name, number: ticketNumber };
+        this.fireWinnerConfetti();
         this.isSpinning = false;
         this.raffleService.setRaffleSpinning(false);
         this.spinTimeline = undefined;

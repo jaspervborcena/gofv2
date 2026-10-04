@@ -9,6 +9,7 @@
     <p class="eyebrow">Plans</p>
     <h1>Choose your plan</h1>
     <p class="lead">Start free and upgrade as your community grows.</p>
+    <p class="exchange-note">PHP equivalents use the latest USD exchange rate. Checkout uses the listed PHP plan price.</p>
 
     <div class="plans-grid">
       <article class="plan-card">
@@ -26,7 +27,7 @@
 
       <article class="plan-card featured">
         <span class="plan-label">BASIC</span>
-        <h2>$1.99 <small>/month</small><em>₱149/month</em></h2>
+        <h2>$1.99 <small>/month</small><em>~₱{{ phpPlanPrice(1.99, 149) | number:'1.0-0' }}/month</em></h2>
         <p>Perfect for small communities and events.</p>
         <ul>
           <li>Up to 700 players</li>
@@ -39,7 +40,7 @@
 
       <article class="plan-card">
         <span class="plan-label">STANDARD</span>
-        <h2>$9.99 <small>/month</small><em>₱599/month</em></h2>
+        <h2>$9.99 <small>/month</small><em>~₱{{ phpPlanPrice(9.99, 599) | number:'1.0-0' }}/month</em></h2>
         <p>Built for larger communities and frequent raffles.</p>
         <ul>
           <li>Up to 3,000 players</li>
@@ -53,7 +54,7 @@
 
       <article class="plan-card">
         <span class="plan-label">PRO</span>
-        <h2>$29.99 <small>/month</small><em>₱1,799/month</em></h2>
+        <h2>$29.99 <small>/month</small><em>~₱{{ phpPlanPrice(29.99, 1799) | number:'1.0-0' }}/month</em></h2>
         <p>Built for large communities, organizations, and high-volume raffles.</p>
         <ul>
           <li>Up to 10,000 players</li>

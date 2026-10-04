@@ -13,16 +13,6 @@
         <input [(ngModel)]="gameName" name="gameName" required maxlength="80" placeholder="Friday night raffle" />
       </label>
 
-      <label class="start-time-field">
-        Start time
-        <input [(ngModel)]="startAtDraft" (ngModelChange)="onStartTimeDraftChange($event)" name="startAt" type="datetime-local" required />
-      </label>
-
-      <label class="close-time-field">
-        Close time
-        <input [(ngModel)]="closeAtDraft" (ngModelChange)="onCloseTimeDraftChange($event)" [min]="startAt" [max]="latestCloseAt" name="closeAt" type="datetime-local" required />
-      </label>
-
       <label class="digit-count-field">
         Number of digits
         <select [(ngModel)]="digitCount" name="digitCount">
@@ -31,6 +21,16 @@
           <option [ngValue]="5">5 digits</option>
           <option [ngValue]="6">6 digits</option>
         </select>
+      </label>
+
+      <label class="start-time-field">
+        Start time
+        <input [(ngModel)]="startAtDraft" (ngModelChange)="onStartTimeDraftChange($event)" name="startAt" type="datetime-local" required />
+      </label>
+
+      <label class="close-time-field">
+        Close time
+        <input [(ngModel)]="closeAtDraft" (ngModelChange)="onCloseTimeDraftChange($event)" [min]="startAt" [max]="latestCloseAt" name="closeAt" type="datetime-local" required />
       </label>
 
       <fieldset class="number-style-field">

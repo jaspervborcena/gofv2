@@ -53,8 +53,14 @@
             {{ spinLimitMessage }} <a routerLink="/plans">View plans</a>
           </p>
           <p class="exclusion-message" *ngIf="exclusionMessage" role="status">{{ exclusionMessage }}</p>
+          <div class="draw-result" *ngIf="lastWinner" role="dialog" aria-labelledby="winner-dialog-title">
+            <button class="winner-dialog-close" type="button" aria-label="Close winner dialog" (click)="dismissWinnerDialog()">×</button>
+            <h3 id="winner-dialog-title">Congratulations!!!</h3>
+            <p class="winner-text"><strong>Winner: {{ lastWinner.number }} • {{ lastWinner.name }}</strong></p>
+            <button class="view-winners exclude-winner-button" type="button" (click)="excludeLastWinner()">EXCLUDE WINNER</button>
+          </div>
           <div class="slot-machine-container" [class.has-winner]="!!lastWinner">
-            <div class="slot-machine" role="button" tabindex="0" aria-label="Spin to win" [attr.aria-disabled]="isSpinning" (click)="spin()" (keydown)="handleSlotMachineKeydown($event)" [style.gridTemplateColumns]="'repeat(' + reelPositions.length + ', minmax(0, 1fr))'">
+            <div class="slot-machine" role="button" [attr.tabindex]="isRaffleCurrent ? 0 : -1" aria-label="Spin to win" [attr.aria-disabled]="isSpinning || !isRaffleCurrent" (click)="spin()" (keydown)="handleSlotMachineKeydown($event)" [style.gridTemplateColumns]="'repeat(' + reelPositions.length + ', minmax(0, 1fr))'">
               <div class="reel-column" *ngFor="let pos of reelPositions">
                 <div class="reel-tape" [style.transform]="'translateY(' + (48 - pos * 60) + 'px)'">
                   <div class="reel-item" *ngFor="let num of reelStrip">{{ num }}</div>
@@ -63,17 +69,10 @@
               </div>
             </div>
             <div class="reel-lights"></div>
-            <div class="draw-result" *ngIf="lastWinner" role="dialog" aria-labelledby="winner-dialog-title">
-              <button class="winner-dialog-close" type="button" aria-label="Close winner dialog" (click)="dismissWinnerDialog()">×</button>
-              <h3 id="winner-dialog-title">Congratulations!!!</h3>
-              <p class="winner-text"><strong>Winner: {{ lastWinner.number }} • {{ lastWinner.name }}</strong></p>
-              <button class="view-winners exclude-winner-button" type="button" (click)="excludeLastWinner()">EXCLUDE WINNER</button>
-            </div>
           </div>
 
-          <div class="winner-dialog-spacer" *ngIf="lastWinner" aria-hidden="true"></div>
           <div class="controls" [attr.inert]="isSpinning ? '' : null">
-            <button class="primary-btn spin-btn" [disabled]="isSpinning" (click)="spin()">
+            <button class="primary-btn spin-btn" [disabled]="isSpinning || !isRaffleCurrent" (click)="spin()">
               <span *ngIf="!isSpinning">🎰 SPIN TO WIN</span>
               <span *ngIf="isSpinning">SPINNING...</span>
             </button>

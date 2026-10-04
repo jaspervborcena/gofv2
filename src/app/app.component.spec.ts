@@ -19,6 +19,7 @@ describe('AppComponent', () => {
           provide: RaffleService,
           useValue: {
             user$: userSubject.asObservable(),
+            raffleSpinning: () => false,
             signOut: jasmine.createSpy('signOut'),
             getCurrentUserPlan: jasmine.createSpy('getCurrentUserPlan').and.resolveTo('free'),
             ensureUserSpinFields: jasmine.createSpy('ensureUserSpinFields').and.resolveTo(undefined),

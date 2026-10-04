@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewChecked, Component, ElementRef, OnDestroy, NgZone, ViewChild, inject } from '@angular/core';
+import { AfterViewChecked, Component, ElementRef, OnDestroy, OnInit, NgZone, ViewChild, inject } from '@angular/core';
 import { Auth } from '@angular/fire/auth';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { FormsModule } from '@angular/forms';
@@ -15,7 +15,7 @@ import { environment } from '../environments/environment';
   templateUrl: './plans-page.component.html',
   styleUrl: './plans-page.component.scss'
 })
-export class PlansPageComponent implements AfterViewChecked, OnDestroy {
+export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
   private readonly auth = inject(Auth);
   private readonly firestore = inject(Firestore);
   private readonly zone = inject(NgZone);
@@ -26,6 +26,8 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy {
   private closeDialogTimer?: number;
   private mayaStatusTimer?: number;
   private mayaStatusCheckInFlight = false;
+  private readonly exchangeRateCacheKey = 'gof-usd-php-exchange-rate';
+  private phpPerUsdRate = 0;
   paymentButtonsLoading = false;
   paymentMethod: 'paypal' | 'maya' = 'paypal';
   mayaQrImage = '';
@@ -45,6 +47,10 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy {
   couponValid = false;
   couponDiscount = 0;
 
+  ngOnInit(): void {
+    void this.loadUsdToPhpRate();
+  }
+
   ngAfterViewChecked(): void {
     if (this.upgradeOpen
       && !(this.couponValid && this.totalPrice === 0)
@@ -63,6 +69,67 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy {
     this.clearCloseDialogTimer();
     this.stopMayaPaymentPolling();
     this.destroyPayPalButtons();
+  }
+
+  phpPlanPrice(usdPrice: number, fallbackPhpPrice: number): number {
+    return this.phpPerUsdRate > 0 ? Math.round(usdPrice * this.phpPerUsdRate) : fallbackPhpPrice;
+  }
+
+  private async loadUsdToPhpRate(): Promise<void> {
+    const cached = this.readCachedExchangeRate();
+    if (cached) {
+      this.phpPerUsdRate = cached.rate;
+      if (cached.expiresAt > Date.now()) {
+        return;
+      }
+    }
+
+    try {
+      const response = await fetch('https://open.er-api.com/v6/latest/USD');
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json() as {
+        result?: string;
+        time_next_update_unix?: number;
+        rates?: { PHP?: number };
+      };
+      const rate = Number(data.rates?.PHP);
+      if (data.result !== 'success' || !Number.isFinite(rate) || rate <= 0) {
+        return;
+      }
+
+      this.zone.run(() => this.phpPerUsdRate = rate);
+      const nextUpdateAt = Number(data.time_next_update_unix) * 1000;
+      const expiresAt = Number.isFinite(nextUpdateAt) && nextUpdateAt > Date.now()
+        ? nextUpdateAt
+        : Date.now() + 24 * 60 * 60 * 1000;
+      try {
+        localStorage.setItem(this.exchangeRateCacheKey, JSON.stringify({ rate, expiresAt }));
+      } catch {
+        // Keep the fetched rate for this page view when storage is unavailable.
+      }
+    } catch {
+      // Keep the cached or listed fallback prices if the rate service is unavailable.
+    }
+  }
+
+  private readCachedExchangeRate(): { rate: number; expiresAt: number } | null {
+    try {
+      const cachedValue = localStorage.getItem(this.exchangeRateCacheKey);
+      if (!cachedValue) {
+        return null;
+      }
+      const cached = JSON.parse(cachedValue) as { rate?: number; expiresAt?: number };
+      const rate = Number(cached.rate);
+      const expiresAt = Number(cached.expiresAt);
+      return Number.isFinite(rate) && rate > 0 && Number.isFinite(expiresAt)
+        ? { rate, expiresAt }
+        : null;
+    } catch {
+      return null;
+    }
   }
 
   get planName(): string {
