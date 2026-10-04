@@ -1,5 +1,7 @@
 export const environment = {
   production: true,
+  version: '1.0.0',
+  expireAtDays: 45,
   appBaseUrl: 'https://www.gameoffortunes.com',
   paymentApiUrl: 'https://game-of-fortunes-payment-api-jozxtuutyq-de.a.run.app',
   googleWebClientId: '12420305994-dho63lid788c2rti73rabmr3spccngj9.apps.googleusercontent.com',

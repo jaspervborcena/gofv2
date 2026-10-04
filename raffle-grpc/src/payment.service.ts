@@ -28,6 +28,7 @@ interface PaymentOrder {
   couponCode?: string;
   createdAt: FieldValue;
   updatedAt: FieldValue;
+  version: string;
 }
 
 interface CouponRecord {
@@ -63,6 +64,8 @@ const MONTHLY_SPINS: Record<PlanId, number> = {
   standard: 1000,
   pro: 2000
 };
+
+const DOCUMENT_VERSION: string = process.env.APP_VERSION ?? '1.0.0';
 
 function firestore() {
   const app = getApps()[0] ?? initializeApp();
@@ -100,7 +103,8 @@ export class PaymentService {
       status: coupon && amount === 0 ? 'paid' : 'pending',
       ...(coupon ? { couponCode: coupon.code } : {}),
       createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp()
+      updatedAt: FieldValue.serverTimestamp(),
+      version: DOCUMENT_VERSION
     };
     await orderRef.set(order);
 
@@ -111,14 +115,15 @@ export class PaymentService {
 
     if (request.provider === 'paypal') {
       const paypalOrder = await this.createPayPalOrder(orderRef.id, request.packageId, durationMonths, amount);
-      await orderRef.update({ externalOrderId: paypalOrder.id, updatedAt: FieldValue.serverTimestamp() });
+      await orderRef.update({ externalOrderId: paypalOrder.id, updatedAt: FieldValue.serverTimestamp(), version: DOCUMENT_VERSION });
       return { orderId: paypalOrder.id, approvalUrl: paypalOrder.approvalUrl, paymentOrderId: orderRef.id, amount, discountAmount, currency: 'PHP' };
     }
 
     const checkout = await this.createMayaCheckout(orderRef.id, request.packageId, durationMonths, amount);
     await orderRef.update({
       externalOrderId: checkout.checkoutId,
-      updatedAt: FieldValue.serverTimestamp()
+      updatedAt: FieldValue.serverTimestamp(),
+      version: DOCUMENT_VERSION
     });
     return {
       paymentOrderId: orderRef.id,
@@ -184,7 +189,8 @@ export class PaymentService {
       }
       transaction.update(coupon.ref, {
         redemptionsUsed: used + 1,
-        updatedAt: FieldValue.serverTimestamp()
+        updatedAt: FieldValue.serverTimestamp(),
+        version: DOCUMENT_VERSION
       });
       transaction.set(subscriptionRef, {
         subscriptionId: subscriptionRef.id,
@@ -200,7 +206,8 @@ export class PaymentService {
         endDate: endDate.toISOString(),
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
-        paymentOrderId
+        paymentOrderId,
+        version: DOCUMENT_VERSION
       });
     });
     return subscriptionRef.id;
@@ -425,24 +432,28 @@ export class PaymentService {
           endDate: endDate.toISOString(),
           createdAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
-          paymentOrderId: orderRef.id
+          paymentOrderId: orderRef.id,
+          version: DOCUMENT_VERSION
         });
       }
       if (coupon && couponSnapshot) {
         transaction.update(coupon.ref, {
           redemptionsUsed: Number(couponData?.redemptionsUsed ?? 0) + 1,
-          updatedAt: FieldValue.serverTimestamp()
+          updatedAt: FieldValue.serverTimestamp(),
+          version: DOCUMENT_VERSION
         });
       }
       transaction.set(userRef, {
         plan: order.packageId,
         spinsRemaining: MONTHLY_SPINS[order.packageId],
-        spinPeriod: now.toISOString().slice(0, 7)
+        spinPeriod: now.toISOString().slice(0, 7),
+        version: DOCUMENT_VERSION
       }, { merge: true });
       transaction.update(orderRef, {
         status: 'paid',
         externalTransactionId,
-        updatedAt: FieldValue.serverTimestamp()
+        updatedAt: FieldValue.serverTimestamp(),
+        version: DOCUMENT_VERSION
       });
     });
 
@@ -476,7 +487,7 @@ export class PaymentService {
 
     if (['PAYMENT_FAILED', 'PAYMENT_EXPIRED', 'PAYMENT_CANCELLED', 'PAYMENT_INVALID'].includes(paymentStatus)
       || String(checkout.status ?? '').toUpperCase() === 'EXPIRED') {
-      await orderRef.update({ status: 'failed', updatedAt: FieldValue.serverTimestamp() });
+      await orderRef.update({ status: 'failed', updatedAt: FieldValue.serverTimestamp(), version: DOCUMENT_VERSION });
       return 'failed';
     }
 

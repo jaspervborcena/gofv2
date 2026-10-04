@@ -48,6 +48,7 @@ export interface UserProfile {
   spinPeriod?: string;
   createdAt: string;
   lastActiveAt: string;
+  version?: string;
 }
 
 export interface UserProfileSummary {
@@ -94,6 +95,12 @@ export interface ParticipantRecord {
   remarks?: string;
   status: 'active' | 'winner' | 'inactive' | 'removed';
   joinedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  expireAt?: Date;
+  version?: string;
 }
 
 export interface DrawItem {
@@ -108,6 +115,12 @@ export interface DrawItem {
   winnerStatus: 'active' | 'processed';
   excludedFromList?: boolean;
   processedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  expireAt?: Date;
+  version?: string;
 }
 
 export interface GameHistoryRecord extends DrawItem {
@@ -130,6 +143,12 @@ export interface WinnerRecord {
   winnerStatus: 'active' | 'processed';
   excludedFromList?: boolean;
   processedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  expireAt?: Date;
+  version?: string;
 }
 
 export interface GameInvitation {
@@ -142,6 +161,11 @@ export interface GameInvitation {
   qrCodeUrl?: string;
   expiresAt?: string;
   createdAt: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  expireAt?: Date;
+  version?: string;
 }
 
 export interface Raffle {
@@ -160,6 +184,11 @@ export interface Raffle {
   history: DrawItem[];
   remainingDraws: number;
   createdAt: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  expireAt?: Date;
+  version?: string;
   startAt: string;
   closeAt: string;
   closedAt: string;
@@ -358,12 +387,12 @@ export class RaffleService {
       players: [],
       history: [],
       remainingDraws: 10,
-      createdAt,
       startAt: startAtIso,
       closeAt: closeAtIso,
       closedAt: closeAtIso,
       invitationLink,
-      qrCodeUrl
+      qrCodeUrl,
+      ...this.documentAuditFields(input.creatorId, createdAt)
     };
 
     if (this.firestoreEnabled) {
@@ -380,12 +409,12 @@ export class RaffleService {
         drawMode: raffle.drawMode,
         remarks: raffle.remarks,
         remainingDraws: raffle.remainingDraws,
-        createdAt: raffle.createdAt,
         startAt: raffle.startAt,
         closeAt: raffle.closeAt,
         closedAt: raffle.closeAt,
         invitationLink: raffle.invitationLink,
-        qrCodeUrl: raffle.qrCodeUrl
+        qrCodeUrl: raffle.qrCodeUrl,
+        ...this.documentAuditFields(input.creatorId, raffle.createdAt)
       });
       return raffle;
     }
@@ -479,14 +508,19 @@ export class RaffleService {
         remarks: raffle.remarks,
         history: raffle.history,
         remainingDraws: raffle.remainingDraws,
-        createdAt: raffle.createdAt,
         ...(raffle.lastWinner ? { lastWinner: raffle.lastWinner } : {}),
-        ...(raffle.lastNumber ? { lastNumber: raffle.lastNumber } : {})
+        ...(raffle.lastNumber ? { lastNumber: raffle.lastNumber } : {}),
+        ...this.documentAuditFields(
+          this.currentUserId ?? raffle.creatorId,
+          raffle.createdAt,
+          raffle.createdBy ?? raffle.creatorId
+        )
       };
       await setDoc(doc(this.firestore, 'games', raffle.id), data, { merge: true });
       await this.syncGameCollections(raffle);
       await setDoc(doc(this.firestore, 'users', raffle.creatorId), {
-        playersCount: raffle.players.length
+        playersCount: raffle.players.length,
+        version: environment.version
       }, { merge: true });
       return;
     }
@@ -501,6 +535,7 @@ export class RaffleService {
         throw new Error('You must be signed in to join this game.');
       }
 
+      const joinedAt = new Date().toISOString();
       const participant: ParticipantRecord = {
         id: player.id,
         gameId: raffle.gameId,
@@ -510,9 +545,10 @@ export class RaffleService {
         assignedNumber: player.assignedNumber,
         ...(player.ticketCode ? { ticketCode: player.ticketCode } : {}),
         status: player.status ?? 'active',
-        joinedAt: new Date().toISOString(),
+        joinedAt,
         ...(player.mobileNumber ? { mobileNumber: player.mobileNumber } : {}),
-        ...(player.remarks ? { remarks: player.remarks } : {})
+        ...(player.remarks ? { remarks: player.remarks } : {}),
+        ...this.documentAuditFields(authUser.uid, joinedAt)
       };
       await setDoc(doc(this.firestore, 'participants', player.id), participant);
       return;
@@ -531,6 +567,8 @@ export class RaffleService {
       throw new Error('You must be signed in to join this game.');
     }
 
+    const participantRef = doc(this.firestore, 'participants', player.id);
+    const joinedAt = new Date().toISOString();
     const participant: ParticipantRecord = {
       id: player.id,
       gameId: raffle.gameId,
@@ -540,11 +578,12 @@ export class RaffleService {
       assignedNumber: player.assignedNumber,
       ...(player.ticketCode ? { ticketCode: player.ticketCode } : {}),
       status: player.status ?? 'active',
-      joinedAt: new Date().toISOString(),
+      joinedAt,
       ...(player.mobileNumber ? { mobileNumber: player.mobileNumber } : {}),
-      ...(player.remarks ? { remarks: player.remarks } : {})
+      ...(player.remarks ? { remarks: player.remarks } : {}),
+      ...this.documentAuditFields(authUser.uid, joinedAt)
     };
-    await setDoc(doc(this.firestore, 'participants', player.id), participant, { merge: true });
+    await setDoc(participantRef, participant);
   }
 
   async saveUserProfile(profile: UserProfile): Promise<void> {
@@ -559,12 +598,13 @@ export class RaffleService {
       await updateDoc(userRef, {
         fullName: profile.displayName ?? String(existingData['fullName'] ?? ''),
         nickname: String(existingData['nickname'] ?? ''),
-        phoneNumber: String(existingData['phoneNumber'] ?? '')
+        phoneNumber: String(existingData['phoneNumber'] ?? ''),
+        version: environment.version
       });
       return;
     }
 
-    await setDoc(userRef, profile);
+    await setDoc(userRef, { ...profile, version: environment.version });
   }
 
   async saveProfileNames(userId: string, fullName: string, nickname: string, phoneNumber: string): Promise<void> {
@@ -577,7 +617,8 @@ export class RaffleService {
       nickname: nickname.trim(),
       phoneNumber: phoneNumber.trim(),
       firstName: deleteField(),
-      lastName: deleteField()
+      lastName: deleteField(),
+      version: environment.version
     });
   }
 
@@ -767,7 +808,7 @@ export class RaffleService {
     const plan = await this.getCurrentUserPlan(userId);
     const catalogPlan = planCatalog.find((item) => item.id === (plan === 'free' ? 'freemium' : plan));
     const monthlyLimit = catalogPlan?.monthlySpins ?? FREE_MONTHLY_SPINS;
-    const updates: Record<string, string | number> = {};
+    const updates: Record<string, string | number> = { version: environment.version };
 
     if (typeof data['plan'] !== 'string') {
       updates['plan'] = plan;
@@ -813,7 +854,8 @@ export class RaffleService {
       transaction.set(userRef, {
         spinsRemaining: remaining,
         spinPeriod: period,
-        plan: plan === 'free' ? 'free' : plan
+        plan: plan === 'free' ? 'free' : plan,
+        version: environment.version
       }, { merge: true });
     });
 
@@ -925,8 +967,14 @@ export class RaffleService {
   }
 
   async createGameInvitation(gameId: string, gameUid: string, baseUrl: string): Promise<GameInvitation> {
+    const authUser = this.auth.currentUser ?? await firstValueFrom(this.user$);
+    if (this.firestoreEnabled && !authUser) {
+      throw new Error('You must be signed in to create a game invitation.');
+    }
+
     const invitationLink = `${baseUrl.replace(/\/$/, '')}/games/${gameId}/join`;
     const qrCodeUrl = await QRCode.toDataURL(invitationLink, { width: 240, margin: 1 });
+    const createdAt = new Date().toISOString();
     const invitation: GameInvitation = {
       id: this.makeId(),
       gameId,
@@ -935,7 +983,8 @@ export class RaffleService {
       inviteUrl: invitationLink,
       invitationLink,
       qrCodeUrl,
-      createdAt: new Date().toISOString()
+      createdAt,
+      ...(authUser ? this.documentAuditFields(authUser.uid, createdAt) : {})
     };
 
     if (this.firestoreEnabled) {
@@ -951,12 +1000,19 @@ export class RaffleService {
       where('gameUid', '==', raffle.gameUid)
     ));
     const participantBatch = writeBatch(this.firestore);
+    const existingParticipantData = new Map(existingParticipants.docs.map((snapshot) => [
+      snapshot.id,
+      snapshot.data() as Partial<ParticipantRecord>
+    ]));
+    const actorId = this.currentUserId ?? raffle.creatorId;
     const currentParticipantIds = new Set(raffle.players.map((player) => player.id));
     existingParticipants.docs
       .filter((participant) => !currentParticipantIds.has(participant.id))
       .forEach((participant) => participantBatch.delete(participant.ref));
 
     raffle.players.forEach((player) => {
+      const existingParticipant = existingParticipantData.get(player.id);
+      const createdAt = existingParticipant?.createdAt ?? existingParticipant?.joinedAt ?? new Date().toISOString();
       const participant: ParticipantRecord = {
         id: player.id,
         gameId: raffle.gameId,
@@ -965,9 +1021,14 @@ export class RaffleService {
         assignedNumber: player.assignedNumber,
         ...(player.ticketCode ? { ticketCode: player.ticketCode } : {}),
         status: player.status ?? (player.drawn ? 'winner' : 'active'),
-        joinedAt: raffle.createdAt,
+        joinedAt: existingParticipant?.joinedAt ?? createdAt,
         ...(player.mobileNumber ? { mobileNumber: player.mobileNumber } : {}),
-        ...(player.remarks ? { remarks: player.remarks } : {})
+        ...(player.remarks ? { remarks: player.remarks } : {}),
+        ...this.documentAuditFields(
+          actorId,
+          createdAt,
+          existingParticipant?.createdBy ?? player.userId ?? actorId
+        )
       };
       participantBatch.set(doc(this.firestore, 'participants', player.id), participant, { merge: true });
     });
@@ -978,7 +1039,8 @@ export class RaffleService {
         ...item,
         gameId: raffle.gameId,
         gameUid: raffle.gameUid,
-        drawnNumber: item.drawnNumber
+        drawnNumber: item.drawnNumber,
+        ...this.documentAuditFields(actorId, item.createdAt ?? item.timestamp, item.createdBy ?? actorId)
       };
       const winner: WinnerRecord = {
         id: item.id,
@@ -992,7 +1054,8 @@ export class RaffleService {
         wonAt: item.timestamp,
         winnerStatus: item.winnerStatus,
         ...(item.excludedFromList ? { excludedFromList: true } : {}),
-        ...(item.processedAt ? { processedAt: item.processedAt } : {})
+        ...(item.processedAt ? { processedAt: item.processedAt } : {}),
+        ...this.documentAuditFields(actorId, item.createdAt ?? item.timestamp, item.createdBy ?? actorId)
       };
       return Promise.all([
         setDoc(doc(this.firestore, 'history', item.id), history, { merge: true }),
@@ -1086,6 +1149,26 @@ export class RaffleService {
 
   private makeGameId(): string {
     return String(Date.now() % 100000000).padStart(8, '0');
+  }
+
+  private documentAuditFields(actorId: string, createdAt: string, createdBy = actorId): {
+    createdAt: string;
+    updatedAt: string;
+    createdBy: string;
+    updatedBy: string;
+    expireAt: Date;
+    version: string;
+  } {
+    const createdAtMs = Date.parse(createdAt);
+    const creationTime = Number.isFinite(createdAtMs) ? createdAtMs : Date.now();
+    return {
+      createdAt: new Date(creationTime).toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy,
+      updatedBy: actorId,
+      expireAt: new Date(creationTime + environment.expireAtDays * 24 * 60 * 60 * 1000),
+      version: environment.version
+    };
   }
 
   isRaffleActive(raffle: Pick<Raffle, 'startAt' | 'closeAt' | 'createdAt' | 'closedAt'>): boolean {

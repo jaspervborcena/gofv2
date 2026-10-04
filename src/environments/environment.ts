@@ -2,6 +2,8 @@ const isLocalDev = typeof window !== 'undefined' && window.location.hostname ===
 
 export const environment = {
   production: false,
+  version: '1.0.0',
+  expireAtDays: 45,
   appBaseUrl: 'http://localhost:8080',
   paymentApiUrl: isLocalDev ? 'http://localhost:3001' : 'https://game-of-fortunes-payment-api-jozxtuutyq-de.a.run.app',
   googleWebClientId: '12420305994-dho63lid788c2rti73rabmr3spccngj9.apps.googleusercontent.com',
