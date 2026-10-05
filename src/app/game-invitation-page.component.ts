@@ -33,6 +33,19 @@ export class GameInvitationPageComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.route.paramMap.subscribe(async (params) => {
+      this.game = null;
+      this.name = '';
+      this.useCustomNumber = false;
+      this.customNumber = '';
+      this.mobileNumber = '';
+      this.remarks = '';
+      this.errorMessage = '';
+      this.isJoining = false;
+      this.joined = false;
+      this.alreadyParticipated = false;
+      this.assignedNumber = '';
+      this.isExpired = false;
+
       const gameId = params.get('id');
       if (!gameId) {
         await this.router.navigate(['/raffle-unavailable'], {
