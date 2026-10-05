@@ -1,5 +1,5 @@
 <main class="app-shell" *ngIf="raffle && canManageGame; else loading">
-  <section class="raffle-detail" [class.players-view]="activeTab === 'players'" [attr.aria-busy]="isSpinning" [attr.inert]="spinExitDialogOpen ? '' : null">
+  <section class="raffle-detail" [class.players-view]="activeTab === 'players'" [class.qr-view]="activeTab === 'qr'" [attr.aria-busy]="isSpinning" [attr.inert]="spinExitDialogOpen ? '' : null">
     <div class="game-topbar">
       <a class="brand-button" [routerLink]="isSpinning ? null : '/'" (click)="handleBrandClick($event)" aria-label="Go to Game of Fortunes home">
         <img src="assets/gofv2logo.png" alt="Game of Fortunes" />

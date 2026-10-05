@@ -394,8 +394,8 @@ textarea,
 .create-game-button { width: 108px; min-height: 72px; padding: 0.55rem; border-radius: 16px; }
 .create-game-button > span { color: #ffcf4d; font-size: 2.45rem; line-height: 1; }
 
-.game-title { text-align: center; }
-.game-title h1 { margin: 0.12rem 0; color: #fff0b5; font-size: clamp(1.45rem, 4vw, 3.1rem); letter-spacing: 0.03em; text-shadow: 0 3px 0 #8e3700, 0 0 20px rgba(255, 163, 20, 0.42); }
+.game-title { min-width: 0; text-align: center; }
+.game-title h1 { max-width: 100%; margin: 0.12rem 0; color: #fff0b5; font-size: clamp(1.45rem, 4vw, 3.1rem); letter-spacing: 0.03em; overflow-wrap: anywhere; text-shadow: 0 3px 0 #8e3700, 0 0 20px rgba(255, 163, 20, 0.42); }
 .game-title > span { color: #ffc933; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.28em; }
 .game-title .eyebrow { color: #ffb82e; font-size: 0.65rem; }
 .participant-game-status { justify-self: end; padding: 0.45rem 0.65rem; border: 1px solid rgba(91, 213, 99, 0.45); border-radius: 999px; color: #8ff0b4; font-size: 0.65rem; font-weight: 800; }
@@ -651,12 +651,14 @@ textarea,
 .player-panel .primary-btn.wide { padding: 0.65rem 0.8rem; font-size: 0.78rem; }
 .history-tabs { margin-bottom: 0.1rem; }
 .history-panel .history-item { padding: 0.6rem 0.7rem; font-size: 0.75rem; }
-.qr-panel { display: grid; justify-items: center; gap: 0.65rem; max-width: 620px; margin: 0.8rem auto 0; padding: 1.5rem; border: 1px solid rgba(255, 203, 92, 0.24); border-radius: 18px; background: rgba(255, 255, 255, 0.05); text-align: center; }
-.qr-panel h2 { margin: 0; color: #fff0b8; }
-.qr-preview { display: grid; place-items: center; padding: 0.65rem; border-radius: 14px; background: #fff; }
-.qr-preview img { display: block; width: min(210px, 60vw); height: auto; aspect-ratio: 1; }
-.invitation-link { max-width: 100%; overflow-wrap: anywhere; color: #ffcf4d; font-size: 0.8rem; }
-.qr-download { margin-top: 0.35rem; text-decoration: none; }
+.qr-panel { display: grid; justify-items: center; gap: 0.45rem; max-width: 620px; margin: 0.55rem auto 0; padding: 0.9rem; border: 1px solid rgba(255, 203, 92, 0.24); border-radius: 14px; background: rgba(255, 255, 255, 0.05); text-align: center; }
+.qr-panel > .eyebrow { margin: 0; font-size: 0.72rem; }
+.qr-panel h2 { margin: 0; color: #fff0b8; font-size: 1.25rem; }
+.qr-panel .player-help { margin: 0; font-size: 0.75rem; }
+.qr-preview { display: grid; place-items: center; padding: 0.45rem; border-radius: 10px; background: #fff; }
+.qr-preview img { display: block; width: min(160px, 48vw); height: auto; aspect-ratio: 1; }
+.invitation-link { max-width: 100%; overflow-wrap: anywhere; color: #ffcf4d; font-size: 0.68rem; }
+.qr-download { min-height: 2.5rem; margin-top: 0.15rem; padding: 0.55rem 0.85rem; font-size: 0.75rem; text-decoration: none; }
 
 /* Keep the cabinet self-contained at tablet and phone widths. */
 :host { min-width: 0; overflow-x: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -665,7 +667,7 @@ textarea,
 .slot-machine-container { width: 100%; max-width: 100%; }
 
 @media (max-width: 1100px) {
-  .game-topbar { grid-template-columns: auto 1fr auto; }
+  .game-topbar { grid-template-columns: auto minmax(0, 1fr) auto; }
   .mobile-actions { display: flex; }
   .raffle-stage { display: block; min-height: 0; }
   .machine-zone { min-height: 0; width: 100%; }
@@ -722,6 +724,7 @@ textarea,
 }
 
 .raffle-detail.players-view { height: auto; min-height: 0; padding-bottom: 1rem; }
+.raffle-detail.qr-view { height: auto; min-height: 0; padding-bottom: 1rem; }
 
 @media (min-width: 1101px) {
   .raffle-detail.players-view { min-height: 32.375rem; }
