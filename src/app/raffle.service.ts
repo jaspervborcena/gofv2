@@ -537,9 +537,15 @@ export class RaffleService {
         throw new Error('You must be signed in to join this game.');
       }
 
+      const existingParticipant = await this.findUserParticipantForGame(raffle.gameUid, authUser.uid);
+      if (existingParticipant) {
+        throw new Error('You have already participated in this game.');
+      }
+
+      const participantId = `${raffle.gameUid}-${authUser.uid}`;
       const joinedAt = new Date().toISOString();
       const participant: ParticipantRecord = {
-        id: player.id,
+        id: participantId,
         gameId: raffle.gameId,
         gameUid: raffle.gameUid,
         userId: authUser.uid,
@@ -552,7 +558,14 @@ export class RaffleService {
         ...(player.remarks ? { remarks: player.remarks } : {}),
         ...this.documentAuditFields(authUser.uid, joinedAt)
       };
-      await setDoc(doc(this.firestore, 'participants', player.id), participant);
+      const participantRef = doc(this.firestore, 'participants', participantId);
+      await runTransaction(this.firestore, async (transaction) => {
+        const snapshot = await transaction.get(participantRef);
+        if (snapshot.exists()) {
+          throw new Error('You have already participated in this game.');
+        }
+        transaction.set(participantRef, participant);
+      });
       return;
     }
 
@@ -622,6 +635,42 @@ export class RaffleService {
       lastName: deleteField(),
       version: environment.version
     });
+  }
+
+  async saveUserNameIfMissing(userId: string, name: string): Promise<void> {
+    const normalizedName = name.trim();
+    if (!this.firestoreEnabled || !normalizedName) {
+      return;
+    }
+
+    const userRef = doc(this.firestore, 'users', userId);
+    const snapshot = await getDoc(userRef);
+    const profile = snapshot.data() ?? {};
+    if (String(profile['fullName'] ?? '').trim()) {
+      return;
+    }
+
+    await setDoc(userRef, {
+      fullName: normalizedName,
+      nickname: String(profile['nickname'] ?? ''),
+      phoneNumber: String(profile['phoneNumber'] ?? ''),
+      version: environment.version
+    }, { merge: true });
+  }
+
+  async getUserGreetingName(userId: string): Promise<string> {
+    if (!this.firestoreEnabled) {
+      return '';
+    }
+
+    const snapshot = await getDoc(doc(this.firestore, 'users', userId));
+    const profile = snapshot.data() ?? {};
+    const nickname = String(profile['nickname'] ?? '').trim();
+    if (nickname) {
+      return nickname;
+    }
+
+    return String(profile['fullName'] ?? '').trim().split(/\s+/)[0] ?? '';
   }
 
   async getUserProfileSummary(userId: string): Promise<UserProfileSummary> {

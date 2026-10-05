@@ -114,6 +114,7 @@ service cloud.firestore {
       allow create: if (ownsGame(request.resource.data.gameUid)
         || (signedIn()
           && request.resource.data.userId == request.auth.uid
+          && participantId == request.resource.data.gameUid + '-' + request.auth.uid
           && exists(/databases/$(database)/documents/games/$(request.resource.data.gameUid))))
         && hasCompatibleAuditMetadata();
       allow update: if ownsGame(request.resource.data.gameUid)

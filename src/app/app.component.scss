@@ -33,10 +33,24 @@ app-ad-banner { display: block; min-width: 0; max-width: 100%; overflow: hidden;
 }
 
 .top-bar .app-shell {
+  position: relative;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  min-height: 3.25rem;
   padding-top: 0.5rem;
   padding-bottom: 0;
+}
+
+.site-name {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #ffcf4d;
+  font-size: 1rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .top-right {
@@ -120,7 +134,8 @@ main.app-shell {
   .top-bar .app-shell { padding-top: 0.35rem; }
   main.app-shell { padding: 0.5rem 0.65rem 1rem; }
   .top-right { gap: 0.35rem; }
-  .welcome { max-width: 42vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8rem; }
+  .welcome { display: none; }
+  .site-name { font-size: 0.9rem; }
   .profile-trigger { width: 36px; }
 }
 

@@ -1,7 +1,8 @@
 <header class="top-bar" [attr.inert]="raffleService.raffleSpinning() ? '' : null">
   <div class="app-shell">
+    <a class="site-name" routerLink="/">GameOfFortunes.com</a>
     <div class="top-right">
-      <span *ngIf="user" class="welcome">Welcome {{ userDisplayName }}!</span>
+      <span *ngIf="user" class="welcome">Welcome {{ welcomeDisplayName }}!</span>
       <div *ngIf="user" class="profile-wrap">
         <button
           class="profile-trigger"

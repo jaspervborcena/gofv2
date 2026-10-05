@@ -18,6 +18,7 @@ export class AppComponent {
   title = 'Game of Fortunes';
   raffleService = inject(RaffleService);
   user: { uid: string; displayName?: string | null; email?: string | null; photoURL?: string | null; phoneNumber?: string | null } | null = null;
+  welcomeName = '';
   adFree = false;
   profileOpen = false;
   activeProfileTab: 'profile' | 'history' = 'profile';
@@ -44,6 +45,7 @@ export class AppComponent {
             phoneNumber: authUser.phoneNumber
           }
         : null;
+      this.welcomeName = '';
       this.profileOpen = false;
       this.profileSummary = null;
       this.profileFullName = '';
@@ -55,6 +57,10 @@ export class AppComponent {
       this.adFree = authUser ? (await this.raffleService.getCurrentUserPlan(authUser.uid)) !== 'free' : false;
       if (authUser) {
         await this.raffleService.ensureUserSpinFields(authUser.uid);
+        const greetingName = await this.raffleService.getUserGreetingName(authUser.uid);
+        if (this.user?.uid === authUser.uid) {
+          this.welcomeName = greetingName;
+        }
       }
     });
   }
@@ -71,6 +77,10 @@ export class AppComponent {
 
     const emailPrefix = this.user.email?.split('@')[0]?.trim();
     return emailPrefix || 'Player';
+  }
+
+  get welcomeDisplayName(): string {
+    return this.welcomeName || this.userDisplayName.split(/\s+/)[0] || 'Player';
   }
 
   get userInitials(): string {
@@ -151,6 +161,9 @@ export class AppComponent {
       this.savedProfileFullName = this.profileFullName.trim();
       this.savedProfileNickname = this.profileNickname.trim();
       this.savedProfilePhoneNumber = this.profilePhoneNumber.trim();
+      this.welcomeName = this.profileNickname.trim()
+        || this.profileFullName.trim().split(/\s+/)[0]
+        || this.welcomeName;
       this.profileSaveMessage = '';
     } catch (error) {
       this.profileSaveMessage = this.raffleService.getFirestoreErrorMessage(

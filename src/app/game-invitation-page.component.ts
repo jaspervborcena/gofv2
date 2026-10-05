@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { Raffle, RaffleService } from './raffle.service';
+import { ParticipantRecord, Raffle, RaffleService } from './raffle.service';
 import { FREE_MAX_PLAYERS } from './plan-schema';
 
 @Component({
@@ -27,6 +27,7 @@ export class GameInvitationPageComponent implements OnInit {
   errorMessage = '';
   isJoining = false;
   joined = false;
+  alreadyParticipated = false;
   assignedNumber = '';
   isExpired = false;
 
@@ -60,9 +61,7 @@ export class GameInvitationPageComponent implements OnInit {
         ? await this.raffleService.findUserParticipantForGame(this.game.gameUid, signedInUser.uid)
         : null;
       if (participant) {
-        this.name = participant.name;
-        this.assignedNumber = String(participant.assignedNumber).padStart(this.game.digitCount ?? 3, '0');
-        this.joined = true;
+        this.showExistingParticipant(participant);
         return;
       }
 
@@ -129,6 +128,27 @@ export class GameInvitationPageComponent implements OnInit {
     this.isJoining = true;
     this.errorMessage = '';
 
+    try {
+      const existingParticipant = await this.raffleService.findUserParticipantForGame(this.game.gameUid, signedInUser.uid);
+      if (existingParticipant) {
+        this.showExistingParticipant(existingParticipant);
+        this.isJoining = false;
+        return;
+      }
+    } catch {
+      this.errorMessage = 'Your participation could not be checked. Please try again.';
+      this.isJoining = false;
+      return;
+    }
+
+    try {
+      await this.raffleService.saveUserNameIfMissing(signedInUser.uid, this.name);
+    } catch {
+      this.errorMessage = 'Your name could not be saved. Please try again.';
+      this.isJoining = false;
+      return;
+    }
+
     const player = {
       id: `${this.game.gameUid}-${Date.now()}`,
       name: this.name.trim(),
@@ -144,10 +164,27 @@ export class GameInvitationPageComponent implements OnInit {
       this.assignedNumber = String(assignedNumber).padStart(digitCount, '0');
       this.joined = true;
     } catch {
+      const existingParticipant = await this.raffleService.findUserParticipantForGame(this.game.gameUid, signedInUser.uid).catch(() => null);
+      if (existingParticipant) {
+        this.showExistingParticipant(existingParticipant);
+        return;
+      }
       this.errorMessage = 'You could not join this game. Please sign in and try again.';
     } finally {
       this.isJoining = false;
     }
+  }
+
+  private showExistingParticipant(participant: ParticipantRecord): void {
+    if (!this.game) {
+      return;
+    }
+
+    this.name = participant.name;
+    this.assignedNumber = participant.ticketCode
+      ?? String(participant.assignedNumber).padStart(this.game.digitCount ?? 3, '0');
+    this.alreadyParticipated = true;
+    this.joined = true;
   }
 
   private invitationDraftKey(gameId: string): string {

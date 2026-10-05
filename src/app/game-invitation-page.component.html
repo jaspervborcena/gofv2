@@ -36,9 +36,10 @@
 
   <ng-template #invitationState>
     <section class="invitation-card">
-      <p class="eyebrow" *ngIf="joined">YOUR ENTRY</p>
-      <h1 *ngIf="joined">Your number</h1>
-      <p class="assigned-number" *ngIf="joined">Your number: <strong>{{ assignedNumber }}</strong></p>
+      <p class="eyebrow" *ngIf="joined">{{ alreadyParticipated ? 'ALREADY PARTICIPATED' : 'YOUR ENTRY' }}</p>
+      <h1 *ngIf="joined">{{ alreadyParticipated ? 'You already participated in this game' : 'Your entry is confirmed' }}</h1>
+      <p class="assigned-number" *ngIf="joined">Ticket number: <strong>{{ assignedNumber }}</strong></p>
+      <p class="participant-name" *ngIf="joined">{{ name }}</p>
       <p class="error-message" *ngIf="!joined && errorMessage">{{ errorMessage }}</p>
       <p class="error-message" *ngIf="isExpired">This page has expired. The game is no longer accepting entries.</p>
       <a class="back-link" routerLink="/">Back home</a>

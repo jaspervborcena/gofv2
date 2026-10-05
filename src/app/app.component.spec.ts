@@ -23,6 +23,7 @@ describe('AppComponent', () => {
             signOut: jasmine.createSpy('signOut'),
             getCurrentUserPlan: jasmine.createSpy('getCurrentUserPlan').and.resolveTo('free'),
             ensureUserSpinFields: jasmine.createSpy('ensureUserSpinFields').and.resolveTo(undefined),
+            getUserGreetingName: jasmine.createSpy('getUserGreetingName').and.resolveTo(''),
             getUserProfileSummary: jasmine.createSpy('getUserProfileSummary').and.resolveTo({
               fullName: 'Player Example',
               nickname: '',
