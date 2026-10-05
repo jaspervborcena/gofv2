@@ -28,6 +28,7 @@ export class GameInvitationPageComponent implements OnInit {
   isJoining = false;
   joined = false;
   alreadyParticipated = false;
+  isUserSignedIn = false;
   assignedNumber = '';
   isExpired = false;
 
@@ -43,6 +44,7 @@ export class GameInvitationPageComponent implements OnInit {
       this.isJoining = false;
       this.joined = false;
       this.alreadyParticipated = false;
+      this.isUserSignedIn = false;
       this.assignedNumber = '';
       this.isExpired = false;
 
@@ -70,12 +72,17 @@ export class GameInvitationPageComponent implements OnInit {
       }
 
       const signedInUser = await firstValueFrom(this.raffleService.user$);
+      this.isUserSignedIn = !!signedInUser;
       const participant = signedInUser
         ? await this.raffleService.findUserParticipantForGame(this.game.gameUid, signedInUser.uid)
         : null;
       if (participant) {
         this.showExistingParticipant(participant);
         return;
+      }
+
+      if (signedInUser && !this.name.trim()) {
+        this.name = await this.raffleService.getUserFullName(signedInUser.uid);
       }
 
       if (this.game && !this.raffleService.isRaffleActive(this.game)) {
@@ -155,7 +162,7 @@ export class GameInvitationPageComponent implements OnInit {
     }
 
     try {
-      await this.raffleService.saveUserNameIfMissing(signedInUser.uid, this.name);
+      await this.raffleService.saveUserFullName(signedInUser.uid, this.name);
     } catch {
       this.errorMessage = 'Your name could not be saved. Please try again.';
       this.isJoining = false;
@@ -176,15 +183,21 @@ export class GameInvitationPageComponent implements OnInit {
       this.clearInvitationDraft(this.game.gameId);
       this.assignedNumber = String(assignedNumber).padStart(digitCount, '0');
       this.joined = true;
-    } catch {
+    } catch (error) {
       const existingParticipant = await this.raffleService.findUserParticipantForGame(this.game.gameUid, signedInUser.uid).catch(() => null);
       if (existingParticipant) {
         this.showExistingParticipant(existingParticipant);
         return;
       }
-      this.errorMessage = 'You could not join this game. Please sign in and try again.';
+      this.errorMessage = this.raffleService.getFirestoreErrorMessage(error, 'You could not join this game. Please try again.');
     } finally {
       this.isJoining = false;
+    }
+  }
+
+  saveDraftBeforeSignIn(): void {
+    if (this.game) {
+      this.saveInvitationDraft(this.game.gameId);
     }
   }
 

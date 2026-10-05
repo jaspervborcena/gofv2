@@ -559,13 +559,7 @@ export class RaffleService {
         ...this.documentAuditFields(authUser.uid, joinedAt)
       };
       const participantRef = doc(this.firestore, 'participants', participantId);
-      await runTransaction(this.firestore, async (transaction) => {
-        const snapshot = await transaction.get(participantRef);
-        if (snapshot.exists()) {
-          throw new Error('You have already participated in this game.');
-        }
-        transaction.set(participantRef, participant);
-      });
+      await setDoc(participantRef, participant);
       return;
     }
 
@@ -637,16 +631,25 @@ export class RaffleService {
     });
   }
 
-  async saveUserNameIfMissing(userId: string, name: string): Promise<void> {
-    const normalizedName = name.trim();
-    if (!this.firestoreEnabled || !normalizedName) {
+  async getUserFullName(userId: string): Promise<string> {
+    if (!this.firestoreEnabled) {
+      return '';
+    }
+
+    const snapshot = await getDoc(doc(this.firestore, 'users', userId));
+    return String(snapshot.data()?.['fullName'] ?? '').trim();
+  }
+
+  async saveUserFullName(userId: string, name: string): Promise<void> {
+    if (!this.firestoreEnabled) {
       return;
     }
 
+    const normalizedName = name.trim();
     const userRef = doc(this.firestore, 'users', userId);
     const snapshot = await getDoc(userRef);
     const profile = snapshot.data() ?? {};
-    if (String(profile['fullName'] ?? '').trim()) {
+    if (String(profile['fullName'] ?? '').trim() === normalizedName) {
       return;
     }
 

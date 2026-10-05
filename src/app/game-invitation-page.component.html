@@ -5,6 +5,9 @@
     <h1>{{ game.name }}</h1>
     <p class="description">{{ game.remarks || 'Winner takes all' }}</p>
     <p class="details">Join with a name to receive your {{ game.digitCount ?? 3 }}-digit raffle number.</p>
+    <p class="details" *ngIf="!isUserSignedIn">
+      Please <a class="sign-in-link" [routerLink]="['/signin']" [queryParams]="{ returnUrl: '/games/' + game.gameId + '/join' }" (click)="saveDraftBeforeSignIn()">sign in</a> to join this game.
+    </p>
 
     <form class="join-form" (ngSubmit)="acceptInvitation()">
       <label class="number-toggle">
