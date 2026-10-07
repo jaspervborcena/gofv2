@@ -2,6 +2,14 @@
   <div class="app-shell">
     <a class="site-name" routerLink="/">GameOfFortunes.com</a>
     <div class="top-right">
+      <button
+        class="theme-toggle"
+        type="button"
+        [attr.aria-label]="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+        [title]="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+        (click)="toggleTheme()">
+        <span aria-hidden="true">{{ theme === 'dark' ? '☀' : '☾' }}</span>
+      </button>
       <span *ngIf="user" class="welcome">Welcome {{ welcomeDisplayName }}!</span>
       <div *ngIf="user" class="profile-wrap">
         <button
@@ -11,8 +19,8 @@
           aria-haspopup="dialog"
           [attr.aria-expanded]="profileOpen"
           (click)="$event.stopPropagation(); toggleProfile()">
-          <img *ngIf="user.photoURL" [src]="user.photoURL" alt="">
-          <span *ngIf="!user.photoURL">{{ userInitials }}</span>
+          <img *ngIf="user.photoURL && !profileImageFailed" [src]="user.photoURL" alt="" (error)="profileImageFailed = true">
+          <span *ngIf="!user.photoURL || profileImageFailed">{{ userInitials }}</span>
         </button>
         <section *ngIf="profileOpen" class="profile-popover" role="dialog" aria-label="Your profile" (click)="$event.stopPropagation()">
           <header class="profile-header">

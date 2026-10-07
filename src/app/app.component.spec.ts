@@ -6,10 +6,12 @@ import { RaffleService } from './raffle.service';
 
 describe('AppComponent', () => {
   let fixture: ComponentFixture<AppComponent>;
-  let userSubject: BehaviorSubject<{ uid: string; displayName: string | null; email: string | null } | null>;
+  let userSubject: BehaviorSubject<{ uid: string; displayName: string | null; email: string | null; photoURL?: string | null } | null>;
 
   beforeEach(async () => {
-    userSubject = new BehaviorSubject<{ uid: string; displayName: string | null; email: string | null } | null>(null);
+    localStorage.removeItem('gof-theme');
+    document.documentElement.removeAttribute('data-theme');
+    userSubject = new BehaviorSubject<{ uid: string; displayName: string | null; email: string | null; photoURL?: string | null } | null>(null);
 
     await TestBed.configureTestingModule({
       imports: [AppComponent],
@@ -63,5 +65,41 @@ describe('AppComponent', () => {
 
     const welcome = fixture.nativeElement.querySelector('.welcome');
     expect(welcome.textContent).toContain('Welcome player!');
+  });
+
+  it('should show user initials if the profile photo fails to load', () => {
+    userSubject.next({
+      uid: 'abc123',
+      displayName: 'Pogi Ako',
+      email: 'pogi@example.com',
+      photoURL: 'https://example.invalid/avatar.jpg'
+    });
+    fixture.detectChanges();
+
+    const avatar = fixture.nativeElement.querySelector('.profile-trigger img') as HTMLImageElement;
+    expect(avatar).not.toBeNull();
+
+    avatar.dispatchEvent(new Event('error'));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.profile-trigger img')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.profile-trigger span').textContent.trim()).toBe('PA');
+  });
+
+  it('should toggle and persist the selected theme', () => {
+    const toggle = fixture.nativeElement.querySelector('.theme-toggle') as HTMLButtonElement;
+
+    toggle.click();
+    fixture.detectChanges();
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    expect(localStorage.getItem('gof-theme')).toBe('light');
+    expect(toggle.getAttribute('aria-label')).toBe('Switch to dark mode');
+
+    toggle.click();
+    fixture.detectChanges();
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    expect(localStorage.getItem('gof-theme')).toBe('dark');
   });
 });

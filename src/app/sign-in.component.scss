@@ -27,6 +27,59 @@ h1 {
   gap: 1rem;
 }
 
+.consent-gate {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.consent-gate h1 {
+  margin-bottom: 0;
+}
+
+.consent-intro,
+.consent-draft-note {
+  margin: 0;
+  color: #d9d2e8;
+  line-height: 1.5;
+}
+
+.consent-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  color: #fff6d6;
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+.consent-option input {
+  flex: 0 0 auto;
+  width: 1.15rem;
+  min-height: 1.15rem;
+  margin: 0.15rem 0 0;
+  padding: 0;
+  accent-color: #d58b00;
+}
+
+.consent-option a {
+  color: #ffcf4d;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.consent-continue {
+  width: 100%;
+}
+
+.consent-continue:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.consent-draft-note {
+  font-size: 0.78rem;
+}
+
 .field-group {
   display: grid;
   gap: 0.4rem;

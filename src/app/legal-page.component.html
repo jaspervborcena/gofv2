@@ -1,0 +1,19 @@
+<main class="legal-shell">
+  <article class="legal-card" aria-labelledby="legal-title">
+    <a class="legal-back" routerLink="/signin">Back to sign in</a>
+    <p class="draft-label">Draft for review</p>
+    <h1 id="legal-title">{{ document.title }}</h1>
+    <p class="legal-intro">Draft version 1. Review all details before relying on or publishing this policy.</p>
+    <aside class="draft-notice" role="note">
+      These draft policies are not legal advice. Complete the remaining business and legal details, then have the final wording reviewed for your business and jurisdiction before launch.
+    </aside>
+    <section class="legal-section" *ngFor="let section of document.sections">
+      <h2>{{ section.heading }}</h2>
+      <p *ngFor="let paragraph of section.paragraphs">{{ paragraph }}</p>
+    </section>
+    <nav class="legal-links" aria-label="Legal documents">
+      <a routerLink="/privacy">Privacy Policy</a>
+      <a routerLink="/terms">Terms &amp; Conditions</a>
+    </nav>
+  </article>
+</main>

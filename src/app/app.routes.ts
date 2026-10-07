@@ -9,6 +9,7 @@ import { RaffleUnavailablePageComponent } from './raffle-unavailable-page.compon
 import { DownloadPageComponent } from './download-page.component';
 import { DonationPageComponent } from './donation-page.component';
 import { PremiumPageComponent } from './premium-page.component';
+import { LegalPageComponent } from './legal-page.component';
 
 export const routes: Routes = [
   { path: '', component: HomePageComponent },
@@ -17,6 +18,8 @@ export const routes: Routes = [
   { path: 'download', component: DownloadPageComponent },
   { path: 'donation', component: DonationPageComponent },
   { path: 'premium', component: PremiumPageComponent },
+  { path: 'privacy', component: LegalPageComponent, data: { policy: 'privacy' } },
+  { path: 'terms', component: LegalPageComponent, data: { policy: 'terms' } },
   { path: 'games/new', component: GameSetupPageComponent },
   { path: 'games/:id/join', component: GameInvitationPageComponent },
   { path: 'raffle-unavailable', component: RaffleUnavailablePageComponent },

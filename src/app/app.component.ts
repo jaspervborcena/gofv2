@@ -1,5 +1,5 @@
 import { Component, HostListener, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterOutlet, RouterLink } from '@angular/router';
 import { RaffleService, UserProfileSummary } from './raffle.service';
@@ -17,6 +17,9 @@ import { FeaturesFooterComponent } from './features-footer.component';
 export class AppComponent {
   title = 'Game of Fortunes';
   raffleService = inject(RaffleService);
+  private readonly document = inject(DOCUMENT);
+  theme: 'dark' | 'light' = 'dark';
+  profileImageFailed = false;
   user: { uid: string; displayName?: string | null; email?: string | null; photoURL?: string | null; phoneNumber?: string | null } | null = null;
   welcomeName = '';
   adFree = false;
@@ -35,7 +38,9 @@ export class AppComponent {
   profileSaveMessage = '';
 
   constructor() {
+    this.initializeTheme();
     this.raffleService.user$.subscribe(async (authUser) => {
+      this.profileImageFailed = false;
       this.user = authUser
         ? {
             uid: authUser.uid,
@@ -63,6 +68,25 @@ export class AppComponent {
         }
       }
     });
+  }
+
+  toggleTheme(): void {
+    this.theme = this.theme === 'dark' ? 'light' : 'dark';
+    this.document.documentElement.setAttribute('data-theme', this.theme);
+    try {
+      this.document.defaultView?.localStorage.setItem('gof-theme', this.theme);
+    } catch {
+      this.theme = this.document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    }
+  }
+
+  private initializeTheme(): void {
+    try {
+      this.theme = this.document.defaultView?.localStorage.getItem('gof-theme') === 'light' ? 'light' : 'dark';
+    } catch {
+      this.theme = 'dark';
+    }
+    this.document.documentElement.setAttribute('data-theme', this.theme);
   }
 
   get userDisplayName(): string {

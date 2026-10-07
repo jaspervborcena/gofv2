@@ -60,6 +60,22 @@ app-ad-banner { display: block; min-width: 0; max-width: 100%; overflow: hidden;
   align-items: center;
 }
 
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 207, 77, 0.45);
+  border-radius: 50%;
+  color: #ffdc83;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 1.15rem;
+  cursor: pointer;
+}
+
+.theme-toggle:hover { background: rgba(255, 207, 77, 0.16); }
+.theme-toggle:focus-visible { outline: 2px solid #fff0b8; outline-offset: 3px; }
+
 .welcome {
   color: #fff6d6;
   font-weight: 700;
@@ -134,6 +150,7 @@ main.app-shell {
   .top-bar .app-shell { padding-top: 0.35rem; }
   main.app-shell { padding: 0.5rem 0.65rem 1rem; }
   .top-right { gap: 0.35rem; }
+  .theme-toggle { width: 34px; }
   .welcome { display: none; }
   .site-name { font-size: 0.9rem; }
   .profile-trigger { width: 36px; }
