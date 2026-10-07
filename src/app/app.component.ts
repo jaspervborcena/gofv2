@@ -62,6 +62,11 @@ export class AppComponent {
       this.adFree = authUser ? (await this.raffleService.getCurrentUserPlan(authUser.uid)) !== 'free' : false;
       if (authUser) {
         await this.raffleService.ensureUserSpinFields(authUser.uid);
+        try {
+          await this.raffleService.syncAuthenticatedUserProfile(authUser);
+        } catch (error) {
+          console.warn('Could not synchronize the signed-in user profile.', error);
+        }
         const greetingName = await this.raffleService.getUserGreetingName(authUser.uid);
         if (this.user?.uid === authUser.uid) {
           this.welcomeName = greetingName;

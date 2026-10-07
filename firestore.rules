@@ -48,7 +48,9 @@ service cloud.firestore {
 
     function validProfileUpdate() {
       let changedKeys = request.resource.data.diff(resource.data).affectedKeys();
-      return changedKeys.hasOnly(['fullName', 'nickname', 'phoneNumber', 'firstName', 'lastName', 'version'])
+      return changedKeys.hasOnly(['uid', 'email', 'fullName', 'nickname', 'phoneNumber', 'firstName', 'lastName', 'version'])
+        && (!changedKeys.hasAny(['uid']) || request.resource.data.uid == request.auth.uid)
+        && (!changedKeys.hasAny(['email']) || request.resource.data.email == request.auth.token.email)
         && request.resource.data.fullName is string
         && request.resource.data.fullName.size() <= 100
         && request.resource.data.nickname is string

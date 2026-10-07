@@ -65,6 +65,7 @@
                 </div>
               </div>
               <div><dt>Email</dt><dd>{{ profile.email || 'Not provided' }}</dd></div>
+              <div><dt>User ID</dt><dd>{{ profile.uid }}</dd></div>
             </dl>
             <p *ngIf="profileSaveMessage" class="profile-message" role="status">{{ profileSaveMessage }}</p>
             <div class="profile-spins">

@@ -12,7 +12,7 @@ import {
   signInWithEmailAndPassword,
   fetchSignInMethodsForEmail
 } from '@angular/fire/auth';
-import type { UserCredential } from 'firebase/auth';
+import type { User, UserCredential } from 'firebase/auth';
 import { Firestore, collection, deleteField, doc, getDoc, getDocs, onSnapshot, orderBy, query, runTransaction, setDoc, updateDoc, where, writeBatch } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
 import QRCode from 'qrcode';
@@ -52,6 +52,7 @@ export interface UserProfile {
 }
 
 export interface UserProfileSummary {
+  uid: string;
   fullName: string;
   nickname: string;
   email: string;
@@ -605,7 +606,9 @@ export class RaffleService {
     if (existingProfile.exists()) {
       const existingData = existingProfile.data();
       await updateDoc(userRef, {
-        fullName: profile.displayName ?? String(existingData['fullName'] ?? ''),
+        uid: profile.uid ?? profile.id,
+        ...(profile.email ? { email: profile.email } : {}),
+        fullName: profile.displayName?.trim() || String(existingData['fullName'] ?? ''),
         nickname: String(existingData['nickname'] ?? ''),
         phoneNumber: String(existingData['phoneNumber'] ?? ''),
         version: environment.version
@@ -613,7 +616,29 @@ export class RaffleService {
       return;
     }
 
-    await setDoc(userRef, { ...profile, version: environment.version });
+    await setDoc(userRef, {
+      ...profile,
+      uid: profile.uid ?? profile.id,
+      email: profile.email ?? '',
+      fullName: profile.displayName?.trim() ?? '',
+      nickname: '',
+      phoneNumber: '',
+      version: environment.version
+    });
+  }
+
+  async syncAuthenticatedUserProfile(authUser: User): Promise<void> {
+    const now = new Date().toISOString();
+    await this.saveUserProfile({
+      id: authUser.uid,
+      uid: authUser.uid,
+      displayName: authUser.displayName ?? '',
+      ...(authUser.email ? { email: authUser.email } : {}),
+      ...(authUser.photoURL ? { photoUrl: authUser.photoURL } : {}),
+      role: 'guest',
+      createdAt: now,
+      lastActiveAt: now
+    });
   }
 
   async saveProfileNames(userId: string, fullName: string, nickname: string, phoneNumber: string): Promise<void> {
@@ -679,6 +704,7 @@ export class RaffleService {
   async getUserProfileSummary(userId: string): Promise<UserProfileSummary> {
     if (!this.firestoreEnabled) {
       return {
+        uid: userId,
         fullName: '',
         nickname: '',
         email: '',
@@ -784,6 +810,7 @@ export class RaffleService {
     const catalogPlan = planCatalog.find((item) => item.id === (plan === 'free' ? 'freemium' : plan));
 
     return {
+      uid: userId,
       fullName: String(profile['fullName'] ?? '').trim() || fullName,
       nickname: String(profile['nickname'] ?? '').trim(),
       email,

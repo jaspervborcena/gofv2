@@ -25,8 +25,10 @@ describe('AppComponent', () => {
             signOut: jasmine.createSpy('signOut'),
             getCurrentUserPlan: jasmine.createSpy('getCurrentUserPlan').and.resolveTo('free'),
             ensureUserSpinFields: jasmine.createSpy('ensureUserSpinFields').and.resolveTo(undefined),
+            syncAuthenticatedUserProfile: jasmine.createSpy('syncAuthenticatedUserProfile').and.resolveTo(undefined),
             getUserGreetingName: jasmine.createSpy('getUserGreetingName').and.resolveTo(''),
             getUserProfileSummary: jasmine.createSpy('getUserProfileSummary').and.resolveTo({
+              uid: 'abc123',
               fullName: 'Player Example',
               nickname: '',
               email: 'player@example.com',
@@ -65,6 +67,17 @@ describe('AppComponent', () => {
 
     const welcome = fixture.nativeElement.querySelector('.welcome');
     expect(welcome.textContent).toContain('Welcome player!');
+  });
+
+  it('should show the signed-in email and UID in the profile', async () => {
+    userSubject.next({ uid: 'abc123', displayName: null, email: 'player@gmail.com' });
+
+    await fixture.componentInstance.toggleProfile();
+    fixture.detectChanges();
+
+    const details = fixture.nativeElement.querySelector('.profile-details').textContent;
+    expect(details).toContain('player@example.com');
+    expect(details).toContain('abc123');
   });
 
   it('should show user initials if the profile photo fails to load', () => {
