@@ -1,17 +1,51 @@
 <main class="legal-shell">
   <article class="legal-card" aria-labelledby="legal-title">
-    <a class="legal-back" routerLink="/signin">Back to sign in</a>
-    <p class="draft-label">Draft for review</p>
+    <a class="legal-back" routerLink="/">Back home</a>
+    <p *ngIf="document.isDraft" class="draft-label">Draft for review</p>
     <h1 id="legal-title">{{ document.title }}</h1>
-    <p class="legal-intro">Draft version 1. Review all details before relying on or publishing this policy.</p>
-    <aside class="draft-notice" role="note">
-      These draft policies are not legal advice. Complete the remaining business and legal details, then have the final wording reviewed for your business and jurisdiction before launch.
+    <p class="legal-intro">{{ document.intro }}</p>
+    <aside *ngIf="document.isDraft" class="draft-notice" role="note">
+      These draft documents are not legal advice. Complete the remaining business and legal details, then have the final wording reviewed for your business and jurisdiction before launch.
     </aside>
     <section class="legal-section" *ngFor="let section of document.sections">
       <h2>{{ section.heading }}</h2>
       <p *ngFor="let paragraph of section.paragraphs">{{ paragraph }}</p>
     </section>
-    <nav class="legal-links" aria-label="Legal documents">
+
+    <section *ngIf="isContactPage" class="contact-form-panel" aria-label="Contact form">
+      <h2>Send us a message</h2>
+      <form class="contact-form" (ngSubmit)="submitContact()" novalidate>
+        <label>
+          <span>Email</span>
+          <input type="email" [(ngModel)]="contactEmail" name="contactEmail" autocomplete="email" placeholder="you@example.com" required>
+        </label>
+
+        <label>
+          <span>Message</span>
+          <textarea [(ngModel)]="contactMessage" name="contactMessage" maxlength="500" rows="7" placeholder="Tell us how we can help." required></textarea>
+          <small>{{ contactMessage.length }}/500</small>
+        </label>
+
+        <label>
+          <span>Security check</span>
+          <div class="captcha-row">
+            <strong>{{ captchaValue }}</strong>
+            <input type="number" [(ngModel)]="captchaAnswer" name="captchaAnswer" inputmode="numeric" placeholder="Enter sum" required>
+          </div>
+        </label>
+
+        <button type="submit" [disabled]="contactSubmitting">
+          {{ contactSubmitting ? 'Submitting...' : 'Submit' }}
+        </button>
+      </form>
+      <p *ngIf="contactStatus" class="contact-status" [class.success]="contactStatusType === 'success'" [class.error]="contactStatusType === 'error'">
+        {{ contactStatus }}
+      </p>
+    </section>
+
+    <nav class="legal-links" aria-label="Information pages">
+      <a routerLink="/about">About</a>
+      <a routerLink="/contact">Contact</a>
       <a routerLink="/privacy">Privacy Policy</a>
       <a routerLink="/terms">Terms &amp; Conditions</a>
     </nav>

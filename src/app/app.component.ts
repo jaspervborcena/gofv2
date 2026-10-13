@@ -5,12 +5,13 @@ import { RouterOutlet, RouterLink } from '@angular/router';
 import { RaffleService, UserProfileSummary } from './raffle.service';
 import { AdBannerComponent } from './ad-banner.component';
 import { FeaturesFooterComponent } from './features-footer.component';
+import { HelpMenuComponent } from './help-menu.component';
 
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterOutlet, RouterLink, AdBannerComponent, FeaturesFooterComponent],
+  imports: [CommonModule, FormsModule, RouterOutlet, RouterLink, AdBannerComponent, FeaturesFooterComponent, HelpMenuComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })

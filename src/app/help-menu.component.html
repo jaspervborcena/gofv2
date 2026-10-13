@@ -1,0 +1,18 @@
+<div class="help-wrap">
+  <button
+    class="help-trigger"
+    type="button"
+    aria-label="Help and information"
+    title="Help and information"
+    [attr.aria-expanded]="isOpen"
+    (click)="$event.stopPropagation(); toggle()">
+    <span aria-hidden="true">?</span>
+  </button>
+  <nav *ngIf="isOpen" class="help-menu" aria-label="Help and information" (click)="$event.stopPropagation()">
+    <a routerLink="/about" (click)="close()">About</a>
+    <a routerLink="/contact" (click)="close()">Contact</a>
+    <a routerLink="/privacy" (click)="close()">Privacy</a>
+    <a routerLink="/terms" (click)="close()">Terms</a>
+    <a routerLink="/raffles" (click)="close()">Game Demo</a>
+  </nav>
+</div>

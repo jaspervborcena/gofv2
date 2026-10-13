@@ -11,6 +11,7 @@
         <span aria-hidden="true">{{ theme === 'dark' ? '☀' : '☾' }}</span>
       </button>
       <span *ngIf="user" class="welcome">Welcome {{ welcomeDisplayName }}!</span>
+      <app-help-menu></app-help-menu>
       <div *ngIf="user" class="profile-wrap">
         <button
           class="profile-trigger"
@@ -65,7 +66,6 @@
                 </div>
               </div>
               <div><dt>Email</dt><dd>{{ profile.email || 'Not provided' }}</dd></div>
-              <div><dt>User ID</dt><dd>{{ profile.uid }}</dd></div>
             </dl>
             <p *ngIf="profileSaveMessage" class="profile-message" role="status">{{ profileSaveMessage }}</p>
             <div class="profile-spins">

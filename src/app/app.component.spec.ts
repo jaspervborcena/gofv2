@@ -61,6 +61,19 @@ describe('AppComponent', () => {
     expect(outlet).not.toBeNull();
   });
 
+  it('should expose the help menu destinations', () => {
+    const trigger = fixture.nativeElement.querySelector('.help-trigger') as HTMLButtonElement;
+    trigger.click();
+    fixture.detectChanges();
+
+    const menu = fixture.nativeElement.querySelector('.help-menu') as HTMLElement;
+    expect(menu.textContent).toContain('About');
+    expect(menu.textContent).toContain('Contact');
+    expect(menu.textContent).toContain('Privacy');
+    expect(menu.textContent).toContain('Terms');
+    expect(menu.textContent).toContain('Game Demo');
+  });
+
   it('should use the email local part when display name is missing', () => {
     userSubject.next({ uid: 'abc123', displayName: null, email: 'player@gmail.com' });
     fixture.detectChanges();
@@ -69,7 +82,7 @@ describe('AppComponent', () => {
     expect(welcome.textContent).toContain('Welcome player!');
   });
 
-  it('should show the signed-in email and UID in the profile', async () => {
+  it('should show the signed-in email without exposing the UID in the profile', async () => {
     userSubject.next({ uid: 'abc123', displayName: null, email: 'player@gmail.com' });
 
     await fixture.componentInstance.toggleProfile();
@@ -77,7 +90,7 @@ describe('AppComponent', () => {
 
     const details = fixture.nativeElement.querySelector('.profile-details').textContent;
     expect(details).toContain('player@example.com');
-    expect(details).toContain('abc123');
+    expect(details).not.toContain('abc123');
   });
 
   it('should show user initials if the profile photo fails to load', () => {

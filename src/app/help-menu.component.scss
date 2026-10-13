@@ -1,0 +1,12 @@
+:host {
+  position: relative;
+  display: block;
+}
+
+.help-wrap { position: relative; }
+.help-trigger { display: grid; place-items: center; width: 36px; aspect-ratio: 1; border: 1px solid rgba(255, 207, 77, 0.45); border-radius: 50%; color: #ffdc83; background: rgba(255, 255, 255, 0.08); font-size: 1rem; font-weight: 800; cursor: pointer; }
+.help-trigger:hover { background: rgba(255, 207, 77, 0.16); }
+.help-trigger:focus-visible, .help-menu a:focus-visible { outline: 2px solid #fff0b8; outline-offset: 3px; }
+.help-menu { position: absolute; z-index: 30; top: calc(100% + 0.55rem); right: 0; display: grid; width: min(13rem, calc(100vw - 1.5rem)); padding: 0.35rem; border: 1px solid rgba(255, 203, 92, 0.35); border-radius: 8px; background: #17111f; box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45); }
+.help-menu a { padding: 0.65rem 0.7rem; border-radius: 5px; color: #f7e7b3; font-size: 0.84rem; font-weight: 650; text-decoration: none; }
+.help-menu a:hover { color: #fff0b8; background: rgba(255, 207, 77, 0.12); }

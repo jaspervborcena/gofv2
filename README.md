@@ -20,6 +20,8 @@ Game of Fortunes is a responsive raffle web app for creating games, managing par
 | Route | Page |
 | --- | --- |
 | `/` | Home |
+| `/about` | About Game of Fortunes |
+| `/contact` | Contact and support |
 | `/signin` | Sign-in and account creation |
 | `/raffles` | Raffle preview |
 | `/raffles/:id` | A specific raffle |
@@ -108,3 +110,4 @@ npm run assets:android
 ```
 
 Then rebuild the debug APK from the `android` directory with `gradlew assembleDebug` (Windows: `gradlew.bat assembleDebug`).
+

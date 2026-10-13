@@ -150,5 +150,19 @@ service cloud.firestore {
         && preservesCreationMetadata();
     }
 
+    match /contactUs/{messageId} {
+      allow create: if signedIn()
+        && request.auth.uid == request.resource.data.userId
+        && request.resource.data.email is string
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 500
+        && request.resource.data.userId is string
+        && (request.resource.data.displayName is string || request.resource.data.displayName == null)
+        && request.resource.data.submittedAt is string;
+      allow read: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
   }
 }

@@ -13,7 +13,7 @@ import {
   fetchSignInMethodsForEmail
 } from '@angular/fire/auth';
 import type { User, UserCredential } from 'firebase/auth';
-import { Firestore, collection, deleteField, doc, getDoc, getDocs, onSnapshot, orderBy, query, runTransaction, setDoc, updateDoc, where, writeBatch } from '@angular/fire/firestore';
+import { Firestore, addDoc, collection, deleteField, doc, getDoc, getDocs, onSnapshot, orderBy, query, runTransaction, setDoc, updateDoc, where, writeBatch } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
 import QRCode from 'qrcode';
 import { environment } from '../environments/environment';
@@ -334,6 +334,42 @@ export class RaffleService {
       } catch (error) {
         console.warn('Firebase sign-out succeeded, but native Google sign-out failed.', error);
       }
+    }
+  }
+
+  async submitContactMessage(input: { email: string; message: string; userId?: string | null; displayName?: string | null; }): Promise<void> {
+    const signedInUser = this.auth.currentUser ?? await firstValueFrom(this.user$);
+    const payload = {
+      email: input.email,
+      message: input.message,
+      userId: signedInUser?.uid ?? input.userId ?? null,
+      displayName: signedInUser?.displayName ?? input.displayName ?? null,
+      submittedAt: new Date().toISOString()
+    };
+
+    if (this.firestoreEnabled && signedInUser) {
+      await addDoc(collection(this.firestore, 'contactUs'), {
+        ...payload,
+        source: 'signed-in-user'
+      });
+    }
+
+    const apiUrl = `${environment.paymentApiUrl}/contact`;
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => null) as { message?: string | string[] } | null;
+        const responseMessage = Array.isArray(body?.message) ? body.message.join(' ') : body?.message;
+        const fallbackMessage = responseMessage || await response.text().catch(() => '');
+        throw new Error(fallbackMessage || 'Unable to submit the contact request.');
+      }
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Unable to submit the contact request.');
     }
   }
 

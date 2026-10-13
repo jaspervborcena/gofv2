@@ -1,6 +1,60 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const nodemailer = require('nodemailer');
+const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
+
+const secretClient = new SecretManagerServiceClient();
+
+let smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER || '';
+let smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '';
+let supportEmail = process.env.SUPPORT_EMAIL || 'gameoffortunes777@gmail.com';
+let transporter = null;
+
+async function getSecretValue(secretName) {
+  const valueFromEnv = process.env[secretName];
+  if (valueFromEnv) {
+    return valueFromEnv;
+  }
+
+  if (!process.env.K_SERVICE && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    return '';
+  }
+
+  const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'gameoffortunes-32578';
+
+  try {
+    const [version] = await secretClient.accessSecretVersion({
+      name: `projects/${projectId}/secrets/${secretName}/versions/latest`
+    });
+    return version.payload.data.toString('utf8');
+  } catch (error) {
+    console.warn(`Secret ${secretName} was not found in Secret Manager or the runtime does not have access.`);
+    return '';
+  }
+}
+
+async function initializeMailerConfig() {
+  smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER || await getSecretValue('SMTP_USER');
+  smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || await getSecretValue('SMTP_PASS');
+  supportEmail = process.env.SUPPORT_EMAIL || await getSecretValue('SUPPORT_EMAIL') || supportEmail;
+
+  transporter = smtpUser && smtpPass
+    ? nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: Number(process.env.SMTP_PORT || 465),
+        secure: (process.env.SMTP_SECURE ?? 'true') === 'true' || Number(process.env.SMTP_PORT || 465) === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass
+        }
+      })
+    : null;
+
+  if (!transporter) {
+    console.warn('SMTP mailer was not initialized. Set SMTP_USER and SMTP_PASS or configure Google Secret Manager values.');
+  }
+}
 
 const requestedPort = Number(process.env.PORT || 8080);
 // Listen on IPv6 unspecified by default so localhost (::1) resolves correctly
@@ -100,6 +154,67 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (req.method === 'POST' && req.url === '/api/contact') {
+    let rawBody = '';
+    req.on('data', (chunk) => {
+      rawBody += chunk;
+    });
+
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(rawBody || '{}');
+        const email = String(payload.email || '').trim();
+        const message = String(payload.message || '').trim();
+        const userId = payload.userId ? String(payload.userId) : null;
+        const displayName = payload.displayName ? String(payload.displayName) : null;
+
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !message) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ success: false, message: 'A valid email and message are required.' }));
+          return;
+        }
+
+        if (!transporter) {
+          const missingCredentialsMessage = 'Email is not configured on this server. Set SMTP_USER and SMTP_PASS or grant access to Google Secret Manager before sending messages.';
+          console.error(missingCredentialsMessage);
+          res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({
+            success: false,
+            message: missingCredentialsMessage
+          }));
+          return;
+        }
+
+        const emailText = [
+          'New Game of Fortunes contact request',
+          '',
+          `From: ${email}`,
+          userId ? `User ID: ${userId}` : 'User ID: not signed in',
+          displayName ? `Display name: ${displayName}` : 'Display name: not provided',
+          '',
+          'Message:',
+          message
+        ].join('\n');
+
+        await transporter.sendMail({
+          from: `Game of Fortunes Contact <${smtpUser}>`,
+          to: supportEmail,
+          replyTo: email,
+          subject: `Contact form submission from ${email}`,
+          text: emailText
+        });
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ success: true, message: 'Message sent successfully.' }));
+      } catch (error) {
+        console.error('Contact form submission failed.', error);
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ success: false, message: 'Unable to send the contact request right now.' }));
+      }
+    });
+    return;
+  }
+
   res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end('Method not allowed');
 });
@@ -123,4 +238,9 @@ function startServer() {
   });
 }
 
-startServer();
+initializeMailerConfig()
+  .then(() => startServer())
+  .catch((error) => {
+    console.error('Failed to initialize mailer secrets.', error);
+    startServer();
+  });
