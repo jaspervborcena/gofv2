@@ -66,6 +66,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   rightPanelOpen = false;
   participantPage = 1;
   participantPageSize = 20;
+  private visibleMobileNumbers = new Set<string>();
   ngOnDestroy(): void {
     this.stopParticipantListener();
     this.raffleService.setRaffleSpinning(false);
@@ -144,10 +145,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
 
   keepDuplicateNames(): void {
     const usedNames = new Set<string>();
-    this.editorText = this.editorText
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
+    this.editorText = this.editorLines()
       .map((line) => {
         const baseName = this.editorLineName(line);
         let name = baseName;
@@ -171,10 +169,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
 
   removeDuplicateNames(): void {
     const seen = new Set<string>();
-    this.editorText = this.editorText
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
+    this.editorText = this.editorLines()
       .filter((line) => {
         const key = this.editorLineName(line).toLocaleLowerCase();
         if (seen.has(key)) {
@@ -192,12 +187,12 @@ export class RafflePageComponent implements OnDestroy, OnInit {
 
   private detectDuplicateNames(): void {
     const counts = new Map<string, string>();
-    this.editorText.split('\n').map((line) => line.trim()).filter(Boolean).forEach((line) => {
+    this.editorLines().forEach((line) => {
       const name = this.editorLineName(line);
       counts.set(name.toLocaleLowerCase(), name);
     });
     const occurrences = new Map<string, number>();
-    this.editorText.split('\n').map((line) => line.trim()).filter(Boolean).forEach((line) => {
+    this.editorLines().forEach((line) => {
       const key = this.editorLineName(line).toLocaleLowerCase();
       occurrences.set(key, (occurrences.get(key) ?? 0) + 1);
     });
@@ -213,6 +208,10 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   private editorLineName(line: string): string {
     const parts = line.split('•').map((part) => part.trim());
     return parts.length > 1 && /^\d+$/.test(parts[0]) ? parts.slice(1).join(' • ') : parts[0];
+  }
+
+  private editorLines(): string[] {
+    return this.editorText.split(/\r\n?|\n/).map((line) => line.trim()).filter(Boolean);
   }
 
   private showDuplicateActionMessage(message: string): void {
@@ -443,10 +442,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
 
     this.assignMissingNumbers();
 
-    const entries = this.editorText
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
+    const entries = this.editorLines()
       .map((line, index) => {
         const { ticketNumber, name } = this.parsePlayerEntry(line);
         const existingPlayer = this.raffle!.players.find((player) =>
@@ -513,10 +509,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
 
     const usedNumbers = new Set<number>();
     let nextOrderedNumber = 1;
-    let lines = this.editorText
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean);
+    let lines = this.editorLines();
 
     if (lines.length > this.playerLimit) {
       lines = lines.slice(0, this.playerLimit);
@@ -1027,6 +1020,22 @@ export class RafflePageComponent implements OnDestroy, OnInit {
 
   formatPlayerNumber(player: Player): string {
     return player.ticketCode ?? this.formatNumber(player.assignedNumber);
+  }
+
+  isMobileNumberVisible(player: Player): boolean {
+    return this.visibleMobileNumbers.has(player.id);
+  }
+
+  toggleMobileNumber(player: Player): void {
+    if (this.isMobileNumberVisible(player)) {
+      this.visibleMobileNumbers.delete(player.id);
+    } else {
+      this.visibleMobileNumbers.add(player.id);
+    }
+  }
+
+  maskMobileNumber(mobileNumber: string): string {
+    return mobileNumber.replace(/\d(?=\d{4})/g, '•');
   }
 
   private formatEditorText(): string {

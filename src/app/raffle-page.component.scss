@@ -307,7 +307,6 @@ textarea,
   width: 100%;
 }
 
-.player-row,
 .history-item {
   display: flex;
   justify-content: space-between;
@@ -596,9 +595,6 @@ textarea,
 .live-pill { padding: 0.35rem 0.7rem; border-radius: 999px; color: #86efac; background: rgba(34, 197, 94, 0.2); }
 .join-row { display: flex; gap: 0.5rem; }
 .join-row input { flex: 1; min-width: 0; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 999px; padding: 0.8rem 0.9rem; color: white; background: rgba(255, 255, 255, 0.06); }
-.player-panel .player-list { display: grid; gap: 0.45rem; padding: 0; border: 0; background: transparent; }
-.player-panel .player-row { border-radius: 999px; }
-.player-dot { display: inline-block; width: 0.7rem; height: 0.7rem; margin-right: 0.55rem; border-radius: 50%; background: #ffcf4d; }
 .pagination { display: flex; align-items: center; justify-content: center; gap: 0.7rem; margin-top: 0.55rem; color: #d9c8e7; font-size: 0.7rem; }
 .pagination button { width: 1.8rem; height: 1.8rem; border: 1px solid rgba(255, 207, 77, 0.45); border-radius: 50%; color: #ffcf4d; background: rgba(255, 255, 255, 0.06); cursor: pointer; font-size: 1.1rem; line-height: 1; }
 .pagination button:disabled { opacity: 0.35; cursor: not-allowed; }
@@ -618,7 +614,6 @@ textarea,
   .number-toggle span { min-width: 0; overflow-wrap: anywhere; }
   .join-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.5rem; min-width: 0; }
   .join-row input, .join-row .primary-btn { box-sizing: border-box; width: 100%; max-width: 100%; min-width: 0; }
-  .player-list, .player-panel .player-row, .player-panel .player-row > span { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 }
 
 .slot-machine-container { position: relative; margin-top: 1rem; }
@@ -637,9 +632,18 @@ textarea,
 .join-row input[aria-label="Participant number"] { flex: 0 1 7rem; }
 .join-row input { min-height: 2.75rem; padding: 0.65rem 0.85rem; border: 1px solid rgba(255, 255, 255, 0.8); color: #fff; background: #241c2a; font-size: 0.9rem; }
 .join-row .primary-btn { min-height: 2.75rem; padding: 0.65rem 1.1rem; color: #261000; background: linear-gradient(90deg, #ffd34e, #ff9d1a); font-size: 0.9rem; font-weight: 800; }
-.player-panel .player-list { gap: 0.4rem; }
-.player-panel .player-row { min-height: 2.6rem; padding: 0.65rem 0.85rem; border: 1px solid rgba(255, 255, 255, 0.02); color: #f4edf5; background: #261d2d; font-size: 0.95rem; }
-.player-dot { width: 0.65rem; height: 0.65rem; margin-right: 0.55rem; background: #ffd34e; }
+.participant-grid-scroll { overflow-x: auto; }
+.participant-grid { width: 100%; min-width: 36rem; table-layout: fixed; border-collapse: collapse; color: #f4edf5; font-size: 0.88rem; }
+.participant-grid th, .participant-grid td { padding: 0.7rem; text-align: left; vertical-align: middle; overflow-wrap: anywhere; }
+.participant-grid th { color: #ffd34e; background: #211827; font-size: 0.72rem; }
+.participant-grid th:first-child { width: 38%; }
+.participant-grid th:nth-child(2) { width: 28%; }
+.participant-grid tbody tr { background: #261d2d; }
+.participant-grid tbody tr + tr td { border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.participant-phone { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
+.participant-phone > span { min-width: 0; overflow-wrap: anywhere; }
+.phone-visibility-button { display: grid; flex: 0 0 2rem; place-items: center; width: 2rem; height: 2rem; padding: 0; border: 1px solid rgba(255, 207, 77, 0.38); border-radius: 5px; color: #ffd34e; background: rgba(255, 255, 255, 0.06); cursor: pointer; }
+.phone-visibility-button:focus-visible { outline: 2px solid #fff0b8; }
 .duplicate-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .duplicate-actions button { min-height: 2.45rem; padding: 0.55rem 0.85rem; border: 1px solid transparent; border-radius: 9px; cursor: pointer; font: inherit; font-size: 0.78rem; font-weight: 800; transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease; }
 .duplicate-actions button:first-child { border-color: rgba(255, 130, 130, 0.35); color: #ffc4c4; background: rgba(153, 42, 67, 0.24); }

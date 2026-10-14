@@ -126,10 +126,27 @@
           <button class="primary-btn" type="button" (click)="joinEntry()">Join</button>
         </div>
         <p class="save-message" *ngIf="participantLimitMessage" role="status">{{ participantLimitMessage }}</p>
-        <div class="player-list">
-          <div class="player-row" *ngFor="let player of visiblePlayers">
-            <span><i class="player-dot"></i>{{ formatPlayerNumber(player) }} • {{ player.name }}</span>
-          </div>
+        <div class="participant-grid-scroll">
+          <table class="participant-grid" aria-label="Participant details">
+            <thead>
+              <tr><th scope="col">Ticket • Name</th><th scope="col">Phone</th><th scope="col">Remarks</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let player of visiblePlayers">
+                <td>{{ formatPlayerNumber(player) }} • {{ player.name }}</td>
+                <td>
+                  <div class="participant-phone" *ngIf="player.mobileNumber; else noParticipantPhone">
+                    <span>{{ isMobileNumberVisible(player) ? player.mobileNumber : maskMobileNumber(player.mobileNumber) }}</span>
+                    <button class="phone-visibility-button" type="button" (click)="toggleMobileNumber(player)" [attr.aria-label]="isMobileNumberVisible(player) ? 'Hide phone number' : 'Show phone number'" [attr.title]="isMobileNumberVisible(player) ? 'Hide phone number' : 'Show phone number'">
+                      <span aria-hidden="true">👁</span>
+                    </button>
+                  </div>
+                  <ng-template #noParticipantPhone>—</ng-template>
+                </td>
+                <td>{{ player.remarks || '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         <div class="pagination" *ngIf="hasParticipantPagination">
           <button type="button" [disabled]="participantPage === 1" (click)="goToParticipantPage(participantPage - 1)">‹</button>
