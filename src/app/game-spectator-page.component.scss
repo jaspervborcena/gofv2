@@ -1,0 +1,29 @@
+:host { display: block; }
+
+.spectator-shell { max-width: 720px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+.spectator-card { display: grid; justify-items: center; gap: 0.9rem; padding: 1.5rem; border: 1px solid rgba(255, 203, 92, 0.24); border-radius: 24px; background: rgba(12, 8, 24, 0.9); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35); text-align: center; }
+.back-link, .home-link { color: #ffcf4d; font-weight: 700; }
+.back-link { justify-self: start; }
+.eyebrow { margin: 0; color: #ffbb4f; font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; }
+h1 { margin: 0; color: #fff0b8; }
+.description, .game-details, .stage-caption { margin: 0; color: #e0c9ff; line-height: 1.6; }
+.game-switcher { display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: min(100%, 20rem); color: #e0c9ff; font-size: 0.85rem; }
+.game-switcher button { width: 2.4rem; height: 2.4rem; border: 1px solid rgba(255, 203, 92, 0.5); border-radius: 50%; color: #ffcf4d; background: rgba(255, 255, 255, 0.06); font-size: 1.5rem; cursor: pointer; }
+.spectator-tabs { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.4rem; width: 100%; padding-bottom: 0.6rem; border-bottom: 1px solid rgba(255, 203, 92, 0.2); }
+.spectator-tabs button { padding: 0.55rem 0.8rem; border: 1px solid transparent; border-radius: 999px; color: #e0c9ff; background: transparent; font: inherit; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; cursor: pointer; }
+.spectator-tabs button.active { border-color: rgba(255, 203, 92, 0.5); color: #ffcf4d; background: rgba(255, 255, 255, 0.06); }
+.live-stage { display: grid; justify-items: center; align-content: center; gap: 0.65rem; width: 100%; min-height: 270px; margin: 0.5rem 0; padding: 1.5rem; box-sizing: border-box; border: 2px solid #d78622; border-radius: 24px; background: radial-gradient(circle, rgba(91, 39, 86, 0.85), rgba(14, 8, 21, 0.96)); box-shadow: inset 0 0 28px #ff971d33, 0 0 24px #ff991d22; }
+.info-panel { display: grid; justify-items: center; align-content: center; gap: 0.75rem; width: 100%; min-height: 230px; padding: 1.5rem; box-sizing: border-box; border: 1px solid rgba(255, 203, 92, 0.2); border-radius: 18px; background: rgba(255, 255, 255, 0.035); }
+.results-panel { justify-items: stretch; align-content: start; }
+.results-panel > .eyebrow, .results-panel > .stage-caption { text-align: center; }
+.result-row { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.7rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); color: #fff0b8; text-align: left; }
+.result-row span { color: #b8adbd; font-size: 0.75rem; text-align: right; }
+.countdown { color: #ffcf4d; font-size: clamp(5rem, 20vw, 8rem); line-height: 1; text-shadow: 0 0 30px #ff991d99; }
+.ticket-number { color: #ffd700; font: 800 clamp(2.5rem, 12vw, 5rem) 'Courier New', monospace; letter-spacing: 0.18em; text-shadow: 0 0 18px #ffae2666; }
+.ticket-number.spinning { animation: spin-pulse 0.16s infinite alternate; }
+.ticket-number.idle { font-size: 4rem; }
+.winner-name { margin: 0; color: #fff0b8; font-size: 1.5rem; font-weight: 800; }
+.stage-caption { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.12em; }
+.game-details { font-size: 0.9rem; }
+.error-message { margin: 0; color: #fca5a5; }
+@keyframes spin-pulse { from { opacity: 0.55; transform: translateY(-1px); } to { opacity: 1; transform: translateY(1px); } }

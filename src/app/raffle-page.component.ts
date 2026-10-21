@@ -6,7 +6,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { gsap } from 'gsap';
 import confetti from 'canvas-confetti';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
-import { DrawItem, NumberMode, Player, Raffle, RaffleService, SpinMode } from './raffle.service';
+import { ActiveSpin, DrawItem, NumberMode, Player, Raffle, RaffleService, SpinMode } from './raffle.service';
 import { FREE_MAX_PLAYERS, planCatalog } from './plan-schema';
 
 @Component({
@@ -28,6 +28,10 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   private spinTimeline?: gsap.core.Timeline;
   private spinFastDuration = 0;
   private spinSlowdownDuration = 0;
+  private stopWatchingSpin?: () => void;
+  private scheduledSpinTimer?: number;
+  private countdownTimer?: number;
+  private activeSpinId?: string;
 
   raffle: Raffle | null = null;
   isGameCreator = false;
@@ -59,6 +63,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   reelPositions = [0, 0, 0];
   lastWinner: { name: string; number: string } | null = null;
   isSpinning = false;
+  spinCountdown: number | null = null;
   isRefreshingParticipants = false;
   spinExitDialogOpen = false;
   spinProgress = 0;
@@ -69,8 +74,10 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   private visibleMobileNumbers = new Set<string>();
   ngOnDestroy(): void {
     this.stopParticipantListener();
+    this.stopWatchingSpin?.();
     this.raffleService.setRaffleSpinning(false);
     this.clearSpinTickTimers();
+    this.clearScheduledSpinTimers();
     this.spinTimeline?.kill();
     this.spinTimeline = undefined;
     this.stopSound.pause();
@@ -308,6 +315,8 @@ export class RafflePageComponent implements OnDestroy, OnInit {
     this.updateParticipantPageSize();
     this.route.paramMap.subscribe(async (params) => {
       this.stopParticipantListener();
+      this.stopWatchingSpin?.();
+      this.clearScheduledSpinTimers();
       this.isGameCreator = false;
       this.isPreviewRaffle = false;
       const id = params.get('id');
@@ -367,6 +376,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
         this.reelPositions = Array(digitCount).fill(0);
         this.reels = Array(digitCount).fill('0');
         this.watchGameParticipants(this.raffle.gameUid);
+        this.watchActiveSpin(this.raffle.gameUid);
         return;
       }
 
@@ -862,6 +872,8 @@ export class RafflePageComponent implements OnDestroy, OnInit {
       return;
     }
 
+    this.isSpinning = true;
+    this.raffleService.setRaffleSpinning(true);
     let spinAllowance: { allowed: boolean; spinsRemaining: number };
     try {
       spinAllowance = await this.raffleService.consumeSpin();
@@ -870,92 +882,206 @@ export class RafflePageComponent implements OnDestroy, OnInit {
         ? `Unable to check spins: ${error.message}`
         : 'Unable to check your spins. Please try again.';
       this.isSpinning = false;
+      this.raffleService.setRaffleSpinning(false);
       return;
     }
     if (!spinAllowance.allowed) {
       this.spinLimitMessage = 'You do not have enough spins left. Please subscribe to continue.';
+      this.isSpinning = false;
+      this.raffleService.setRaffleSpinning(false);
       return;
     }
     this.spinLimitMessage = '';
 
-    this.isSpinning = true;
-    this.raffleService.setRaffleSpinning(true);
-    this.lastWinner = null;
-    this.clearSpinTickTimers();
     const winner = players[Math.floor(Math.random() * players.length)];
     const ticketNumber = this.formatPlayerNumber(winner);
     const hasAlphanumericTickets = players.some((player) => /[A-Z]/i.test(this.formatPlayerNumber(player)));
     const reelSymbols = hasAlphanumericTickets ? '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' : '0123456789';
     this.reelStrip = Array.from({ length: 100 }, (_, index) => reelSymbols[index % reelSymbols.length]);
-    const targetReels = ticketNumber.split('').map((character) => this.reelStrip.indexOf(character));
+    const digitCount = this.raffle.digitCount ?? ticketNumber.length;
+    const fastDuration = 5 + Math.max(0, Math.min(3, digitCount - 3)) * 2;
+    const slowdownDuration = 3;
+    const staggerDuration = this.raffle.mode === 'per-digit' ? (ticketNumber.length - 1) * 0.5 : 0;
+    const durationMs = (fastDuration + slowdownDuration + staggerDuration) * 1000;
 
+    this.lastWinner = null;
+    this.clearSpinTickTimers();
+    this.clearScheduledSpinTimers();
+    this.spinCountdown = 3;
+
+    try {
+      if (this.isPreviewRaffle) {
+        const scheduledStartAt = Date.now() + 3000;
+        this.beginScheduledSpin({
+          spinId: `preview-${Date.now()}`,
+          winnerId: winner.id,
+          winnerName: winner.name,
+          ticketNumber,
+          scheduledStartAt,
+          roundEndsAt: scheduledStartAt + durationMs,
+          durationMs,
+          phase: 'scheduled'
+        }, winner);
+      } else {
+        await this.raffleService.scheduleSpin(this.raffle, winner, ticketNumber, durationMs);
+      }
+    } catch (error) {
+      this.isSpinning = false;
+      this.spinCountdown = null;
+      this.raffleService.setRaffleSpinning(false);
+      this.spinLimitMessage = error instanceof Error
+        ? `Unable to schedule spin: ${error.message}`
+        : 'Unable to schedule the spin. Please try again.';
+    }
+  }
+
+  private watchActiveSpin(gameUid: string): void {
+    this.stopWatchingSpin?.();
+    this.stopWatchingSpin = this.raffleService.watchActiveSpin(
+      gameUid,
+      (spin) => this.zone.run(() => {
+        if (this.raffle?.gameUid !== gameUid || !spin || spin.phase !== 'scheduled'
+          || spin.spinId === this.activeSpinId) {
+          return;
+        }
+
+        this.activeSpinId = spin.spinId;
+        const winner = this.raffle?.players.find((player) => player.id === spin.winnerId) ?? {
+          id: spin.winnerId,
+          name: spin.winnerName,
+          assignedNumber: Number(spin.ticketNumber),
+          ticketCode: spin.ticketNumber,
+          drawn: false
+        };
+        this.beginScheduledSpin(spin, winner);
+      }),
+      (error) => this.zone.run(() => {
+        this.spinLimitMessage = `Live spin updates stopped: ${error.message}`;
+      })
+    );
+  }
+
+  private beginScheduledSpin(spin: ActiveSpin, winner: Player): void {
+    if (!this.raffle || spin.phase !== 'scheduled') {
+      return;
+    }
+
+    this.activeSpinId = spin.spinId;
+    const ticketNumber = spin.ticketNumber;
+    const targetReels = ticketNumber.split('').map((character) => this.reelStrip.indexOf(character));
     const digitStates = targetReels.map(() => ({ spinPos: 0 }));
-    const maxSpinPos = 80; // rows, kept within the repeated reel strip
-    const digitCount = this.raffle.digitCount ?? targetReels.length;
+    const maxSpinPos = 80;
+    const digitCount = this.raffle.digitCount ?? ticketNumber.length;
     const fastDuration = 5 + Math.max(0, Math.min(3, digitCount - 3)) * 2;
     const slowdownDuration = 3;
     this.spinFastDuration = fastDuration;
     this.spinSlowdownDuration = slowdownDuration;
+    this.isSpinning = true;
+    this.raffleService.setRaffleSpinning(true);
+    this.lastWinner = null;
+    const countdownRemaining = spin.scheduledStartAt - Date.now();
+    this.spinCountdown = countdownRemaining > 0 ? Math.ceil(countdownRemaining / 1000) : null;
+    this.countdownTimer = window.setInterval(() => {
+      const remaining = spin.scheduledStartAt - Date.now();
+      this.spinCountdown = remaining > 0 ? Math.ceil(remaining / 1000) : null;
+    }, 100);
 
-    // Create GSAP timeline
-    const tl = this.spinTimeline = gsap.timeline({
-      onUpdate: () => {
-        this.reelPositions = digitStates.map((state) => state.spinPos);
-        this.spinProgress = tl.progress() * 100;
-      },
-      onComplete: async () => {
-        // Animation complete - lock in final values
-        this.clearSpinTickTimers();
-        this.stopSound.currentTime = 0;
-        void this.stopSound.play().catch(() => undefined);
-        this.reelPositions = targetReels.map((val) => val);
-        this.reels = ticketNumber.split('');
-        this.lastWinner = { name: winner.name, number: ticketNumber };
-        this.fireWinnerConfetti();
-        this.isSpinning = false;
-        this.raffleService.setRaffleSpinning(false);
-        this.spinTimeline = undefined;
-        this.spinProgress = 100;
-        this.winSound.currentTime = 0;
-        void this.winSound.play().catch(() => undefined);
-
-        // Save to Firestore
-        this.raffle!.history = [
-          ...this.raffle!.history,
-          {
-            id: `${this.raffle!.id}-${Date.now()}`,
-            roundNumber: this.nextRoundNumber(),
-            winnerName: winner.name,
-            drawnNumber: ticketNumber,
-            timestamp: new Date().toISOString(),
-            participantId: winner.id,
-            participantName: winner.name,
-            ...(winner.remarks ? { participantRemarks: winner.remarks } : {}),
-            winnerStatus: 'active',
-          }
-        ];
-        this.raffle!.remainingDraws = Math.max(0, this.raffle!.remainingDraws - 1);
-        this.raffle!.lastWinner = winner.name;
-        this.raffle!.lastNumber = ticketNumber;
-        await this.saveRaffleIfPersisted();
+    this.scheduledSpinTimer = window.setTimeout(() => {
+      if (this.countdownTimer !== undefined) {
+        window.clearInterval(this.countdownTimer);
+        this.countdownTimer = undefined;
       }
-    });
+      this.spinCountdown = null;
+      const elapsed = Math.max(0, Math.min(spin.durationMs, Date.now() - spin.scheduledStartAt) / 1000);
+      const tl = this.spinTimeline = gsap.timeline({
+        paused: true,
+        onUpdate: () => {
+          this.reelPositions = digitStates.map((state) => state.spinPos);
+          this.spinProgress = tl.progress() * 100;
+        },
+        onComplete: () => void this.finishSpin(spin, winner, ticketNumber, targetReels)
+      });
 
-    const perDigit = this.raffle.mode === 'per-digit';
-    digitStates.forEach((state, index) => {
-      const delay = perDigit ? index * 0.5 : 0;
-      tl.to(state, {
-        spinPos: maxSpinPos,
-        duration: fastDuration,
-        ease: 'power1.inOut'
-      }, delay);
-      tl.to(state, {
-        spinPos: targetReels[index],
-        duration: slowdownDuration,
-        ease: 'power3.out'
-      }, fastDuration + delay);
-    });
-    this.scheduleSpinTicks();
+      const perDigit = this.raffle!.mode === 'per-digit';
+      digitStates.forEach((state, index) => {
+        const delay = perDigit ? index * 0.5 : 0;
+        tl.to(state, { spinPos: maxSpinPos, duration: fastDuration, ease: 'power1.inOut' }, delay);
+        tl.to(state, { spinPos: targetReels[index], duration: slowdownDuration, ease: 'power3.out' }, fastDuration + delay);
+      });
+      if (elapsed >= tl.duration()) {
+        tl.progress(1);
+      } else {
+        tl.play(0);
+        tl.time(elapsed);
+        this.scheduleSpinTicks();
+      }
+    }, Math.max(0, spin.scheduledStartAt - Date.now()));
+  }
+
+  private async finishSpin(spin: ActiveSpin, winner: Player, ticketNumber: string, targetReels: number[]): Promise<void> {
+    this.clearSpinTickTimers();
+    this.clearScheduledSpinTimers();
+    this.stopSound.currentTime = 0;
+    void this.stopSound.play().catch(() => undefined);
+    this.reelPositions = targetReels;
+    this.reels = ticketNumber.split('');
+    this.lastWinner = { name: winner.name, number: ticketNumber };
+    this.fireWinnerConfetti();
+    this.spinTimeline = undefined;
+    this.spinProgress = 100;
+    this.winSound.currentTime = 0;
+    void this.winSound.play().catch(() => undefined);
+
+    if (!this.raffle) {
+      return;
+    }
+    if (!this.raffle.history.some((item) => item.spinId === spin.spinId)) {
+      this.raffle.history = [
+        ...this.raffle.history,
+        {
+          id: spin.spinId,
+          spinId: spin.spinId,
+          roundStartAt: new Date(spin.scheduledStartAt).toISOString(),
+          roundEndAt: new Date(spin.roundEndsAt).toISOString(),
+          roundNumber: this.nextRoundNumber(),
+          winnerName: winner.name,
+          drawnNumber: ticketNumber,
+          timestamp: new Date().toISOString(),
+          participantId: winner.id,
+          participantName: winner.name,
+          ...(winner.remarks ? { participantRemarks: winner.remarks } : {}),
+          winnerStatus: 'active'
+        }
+      ];
+      this.raffle.remainingDraws = Math.max(0, this.raffle.remainingDraws - 1);
+      this.raffle.lastWinner = winner.name;
+      this.raffle.lastNumber = ticketNumber;
+    }
+
+    try {
+      await this.saveRaffleIfPersisted();
+      if (!this.isPreviewRaffle) {
+        await this.raffleService.completeSpin(this.raffle.gameUid, spin.spinId);
+      }
+      this.isSpinning = false;
+      this.raffleService.setRaffleSpinning(false);
+    } catch (error) {
+      this.spinLimitMessage = error instanceof Error
+        ? `The winner was revealed, but the result could not be saved: ${error.message}`
+        : 'The winner was revealed, but the result could not be saved.';
+    }
+  }
+
+  private clearScheduledSpinTimers(): void {
+    if (this.scheduledSpinTimer !== undefined) {
+      window.clearTimeout(this.scheduledSpinTimer);
+      this.scheduledSpinTimer = undefined;
+    }
+    if (this.countdownTimer !== undefined) {
+      window.clearInterval(this.countdownTimer);
+      this.countdownTimer = undefined;
+    }
+    this.spinCountdown = null;
   }
 
   handleSlotMachineKeydown(event: KeyboardEvent): void {

@@ -4,6 +4,7 @@ import { RafflePageComponent } from './raffle-page.component';
 import { SignInComponent } from './sign-in.component';
 import { GameSetupPageComponent } from './game-setup-page.component';
 import { GameInvitationPageComponent } from './game-invitation-page.component';
+import { GameSpectatorPageComponent } from './game-spectator-page.component';
 import { PlansPageComponent } from './plans-page.component';
 import { RaffleUnavailablePageComponent } from './raffle-unavailable-page.component';
 import { DownloadPageComponent } from './download-page.component';
@@ -24,6 +25,7 @@ export const routes: Routes = [
   { path: 'terms', component: LegalPageComponent, data: { page: 'terms' } },
   { path: 'games/new', component: GameSetupPageComponent },
   { path: 'games/:id/join', component: GameInvitationPageComponent },
+  { path: 'games/:id/spectate', component: GameSpectatorPageComponent },
   { path: 'raffle-unavailable', component: RaffleUnavailablePageComponent },
   { path: 'raffles', component: RafflePageComponent },
   { path: 'raffles/:id', component: RafflePageComponent },

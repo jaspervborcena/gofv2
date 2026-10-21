@@ -60,6 +60,9 @@
             <button class="view-winners exclude-winner-button" type="button" (click)="excludeLastWinner()">EXCLUDE WINNER</button>
           </div>
           <div class="slot-machine-container" [class.has-winner]="!!lastWinner">
+            <div class="spin-countdown" *ngIf="spinCountdown !== null" role="status" aria-live="assertive">
+              {{ spinCountdown }}
+            </div>
             <div class="slot-machine" role="button" [attr.tabindex]="isRaffleCurrent ? 0 : -1" aria-label="Spin to win" [attr.aria-disabled]="isSpinning || !isRaffleCurrent" (click)="spin()" (keydown)="handleSlotMachineKeydown($event)" [style.gridTemplateColumns]="'repeat(' + reelPositions.length + ', minmax(0, 1fr))'">
               <div class="reel-column" *ngFor="let pos of reelPositions">
                 <div class="reel-tape" [style.transform]="'translateY(' + (48 - pos * 60) + 'px)'">
@@ -74,7 +77,7 @@
           <div class="controls" [attr.inert]="isSpinning ? '' : null">
             <button class="primary-btn spin-btn" [disabled]="isSpinning || !isRaffleCurrent" (click)="spin()">
               <span *ngIf="!isSpinning">🎰 SPIN TO WIN</span>
-              <span *ngIf="isSpinning">SPINNING...</span>
+              <span *ngIf="isSpinning">{{ spinCountdown !== null ? 'GET READY...' : 'SPINNING...' }}</span>
             </button>
             <button class="secondary-btn" [disabled]="isSpinning" (click)="resetRaffle()">↺ Reset</button>
           </div>

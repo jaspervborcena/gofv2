@@ -48,6 +48,22 @@ app-root {
   display: block;
 }
 
+.slot-machine-container > .spin-countdown {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #ffcf4d;
+  background: transparent;
+  font-size: clamp(6rem, 24vw, 12rem);
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 0 20px #ff991dcc, 0 0 48px #ff991d99;
+  pointer-events: none;
+}
+
 a {
   text-decoration: none;
   color: #464feb;

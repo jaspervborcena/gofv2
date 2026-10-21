@@ -1,9 +1,9 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, NgZone, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { ParticipantRecord, Raffle, RaffleService } from './raffle.service';
+import { ActiveSpin, ParticipantRecord, Raffle, RaffleService } from './raffle.service';
 import { FREE_MAX_PLAYERS } from './plan-schema';
 
 @Component({
@@ -13,10 +13,17 @@ import { FREE_MAX_PLAYERS } from './plan-schema';
   templateUrl: './game-invitation-page.component.html',
   styleUrl: './game-invitation-page.component.scss'
 })
-export class GameInvitationPageComponent implements OnInit {
+export class GameInvitationPageComponent implements OnDestroy, OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly raffleService = inject(RaffleService);
+  private readonly zone = inject(NgZone);
+  private stopWatchingSpin?: () => void;
+  private countdownTimer?: number;
+  private spinStartTimer?: number;
+  private spinEndTimer?: number;
+  private numberTicker?: number;
+  private activeSpinId?: string;
 
   game: Raffle | null = null;
   name = '';
@@ -31,9 +38,21 @@ export class GameInvitationPageComponent implements OnInit {
   isUserSignedIn = false;
   assignedNumber = '';
   isExpired = false;
+  spinCountdown: number | null = null;
+  isLiveSpinning = false;
+  liveSpinNumber = '';
+  revealedSpinWinner = '';
+
+  ngOnDestroy(): void {
+    this.stopWatchingSpin?.();
+    this.clearSpinTimers();
+  }
 
   async ngOnInit(): Promise<void> {
     this.route.paramMap.subscribe(async (params) => {
+      this.stopWatchingSpin?.();
+      this.clearSpinTimers();
+      this.activeSpinId = undefined;
       this.game = null;
       this.name = '';
       this.useCustomNumber = false;
@@ -183,6 +202,7 @@ export class GameInvitationPageComponent implements OnInit {
       this.clearInvitationDraft(this.game.gameId);
       this.assignedNumber = String(assignedNumber).padStart(digitCount, '0');
       this.joined = true;
+      this.watchActiveSpin();
     } catch (error) {
       const existingParticipant = await this.raffleService.findUserParticipantForGame(this.game.gameUid, signedInUser.uid).catch(() => null);
       if (existingParticipant) {
@@ -211,6 +231,97 @@ export class GameInvitationPageComponent implements OnInit {
       ?? String(participant.assignedNumber).padStart(this.game.digitCount ?? 3, '0');
     this.alreadyParticipated = true;
     this.joined = true;
+    this.watchActiveSpin();
+  }
+
+  private watchActiveSpin(): void {
+    if (!this.game || !this.joined) {
+      return;
+    }
+
+    this.stopWatchingSpin?.();
+    this.stopWatchingSpin = this.raffleService.watchActiveSpin(
+      this.game.gameUid,
+      (spin) => this.zone.run(() => {
+        if (!spin) {
+          return;
+        }
+        if (spin.phase === 'complete') {
+          if (this.activeSpinId === spin.spinId) {
+            this.finishLiveSpin(spin);
+          } else {
+            this.activeSpinId = spin.spinId;
+            this.finishLiveSpin(spin);
+          }
+          return;
+        }
+        if (spin.spinId !== this.activeSpinId) {
+          this.startLiveSpin(spin);
+        }
+      }),
+      (error) => this.zone.run(() => {
+        this.errorMessage = `Live spin updates stopped: ${error.message}`;
+      })
+    );
+  }
+
+  private startLiveSpin(spin: ActiveSpin): void {
+    this.clearSpinTimers();
+    this.activeSpinId = spin.spinId;
+    this.revealedSpinWinner = '';
+    this.isLiveSpinning = false;
+    this.liveSpinNumber = '0'.repeat(spin.ticketNumber.length);
+    const countdownRemaining = spin.scheduledStartAt - Date.now();
+    this.spinCountdown = countdownRemaining > 0 ? Math.ceil(countdownRemaining / 1000) : null;
+    if (countdownRemaining > 0) {
+      this.countdownTimer = window.setInterval(() => {
+        const remaining = spin.scheduledStartAt - Date.now();
+        this.spinCountdown = remaining > 0 ? Math.ceil(remaining / 1000) : null;
+      }, 100);
+    }
+    this.spinStartTimer = window.setTimeout(() => {
+      if (this.countdownTimer !== undefined) {
+        window.clearInterval(this.countdownTimer);
+        this.countdownTimer = undefined;
+      }
+      this.spinCountdown = null;
+      this.isLiveSpinning = true;
+      this.numberTicker = window.setInterval(() => {
+        this.liveSpinNumber = spin.ticketNumber.replace(/\d/g, () => String(Math.floor(Math.random() * 10)));
+      }, 100);
+      this.spinEndTimer = window.setTimeout(
+        () => this.finishLiveSpin(spin),
+        Math.max(0, spin.roundEndsAt - Date.now())
+      );
+    }, Math.max(0, spin.scheduledStartAt - Date.now()));
+  }
+
+  private finishLiveSpin(spin: ActiveSpin): void {
+    this.clearSpinTimers();
+    this.activeSpinId = spin.spinId;
+    this.spinCountdown = null;
+    this.isLiveSpinning = false;
+    this.liveSpinNumber = spin.ticketNumber;
+    this.revealedSpinWinner = spin.winnerName;
+  }
+
+  private clearSpinTimers(): void {
+    if (this.countdownTimer !== undefined) {
+      window.clearInterval(this.countdownTimer);
+      this.countdownTimer = undefined;
+    }
+    if (this.spinStartTimer !== undefined) {
+      window.clearTimeout(this.spinStartTimer);
+      this.spinStartTimer = undefined;
+    }
+    if (this.spinEndTimer !== undefined) {
+      window.clearTimeout(this.spinEndTimer);
+      this.spinEndTimer = undefined;
+    }
+    if (this.numberTicker !== undefined) {
+      window.clearInterval(this.numberTicker);
+      this.numberTicker = undefined;
+    }
   }
 
   private invitationDraftKey(gameId: string): string {

@@ -43,7 +43,16 @@
       <h1 *ngIf="joined">{{ alreadyParticipated ? 'You already participated in this game' : 'Your entry is confirmed' }}</h1>
       <p class="assigned-number" *ngIf="joined">Ticket number: <strong>{{ assignedNumber }}</strong></p>
       <p class="participant-name" *ngIf="joined">{{ name }}</p>
+      <a class="primary-btn spectate-link" *ngIf="joined && game" [routerLink]="['/games', game.gameId, 'spectate']">Spectate game</a>
+      <section class="live-spin" *ngIf="joined && (spinCountdown !== null || isLiveSpinning || revealedSpinWinner)" aria-live="polite">
+        <p class="eyebrow" *ngIf="spinCountdown !== null">THE DRAW STARTS IN</p>
+        <strong class="live-countdown" *ngIf="spinCountdown !== null">{{ spinCountdown }}</strong>
+        <p class="eyebrow" *ngIf="isLiveSpinning">GOOD LUCK!</p>
+        <strong class="live-spin-number" [class.spinning]="isLiveSpinning">{{ liveSpinNumber }}</strong>
+        <p class="live-winner" *ngIf="revealedSpinWinner">Winner: <strong>{{ revealedSpinWinner }}</strong></p>
+      </section>
       <p class="error-message" *ngIf="!joined && errorMessage">{{ errorMessage }}</p>
+      <p class="error-message" *ngIf="joined && errorMessage">{{ errorMessage }}</p>
       <p class="error-message" *ngIf="isExpired">This page has expired. The game is no longer accepting entries.</p>
       <a class="back-link" routerLink="/">Back home</a>
     </section>

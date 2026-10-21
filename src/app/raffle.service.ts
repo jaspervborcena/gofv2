@@ -13,7 +13,7 @@ import {
   fetchSignInMethodsForEmail
 } from '@angular/fire/auth';
 import type { User, UserCredential } from 'firebase/auth';
-import { Firestore, addDoc, collection, deleteField, doc, getDoc, getDocs, onSnapshot, orderBy, query, runTransaction, setDoc, updateDoc, where, writeBatch } from '@angular/fire/firestore';
+import { Firestore, addDoc, collection, deleteField, doc, getDoc, getDocs, onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, updateDoc, where, writeBatch } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
 import QRCode from 'qrcode';
 import { environment } from '../environments/environment';
@@ -33,6 +33,25 @@ export interface Player {
   status?: 'active' | 'winner' | 'inactive' | 'removed';
   mobileNumber?: string;
   remarks?: string;
+}
+
+export interface ActiveSpin {
+  spinId: string;
+  winnerId: string;
+  winnerName: string;
+  ticketNumber: string;
+  scheduledStartAt: number;
+  roundEndsAt: number;
+  durationMs: number;
+  phase: 'scheduled' | 'complete';
+}
+
+export interface JoinedGameLiveState {
+  gameUid: string;
+  gameId: string;
+  name: string;
+  creatorId: string;
+  activeSpin: ActiveSpin | null;
 }
 
 export interface UserProfile {
@@ -106,6 +125,9 @@ export interface ParticipantRecord {
 
 export interface DrawItem {
   id: string;
+  spinId?: string;
+  roundStartAt?: string;
+  roundEndAt?: string;
   roundNumber?: string;
   winnerName: string;
   drawnNumber: string;
@@ -215,6 +237,180 @@ export class RaffleService {
 
   setRaffleSpinning(isSpinning: boolean): void {
     this.raffleSpinningState.set(isSpinning);
+  }
+
+  async scheduleSpin(raffle: Raffle, winner: Player, ticketNumber: string, durationMs: number): Promise<string> {
+    if (!this.firestoreEnabled || raffle.id === 'preview-raffle') {
+      throw new Error('A shared spin is only available for a saved raffle.');
+    }
+    if (!Number.isFinite(durationMs) || durationMs <= 0) {
+      throw new Error('The spin duration must be greater than zero.');
+    }
+
+    const spinId = `${raffle.gameUid}-${Date.now()}`;
+    const countdownDurationMs = 3000;
+    const gameRef = doc(this.firestore, 'games', raffle.gameUid);
+    await runTransaction(this.firestore, async (transaction) => {
+      const snapshot = await transaction.get(gameRef);
+      if (!snapshot.exists()) {
+        throw new Error('This raffle could not be found.');
+      }
+
+      const activeSpin = snapshot.data()['activeSpin'] as { phase?: string } | undefined;
+      if (activeSpin?.phase === 'scheduled') {
+        throw new Error('A spin is already in progress.');
+      }
+
+      transaction.update(gameRef, {
+        activeSpin: {
+          spinId,
+          winnerId: winner.id,
+          winnerName: winner.name,
+          ticketNumber,
+          durationMs,
+          countdownDurationMs,
+          roundStartOffsetMs: countdownDurationMs,
+          roundEndOffsetMs: countdownDurationMs + durationMs,
+          countdownStartedAt: serverTimestamp(),
+          phase: 'scheduled'
+        }
+      });
+    });
+    return spinId;
+  }
+
+  completeSpin(gameUid: string, spinId: string): Promise<void> {
+    const gameRef = doc(this.firestore, 'games', gameUid);
+    return runTransaction(this.firestore, async (transaction) => {
+      const snapshot = await transaction.get(gameRef);
+      if (!snapshot.exists()) {
+        throw new Error('This raffle could not be found while saving the spin result.');
+      }
+
+      const activeSpin = snapshot.data()?.['activeSpin'] as { spinId?: string; phase?: string } | undefined;
+      if (activeSpin?.spinId === spinId && activeSpin.phase === 'scheduled') {
+        transaction.update(gameRef, { 'activeSpin.phase': 'complete' });
+      }
+    });
+  }
+
+  watchActiveSpin(
+    gameUid: string,
+    onChange: (spin: ActiveSpin | null) => void,
+    onError: (error: Error) => void
+  ): () => void {
+    if (!this.firestoreEnabled) {
+      return () => undefined;
+    }
+
+    return onSnapshot(doc(this.firestore, 'games', gameUid), (snapshot) => {
+      onChange(this.parseActiveSpin(snapshot.data()?.['activeSpin']));
+    }, onError);
+  }
+
+  watchUserJoinedGames(
+    userId: string,
+    onChange: (games: JoinedGameLiveState[]) => void,
+    onError: (error: Error) => void
+  ): () => void {
+    if (!this.firestoreEnabled) {
+      return () => {
+        onChange([]);
+      };
+    }
+
+    const games = new Map<string, JoinedGameLiveState>();
+    const stopWatchingGames = new Map<string, () => void>();
+    const participantsQuery = query(collection(this.firestore, 'participants'), where('userId', '==', userId));
+    const emit = (): void => {
+      onChange([...games.values()].sort((left, right) => left.name.localeCompare(right.name)));
+    };
+    const stopWatchingParticipants = onSnapshot(participantsQuery, (snapshot) => {
+      const gameUids = new Set(snapshot.docs
+        .map((participant) => String(participant.data()['gameUid'] ?? ''))
+        .filter(Boolean));
+
+      for (const [gameUid, stopWatching] of stopWatchingGames) {
+        if (!gameUids.has(gameUid)) {
+          stopWatching();
+          stopWatchingGames.delete(gameUid);
+          games.delete(gameUid);
+        }
+      }
+
+      for (const gameUid of gameUids) {
+        if (stopWatchingGames.has(gameUid)) {
+          continue;
+        }
+        stopWatchingGames.set(gameUid, onSnapshot(doc(this.firestore, 'games', gameUid), (gameSnapshot) => {
+          if (!gameSnapshot.exists()) {
+            games.delete(gameUid);
+            emit();
+            return;
+          }
+
+          const game = gameSnapshot.data();
+          games.set(gameUid, {
+            gameUid,
+            gameId: String(game['gameId'] ?? gameUid),
+            name: String(game['name'] ?? 'Untitled game'),
+            creatorId: String(game['creatorId'] ?? ''),
+            activeSpin: this.parseActiveSpin(game['activeSpin'])
+          });
+          emit();
+        }, onError));
+      }
+      emit();
+    }, onError);
+
+    return () => {
+      stopWatchingParticipants();
+      for (const stopWatching of stopWatchingGames.values()) {
+        stopWatching();
+      }
+      stopWatchingGames.clear();
+      games.clear();
+    };
+  }
+
+  private parseActiveSpin(value: unknown): ActiveSpin | null {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    const spin = value as {
+      spinId?: string;
+      winnerId?: string;
+      winnerName?: string;
+      ticketNumber?: string;
+      durationMs?: number;
+      countdownDurationMs?: number;
+      roundStartOffsetMs?: number;
+      roundEndOffsetMs?: number;
+      phase?: string;
+      countdownStartedAt?: { toMillis?: () => number };
+    };
+    const startTimestamp = spin.countdownStartedAt?.toMillis?.();
+    if (!spin.spinId || !spin.winnerId || !spin.winnerName || !spin.ticketNumber || !startTimestamp
+      || (spin.phase !== 'scheduled' && spin.phase !== 'complete')) {
+      return null;
+    }
+
+    const roundStartOffsetMs = spin.roundStartOffsetMs ?? spin.countdownDurationMs ?? 3000;
+    const roundEndOffsetMs = spin.roundEndOffsetMs ?? roundStartOffsetMs + (spin.durationMs ?? 0);
+    const scheduledStartAt = startTimestamp + roundStartOffsetMs;
+    const roundEndsAt = startTimestamp + roundEndOffsetMs;
+
+    return {
+      spinId: spin.spinId,
+      winnerId: spin.winnerId,
+      winnerName: spin.winnerName,
+      ticketNumber: spin.ticketNumber,
+      scheduledStartAt,
+      roundEndsAt,
+      durationMs: Math.max(0, roundEndsAt - scheduledStartAt),
+      phase: spin.phase
+    };
   }
   private nativeGoogleLoginInitialization?: Promise<void>;
 

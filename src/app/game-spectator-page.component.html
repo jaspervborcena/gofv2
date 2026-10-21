@@ -1,0 +1,68 @@
+<main class="spectator-shell">
+  <section class="spectator-card" *ngIf="raffle && !isLoading">
+    <a class="back-link" routerLink="/">← Back home</a>
+    <p class="eyebrow">LIVE GAME · SPECTATOR VIEW</p>
+    <h1>{{ raffle.name }}</h1>
+    <p class="description">{{ raffle.remarks || 'Watch the live draw.' }}</p>
+    <nav class="game-switcher" *ngIf="joinedGames.length > 1" aria-label="Switch between your joined games">
+      <button type="button" aria-label="Previous game" (click)="previousGame()">‹</button>
+      <span>{{ selectedGameIndex + 1 }} / {{ joinedGames.length }}</span>
+      <button type="button" aria-label="Next game" (click)="nextGame()">›</button>
+    </nav>
+
+    <nav class="spectator-tabs" aria-label="Game information">
+      <button type="button" [class.active]="activeTab === 'live'" (click)="activeTab = 'live'">LIVE DRAW</button>
+      <button type="button" [class.active]="activeTab === 'entry'" (click)="activeTab = 'entry'">MY ENTRY</button>
+      <button type="button" [class.active]="activeTab === 'results'" (click)="activeTab = 'results'">RESULTS</button>
+    </nav>
+
+    <section class="live-stage" *ngIf="activeTab === 'live'" aria-live="polite">
+      <ng-container *ngIf="spinCountdown !== null; else spinState">
+        <p class="eyebrow">THE DRAW STARTS IN</p>
+        <strong class="countdown">{{ spinCountdown }}</strong>
+      </ng-container>
+      <ng-template #spinState>
+        <ng-container *ngIf="isSpinning; else winnerState">
+          <p class="eyebrow">GOOD LUCK!</p>
+          <strong class="ticket-number spinning">{{ spinningNumber }}</strong>
+          <span class="stage-caption">DRAW IN PROGRESS</span>
+        </ng-container>
+      </ng-template>
+      <ng-template #winnerState>
+        <ng-container *ngIf="revealedWinner; else waitingState">
+          <p class="eyebrow">WINNER</p>
+          <strong class="ticket-number">{{ revealedWinner.number }}</strong>
+          <p class="winner-name">{{ revealedWinner.name }}</p>
+        </ng-container>
+      </ng-template>
+      <ng-template #waitingState>
+        <strong class="ticket-number idle">🎰</strong>
+        <p class="stage-caption">Waiting for the host to start the draw</p>
+      </ng-template>
+    </section>
+
+    <section class="info-panel" *ngIf="activeTab === 'entry'">
+      <p class="eyebrow">YOUR ENTRY</p>
+      <strong class="ticket-number">{{ entryTicketNumber }}</strong>
+      <p class="winner-name">{{ participant?.name }}</p>
+      <p class="game-details" *ngIf="participant?.remarks">Your remarks: {{ participant?.remarks }}</p>
+    </section>
+
+    <section class="info-panel results-panel" *ngIf="activeTab === 'results'">
+      <p class="eyebrow">COMPLETED DRAWS</p>
+      <article class="result-row" *ngFor="let result of results">
+        <strong>#{{ result.drawnNumber }} · {{ result.winnerName }}</strong>
+        <span>{{ result.timestamp | date:'medium' }}</span>
+      </article>
+      <p class="stage-caption" *ngIf="!results.length">No completed draws yet.</p>
+    </section>
+
+    <p class="game-details" *ngIf="activeTab === 'live'">{{ raffle.players.length }} players · {{ raffle.history.length }} completed draws</p>
+    <p class="error-message" *ngIf="errorMessage" role="alert">{{ errorMessage }}</p>
+    <a class="home-link" routerLink="/">Return home</a>
+  </section>
+  <section class="spectator-card" *ngIf="isLoading">
+    <p class="eyebrow">SPECTATOR VIEW</p>
+    <p class="description">Loading the game…</p>
+  </section>
+</main>

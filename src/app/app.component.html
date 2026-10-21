@@ -83,12 +83,19 @@
             <section class="profile-tab-content profile-history" *ngIf="activeProfileTab === 'history'" role="tabpanel" aria-label="Player history">
               <p class="profile-history-summary">Games you hosted or joined</p>
               <div class="profile-game-list" *ngIf="profile.games.length; else noProfileGames">
-                <article class="profile-game" *ngFor="let game of profile.games">
+                <article class="profile-game" *ngIf="selectedProfileGame as game">
+                  <div class="profile-game-slider" *ngIf="profile.games.length > 1">
+                    <button type="button" aria-label="Previous game" (click)="previousProfileGame()">‹</button>
+                    <span>{{ profileGameIndex + 1 }} / {{ profile.games.length }}</span>
+                    <button type="button" aria-label="Next game" (click)="nextProfileGame()">›</button>
+                  </div>
                   <div class="profile-game-info">
                     <strong>#{{ game.gameId }} · {{ game.name }}</strong>
                     <span>{{ game.role }}<ng-container *ngIf="game.createdAt"> · {{ game.createdAt | date:'MMM d, y' }}</ng-container></span>
+                    <span class="profile-game-live" *ngIf="isProfileGameSpinning(game.gameId)">LIVE SPIN</span>
                   </div>
                   <a *ngIf="game.isOpen && game.role !== 'Participated'" class="profile-game-link" [routerLink]="['/raffles', game.gameId]" (click)="profileOpen = false">Resume</a>
+                  <a *ngIf="game.isOpen && game.role === 'Participated'" class="profile-game-link" [routerLink]="['/games', game.gameId, 'spectate']" (click)="profileOpen = false">Spectate</a>
                   <span *ngIf="!game.isOpen" class="profile-game-closed">Closed</span>
                 </article>
               </div>

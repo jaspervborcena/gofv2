@@ -22,6 +22,7 @@ describe('AppComponent', () => {
           useValue: {
             user$: userSubject.asObservable(),
             raffleSpinning: () => false,
+            watchUserJoinedGames: jasmine.createSpy('watchUserJoinedGames').and.returnValue(() => undefined),
             signOut: jasmine.createSpy('signOut'),
             getCurrentUserPlan: jasmine.createSpy('getCurrentUserPlan').and.resolveTo('free'),
             ensureUserSpinFields: jasmine.createSpy('ensureUserSpinFields').and.resolveTo(undefined),
@@ -39,6 +40,7 @@ describe('AppComponent', () => {
               monthlySpinLimit: 25,
               gamesHosted: 0,
               gamesParticipated: 0,
+              games: [],
               statsAvailable: true,
               wins: 0,
               losses: 0

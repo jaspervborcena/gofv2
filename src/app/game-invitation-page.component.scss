@@ -14,7 +14,15 @@ h1 { margin: 0; color: #fff0b8; }
 input, textarea { width: 100%; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 12px; padding: 0.8rem 0.9rem; background: rgba(255, 255, 255, 0.06); color: #fff; font: inherit; }
 textarea { resize: vertical; }
 .primary-btn { border: 0; border-radius: 999px; padding: 0.85rem 1rem; cursor: pointer; background: linear-gradient(90deg, #ffcf4d, #ff8a00); color: #220e00; font: inherit; font-weight: 700; }
+.spectate-link { justify-self: start; text-decoration: none; }
 .primary-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 .error-message { margin: 0; color: #fca5a5; }
 .assigned-number { color: #e0c9ff; font-size: 1.1rem; }
 .assigned-number strong { color: #ffd700; font: 800 2rem 'Courier New', monospace; }
+.live-spin { display: grid; justify-items: center; gap: 0.5rem; margin-top: 0.5rem; padding: 1.25rem; border: 1px solid rgba(255, 203, 92, 0.4); border-radius: 18px; background: radial-gradient(circle, rgba(94, 44, 105, 0.65), rgba(20, 11, 31, 0.92)); color: #fff0b8; text-align: center; }
+.live-countdown { color: #ffcf4d; font-size: 4rem; line-height: 1; text-shadow: 0 0 24px #ff991d99; }
+.live-spin-number { color: #ffd700; font: 800 2.25rem 'Courier New', monospace; letter-spacing: 0.18em; }
+.live-spin-number.spinning { animation: live-spin-pulse 0.18s infinite alternate; }
+.live-winner { margin: 0; color: #e0c9ff; }
+.live-winner strong { color: #ffd700; }
+@keyframes live-spin-pulse { from { opacity: 0.55; transform: translateY(-1px); } to { opacity: 1; transform: translateY(1px); } }

@@ -1,8 +1,8 @@
 import { Component, HostListener, inject } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterOutlet, RouterLink } from '@angular/router';
-import { RaffleService, UserProfileSummary } from './raffle.service';
+import { Router, RouterOutlet, RouterLink } from '@angular/router';
+import { JoinedGameLiveState, RaffleService, UserProfileGame, UserProfileSummary } from './raffle.service';
 import { AdBannerComponent } from './ad-banner.component';
 import { FeaturesFooterComponent } from './features-footer.component';
 import { HelpMenuComponent } from './help-menu.component';
@@ -18,6 +18,7 @@ import { HelpMenuComponent } from './help-menu.component';
 export class AppComponent {
   title = 'Game of Fortunes';
   raffleService = inject(RaffleService);
+  private readonly router = inject(Router);
   private readonly document = inject(DOCUMENT);
   theme: 'dark' | 'light' = 'dark';
   profileImageFailed = false;
@@ -29,6 +30,8 @@ export class AppComponent {
   profileLoading = false;
   profileError = '';
   profileSummary: UserProfileSummary | null = null;
+  profileGameIndex = 0;
+  joinedGameLiveStates: JoinedGameLiveState[] = [];
   profileFullName = '';
   savedProfileFullName = '';
   profileNickname = '';
@@ -37,10 +40,15 @@ export class AppComponent {
   savedProfilePhoneNumber = '';
   profileSaving = false;
   profileSaveMessage = '';
+  private stopWatchingJoinedGames?: () => void;
+  private lastAutoOpenedSpinId?: string;
 
   constructor() {
     this.initializeTheme();
     this.raffleService.user$.subscribe(async (authUser) => {
+      this.stopWatchingJoinedGames?.();
+      this.joinedGameLiveStates = [];
+      this.lastAutoOpenedSpinId = undefined;
       this.profileImageFailed = false;
       this.user = authUser
         ? {
@@ -62,18 +70,67 @@ export class AppComponent {
       this.savedProfilePhoneNumber = '';
       this.adFree = authUser ? (await this.raffleService.getCurrentUserPlan(authUser.uid)) !== 'free' : false;
       if (authUser) {
+        this.stopWatchingJoinedGames = this.raffleService.watchUserJoinedGames(
+          authUser.uid,
+          (games) => this.handleJoinedGameUpdates(authUser.uid, games),
+          (error) => console.error('Live joined-game updates stopped.', error)
+        );
         await this.raffleService.ensureUserSpinFields(authUser.uid);
         try {
           await this.raffleService.syncAuthenticatedUserProfile(authUser);
         } catch (error) {
           console.warn('Could not synchronize the signed-in user profile.', error);
         }
+
         const greetingName = await this.raffleService.getUserGreetingName(authUser.uid);
         if (this.user?.uid === authUser.uid) {
           this.welcomeName = greetingName;
         }
       }
     });
+  }
+
+  private handleJoinedGameUpdates(userId: string, games: JoinedGameLiveState[]): void {
+    this.joinedGameLiveStates = games;
+    const spinningGame = games.find((game) =>
+      game.creatorId !== userId && game.activeSpin?.phase === 'scheduled');
+    if (!spinningGame?.activeSpin || spinningGame.activeSpin.spinId === this.lastAutoOpenedSpinId) {
+      return;
+    }
+
+    const currentSpectatorPath = `/games/${spinningGame.gameId}/spectate`;
+    if (this.router.url === currentSpectatorPath
+      || /^\/games\/[^/]+\/spectate(?:\?|$)/.test(this.router.url)) {
+      this.lastAutoOpenedSpinId = spinningGame.activeSpin.spinId;
+      return;
+    }
+
+    this.lastAutoOpenedSpinId = spinningGame.activeSpin.spinId;
+    this.profileOpen = false;
+    void this.router.navigate(['/games', spinningGame.gameId, 'spectate']);
+  }
+
+  get selectedProfileGame(): UserProfileGame | null {
+    return this.profileSummary?.games[this.profileGameIndex] ?? null;
+  }
+
+  isProfileGameSpinning(gameId: string): boolean {
+    return this.joinedGameLiveStates.some((game) =>
+      game.gameId === gameId && game.activeSpin?.phase === 'scheduled');
+  }
+
+  previousProfileGame(): void {
+    const count = this.profileSummary?.games.length ?? 0;
+    if (count > 1) {
+      this.profileGameIndex = (this.profileGameIndex - 1 + count) % count;
+    }
+  }
+
+  nextProfileGame(): void {
+    const count = this.profileSummary?.games.length ?? 0;
+    if (count > 1) {
+      this.profileGameIndex = (this.profileGameIndex + 1) % count;
+    }
   }
 
   toggleTheme(): void {
@@ -130,6 +187,7 @@ export class AppComponent {
 
     this.activeProfileTab = 'profile';
     this.profileSummary = null;
+    this.profileGameIndex = 0;
     this.profileLoading = true;
     this.profileError = '';
     try {
