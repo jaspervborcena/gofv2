@@ -636,14 +636,13 @@ textarea,
 .participant-grid { width: 100%; min-width: 36rem; table-layout: fixed; border-collapse: collapse; color: #f4edf5; font-size: 0.88rem; }
 .participant-grid th, .participant-grid td { padding: 0.7rem; text-align: left; vertical-align: middle; overflow-wrap: anywhere; }
 .participant-grid th { color: #ffd34e; background: #211827; font-size: 0.72rem; }
+.participant-column-header { display: inline-flex; align-items: center; gap: 0.5rem; }
+.column-visibility-button { display: inline-grid; place-items: center; width: 2.2rem; height: 2.2rem; padding: 0; border: 1px solid rgba(255, 207, 77, 0.45); border-radius: 6px; color: #ffd34e; background: rgba(255, 255, 255, 0.08); font-size: 1.2rem; line-height: 1; cursor: pointer; }
+.column-visibility-button:focus-visible { outline: 2px solid #fff0b8; outline-offset: 2px; }
 .participant-grid th:first-child { width: 38%; }
 .participant-grid th:nth-child(2) { width: 28%; }
 .participant-grid tbody tr { background: #261d2d; }
 .participant-grid tbody tr + tr td { border-top: 1px solid rgba(255, 255, 255, 0.08); }
-.participant-phone { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
-.participant-phone > span { min-width: 0; overflow-wrap: anywhere; }
-.phone-visibility-button { display: grid; flex: 0 0 2rem; place-items: center; width: 2rem; height: 2rem; padding: 0; border: 1px solid rgba(255, 207, 77, 0.38); border-radius: 5px; color: #ffd34e; background: rgba(255, 255, 255, 0.06); cursor: pointer; }
-.phone-visibility-button:focus-visible { outline: 2px solid #fff0b8; }
 .duplicate-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .duplicate-actions button { min-height: 2.45rem; padding: 0.55rem 0.85rem; border: 1px solid transparent; border-radius: 9px; cursor: pointer; font: inherit; font-size: 0.78rem; font-weight: 800; transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease; }
 .duplicate-actions button:first-child { border-color: rgba(255, 130, 130, 0.35); color: #ffc4c4; background: rgba(153, 42, 67, 0.24); }

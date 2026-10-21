@@ -32,6 +32,9 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   private scheduledSpinTimer?: number;
   private countdownTimer?: number;
   private activeSpinId?: string;
+  private spinEndTimer?: number;
+  private finishingSpinId?: string;
+  private currentSpin?: { spin: ActiveSpin; winner: Player; ticketNumber: string; targetReels: number[] };
 
   raffle: Raffle | null = null;
   isGameCreator = false;
@@ -71,7 +74,8 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   rightPanelOpen = false;
   participantPage = 1;
   participantPageSize = 20;
-  private visibleMobileNumbers = new Set<string>();
+  phoneNumbersVisible = false;
+  participantRemarksVisible = false;
   ngOnDestroy(): void {
     this.stopParticipantListener();
     this.stopWatchingSpin?.();
@@ -969,6 +973,11 @@ export class RafflePageComponent implements OnDestroy, OnInit {
     this.activeSpinId = spin.spinId;
     const ticketNumber = spin.ticketNumber;
     const targetReels = ticketNumber.split('').map((character) => this.reelStrip.indexOf(character));
+    this.currentSpin = { spin, winner, ticketNumber, targetReels };
+    this.spinEndTimer = window.setTimeout(
+      () => void this.finishSpin(spin, winner, ticketNumber, targetReels),
+      Math.max(0, spin.roundEndsAt - Date.now())
+    );
     const digitStates = targetReels.map(() => ({ spinPos: 0 }));
     const maxSpinPos = 80;
     const digitCount = this.raffle.digitCount ?? ticketNumber.length;
@@ -1019,16 +1028,24 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   }
 
   private async finishSpin(spin: ActiveSpin, winner: Player, ticketNumber: string, targetReels: number[]): Promise<void> {
+    if (this.finishingSpinId === spin.spinId) {
+      return;
+    }
+    this.finishingSpinId = spin.spinId;
+    this.currentSpin = undefined;
     this.clearSpinTickTimers();
     this.clearScheduledSpinTimers();
+    this.spinTimeline?.kill();
+    this.spinTimeline = undefined;
     this.stopSound.currentTime = 0;
     void this.stopSound.play().catch(() => undefined);
     this.reelPositions = targetReels;
     this.reels = ticketNumber.split('');
     this.lastWinner = { name: winner.name, number: ticketNumber };
     this.fireWinnerConfetti();
-    this.spinTimeline = undefined;
     this.spinProgress = 100;
+    this.isSpinning = false;
+    this.raffleService.setRaffleSpinning(false);
     this.winSound.currentTime = 0;
     void this.winSound.play().catch(() => undefined);
 
@@ -1063,8 +1080,6 @@ export class RafflePageComponent implements OnDestroy, OnInit {
       if (!this.isPreviewRaffle) {
         await this.raffleService.completeSpin(this.raffle.gameUid, spin.spinId);
       }
-      this.isSpinning = false;
-      this.raffleService.setRaffleSpinning(false);
     } catch (error) {
       this.spinLimitMessage = error instanceof Error
         ? `The winner was revealed, but the result could not be saved: ${error.message}`
@@ -1081,6 +1096,10 @@ export class RafflePageComponent implements OnDestroy, OnInit {
       window.clearInterval(this.countdownTimer);
       this.countdownTimer = undefined;
     }
+    if (this.spinEndTimer !== undefined) {
+      window.clearTimeout(this.spinEndTimer);
+      this.spinEndTimer = undefined;
+    }
     this.spinCountdown = null;
   }
 
@@ -1088,6 +1107,25 @@ export class RafflePageComponent implements OnDestroy, OnInit {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       void this.spin();
+    }
+  }
+
+  @HostListener('document:visibilitychange')
+  handleSpinVisibilityChange(): void {
+    const currentSpin = this.currentSpin;
+    if (document.visibilityState !== 'visible' || !this.isSpinning || !currentSpin) {
+      return;
+    }
+
+    const { spin, winner, ticketNumber, targetReels } = currentSpin;
+    const elapsedMs = Date.now() - spin.scheduledStartAt;
+    if (elapsedMs >= spin.durationMs) {
+      void this.finishSpin(spin, winner, ticketNumber, targetReels);
+      return;
+    }
+
+    if (elapsedMs >= 0 && this.spinTimeline && !this.spinTimeline.paused()) {
+      this.spinTimeline.time(elapsedMs / 1000);
     }
   }
 
@@ -1148,20 +1186,12 @@ export class RafflePageComponent implements OnDestroy, OnInit {
     return player.ticketCode ?? this.formatNumber(player.assignedNumber);
   }
 
-  isMobileNumberVisible(player: Player): boolean {
-    return this.visibleMobileNumbers.has(player.id);
+  togglePhoneNumbersVisibility(): void {
+    this.phoneNumbersVisible = !this.phoneNumbersVisible;
   }
 
-  toggleMobileNumber(player: Player): void {
-    if (this.isMobileNumberVisible(player)) {
-      this.visibleMobileNumbers.delete(player.id);
-    } else {
-      this.visibleMobileNumbers.add(player.id);
-    }
-  }
-
-  maskMobileNumber(mobileNumber: string): string {
-    return mobileNumber.replace(/\d(?=\d{4})/g, '•');
+  toggleParticipantRemarksVisibility(): void {
+    this.participantRemarksVisible = !this.participantRemarksVisible;
   }
 
   private formatEditorText(): string {

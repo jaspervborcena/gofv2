@@ -39,4 +39,16 @@ describe('RafflePageComponent', () => {
     expect(component.raffle).toBeTruthy();
     expect(component.isPreviewRaffle).toBeTrue();
   });
+
+  it('keeps phone numbers and remarks hidden until their columns are revealed', () => {
+    expect(component.phoneNumbersVisible).toBeFalse();
+    expect(component.participantRemarksVisible).toBeFalse();
+
+    component.togglePhoneNumbersVisibility();
+    expect(component.phoneNumbersVisible).toBeTrue();
+    expect(component.participantRemarksVisible).toBeFalse();
+
+    component.toggleParticipantRemarksVisibility();
+    expect(component.participantRemarksVisible).toBeTrue();
+  });
 });

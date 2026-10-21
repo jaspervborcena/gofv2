@@ -132,21 +132,31 @@
         <div class="participant-grid-scroll">
           <table class="participant-grid" aria-label="Participant details">
             <thead>
-              <tr><th scope="col">Ticket • Name</th><th scope="col">Phone</th><th scope="col">Remarks</th></tr>
+              <tr>
+                <th scope="col">Ticket • Name</th>
+                <th scope="col">
+                  <span class="participant-column-header">
+                    Phone
+                    <button class="column-visibility-button" type="button" (click)="togglePhoneNumbersVisibility()" [attr.aria-pressed]="phoneNumbersVisible" [attr.aria-label]="phoneNumbersVisible ? 'Hide all phone numbers' : 'Show all phone numbers'" [attr.title]="phoneNumbersVisible ? 'Hide all phone numbers' : 'Show all phone numbers'">
+                      <span aria-hidden="true">👁</span>
+                    </button>
+                  </span>
+                </th>
+                <th scope="col">
+                  <span class="participant-column-header">
+                    Remarks
+                    <button class="column-visibility-button" type="button" (click)="toggleParticipantRemarksVisibility()" [attr.aria-pressed]="participantRemarksVisible" [attr.aria-label]="participantRemarksVisible ? 'Hide all remarks' : 'Show all remarks'" [attr.title]="participantRemarksVisible ? 'Hide all remarks' : 'Show all remarks'">
+                      <span aria-hidden="true">👁</span>
+                    </button>
+                  </span>
+                </th>
+              </tr>
             </thead>
             <tbody>
               <tr *ngFor="let player of visiblePlayers">
                 <td>{{ formatPlayerNumber(player) }} • {{ player.name }}</td>
-                <td>
-                  <div class="participant-phone" *ngIf="player.mobileNumber; else noParticipantPhone">
-                    <span>{{ isMobileNumberVisible(player) ? player.mobileNumber : maskMobileNumber(player.mobileNumber) }}</span>
-                    <button class="phone-visibility-button" type="button" (click)="toggleMobileNumber(player)" [attr.aria-label]="isMobileNumberVisible(player) ? 'Hide phone number' : 'Show phone number'" [attr.title]="isMobileNumberVisible(player) ? 'Hide phone number' : 'Show phone number'">
-                      <span aria-hidden="true">👁</span>
-                    </button>
-                  </div>
-                  <ng-template #noParticipantPhone>—</ng-template>
-                </td>
-                <td>{{ player.remarks || '—' }}</td>
+                <td>{{ player.mobileNumber && phoneNumbersVisible ? player.mobileNumber : '—' }}</td>
+                <td>{{ player.remarks && participantRemarksVisible ? player.remarks : '—' }}</td>
               </tr>
             </tbody>
           </table>
