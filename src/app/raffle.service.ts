@@ -763,6 +763,60 @@ export class RaffleService {
     this.writeLocal(raffle);
   }
 
+  async saveSpinResult(raffle: Raffle, item: DrawItem): Promise<void> {
+    if (!this.firestoreEnabled) {
+      this.writeLocal(raffle);
+      return;
+    }
+
+    const actorId = this.currentUserId ?? raffle.creatorId;
+    const history: GameHistoryRecord = {
+      ...item,
+      gameId: raffle.gameId,
+      gameUid: raffle.gameUid,
+      ...this.documentAuditFields(actorId, item.createdAt ?? item.timestamp, item.createdBy ?? actorId)
+    };
+    const winner: WinnerRecord = {
+      id: item.id,
+      historyId: item.id,
+      gameId: raffle.gameId,
+      gameUid: raffle.gameUid,
+      userId: item.participantId ?? item.winnerName,
+      participantId: item.participantId,
+      participantName: item.participantName ?? item.winnerName,
+      ...(item.participantRemarks ? { participantRemarks: item.participantRemarks } : {}),
+      roundNumber: item.roundNumber ?? '',
+      wonAt: item.timestamp,
+      winnerStatus: item.winnerStatus,
+      ...(item.excludedFromList ? { excludedFromList: true } : {}),
+      ...(item.processedAt ? { processedAt: item.processedAt } : {}),
+      ...this.documentAuditFields(actorId, item.createdAt ?? item.timestamp, item.createdBy ?? actorId)
+    };
+
+    try {
+      await updateDoc(doc(this.firestore, 'games', raffle.gameUid), {
+        history: raffle.history,
+        remainingDraws: raffle.remainingDraws,
+        ...(raffle.lastWinner ? { lastWinner: raffle.lastWinner } : {}),
+        ...(raffle.lastNumber ? { lastNumber: raffle.lastNumber } : {})
+      });
+    } catch (error) {
+      throw new Error(`Could not update the game result: ${this.getFirestoreErrorMessage(error)}`);
+    }
+
+    try {
+      await setDoc(doc(this.firestore, 'history', item.id), history, { merge: true });
+    } catch (error) {
+      throw new Error(`Could not save the game history record: ${this.getFirestoreErrorMessage(error)}`);
+    }
+
+    try {
+      await setDoc(doc(this.firestore, 'winners', item.id), winner, { merge: true });
+    } catch (error) {
+      throw new Error(`Could not save the winner record: ${this.getFirestoreErrorMessage(error)}`);
+    }
+  }
+
   async joinRaffle(raffle: Raffle, player: Player): Promise<void> {
     if (this.firestoreEnabled) {
       const authUser = this.auth.currentUser ?? await firstValueFrom(this.user$);

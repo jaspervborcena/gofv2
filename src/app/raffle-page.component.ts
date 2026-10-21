@@ -1052,38 +1052,53 @@ export class RafflePageComponent implements OnDestroy, OnInit {
     if (!this.raffle) {
       return;
     }
-    if (!this.raffle.history.some((item) => item.spinId === spin.spinId)) {
+    let spinResult = this.raffle.history.find((item) => item.spinId === spin.spinId);
+    if (!spinResult) {
+      spinResult = {
+        id: spin.spinId,
+        spinId: spin.spinId,
+        roundStartAt: new Date(spin.scheduledStartAt).toISOString(),
+        roundEndAt: new Date(spin.roundEndsAt).toISOString(),
+        roundNumber: this.nextRoundNumber(),
+        winnerName: winner.name,
+        drawnNumber: ticketNumber,
+        timestamp: new Date().toISOString(),
+        participantId: winner.id,
+        participantName: winner.name,
+        ...(winner.remarks ? { participantRemarks: winner.remarks } : {}),
+        winnerStatus: 'active'
+      };
       this.raffle.history = [
         ...this.raffle.history,
-        {
-          id: spin.spinId,
-          spinId: spin.spinId,
-          roundStartAt: new Date(spin.scheduledStartAt).toISOString(),
-          roundEndAt: new Date(spin.roundEndsAt).toISOString(),
-          roundNumber: this.nextRoundNumber(),
-          winnerName: winner.name,
-          drawnNumber: ticketNumber,
-          timestamp: new Date().toISOString(),
-          participantId: winner.id,
-          participantName: winner.name,
-          ...(winner.remarks ? { participantRemarks: winner.remarks } : {}),
-          winnerStatus: 'active'
-        }
+        spinResult
       ];
       this.raffle.remainingDraws = Math.max(0, this.raffle.remainingDraws - 1);
       this.raffle.lastWinner = winner.name;
       this.raffle.lastNumber = ticketNumber;
     }
 
+    const saveErrors: string[] = [];
     try {
-      await this.saveRaffleIfPersisted();
-      if (!this.isPreviewRaffle) {
-        await this.raffleService.completeSpin(this.raffle.gameUid, spin.spinId);
+      if (this.isPreviewRaffle) {
+        await this.saveRaffleIfPersisted();
+      } else {
+        await this.raffleService.saveSpinResult(this.raffle, spinResult);
+        this.raffleState$.next(this.raffle);
       }
     } catch (error) {
-      this.spinLimitMessage = error instanceof Error
-        ? `The winner was revealed, but the result could not be saved: ${error.message}`
-        : 'The winner was revealed, but the result could not be saved.';
+      saveErrors.push(error instanceof Error ? error.message : 'the result could not be saved');
+    }
+
+    if (!this.isPreviewRaffle) {
+      try {
+        await this.raffleService.completeSpin(this.raffle.gameUid, spin.spinId);
+      } catch (error) {
+        saveErrors.push(error instanceof Error ? `the spin could not be marked complete: ${error.message}` : 'the spin could not be marked complete');
+      }
+    }
+
+    if (saveErrors.length) {
+      this.spinLimitMessage = `The winner was revealed, but ${saveErrors.join('; ')}.`;
     }
   }
 

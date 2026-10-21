@@ -1,12 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { provideRouter } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { AppComponent } from './app.component';
-import { RaffleService } from './raffle.service';
+import { JoinedGameLiveState, RaffleService } from './raffle.service';
 
 describe('AppComponent', () => {
   let fixture: ComponentFixture<AppComponent>;
   let userSubject: BehaviorSubject<{ uid: string; displayName: string | null; email: string | null; photoURL?: string | null } | null>;
+  let joinedGamesListener: ((games: JoinedGameLiveState[]) => void) | undefined;
 
   beforeEach(async () => {
     localStorage.removeItem('gof-theme');
@@ -22,7 +24,12 @@ describe('AppComponent', () => {
           useValue: {
             user$: userSubject.asObservable(),
             raffleSpinning: () => false,
-            watchUserJoinedGames: jasmine.createSpy('watchUserJoinedGames').and.returnValue(() => undefined),
+            watchUserJoinedGames: jasmine.createSpy('watchUserJoinedGames').and.callFake(
+              (_userId: string, onChange: (games: JoinedGameLiveState[]) => void) => {
+                joinedGamesListener = onChange;
+                return () => undefined;
+              }
+            ),
             signOut: jasmine.createSpy('signOut'),
             getCurrentUserPlan: jasmine.createSpy('getCurrentUserPlan').and.resolveTo('free'),
             ensureUserSpinFields: jasmine.createSpy('ensureUserSpinFields').and.resolveTo(undefined),
@@ -82,6 +89,45 @@ describe('AppComponent', () => {
 
     const welcome = fixture.nativeElement.querySelector('.welcome');
     expect(welcome.textContent).toContain('Welcome player!');
+  });
+
+  it('opens a different joined game when its spin starts during spectating', async () => {
+    userSubject.next({ uid: 'player-1', displayName: 'Player', email: 'player@example.com' });
+    await fixture.whenStable();
+
+    const router = TestBed.inject(Router);
+    spyOnProperty(router, 'url', 'get').and.returnValue('/games/game-a/spectate');
+    const navigateSpy = spyOn(router, 'navigate').and.resolveTo(true);
+    const gameA: JoinedGameLiveState = {
+      gameUid: 'uid-a',
+      gameId: 'game-a',
+      name: 'Game A',
+      creatorId: 'host-a',
+      activeSpin: {
+        spinId: 'spin-a',
+        winnerId: 'winner-a',
+        winnerName: 'Winner A',
+        ticketNumber: '123',
+        scheduledStartAt: 1000,
+        roundEndsAt: 11000,
+        durationMs: 10000,
+        phase: 'scheduled'
+      }
+    };
+    const gameB: JoinedGameLiveState = {
+      ...gameA,
+      gameUid: 'uid-b',
+      gameId: 'game-b',
+      name: 'Game B',
+      creatorId: 'host-b',
+      activeSpin: { ...gameA.activeSpin!, spinId: 'spin-b', scheduledStartAt: 2000 }
+    };
+
+    joinedGamesListener?.([gameA]);
+    expect(navigateSpy).not.toHaveBeenCalled();
+
+    joinedGamesListener?.([gameA, gameB]);
+    expect(navigateSpy).toHaveBeenCalledWith(['/games', 'game-b', 'spectate']);
   });
 
   it('should show the signed-in email without exposing the UID in the profile', async () => {

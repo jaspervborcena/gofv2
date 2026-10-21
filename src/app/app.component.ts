@@ -41,14 +41,14 @@ export class AppComponent {
   profileSaving = false;
   profileSaveMessage = '';
   private stopWatchingJoinedGames?: () => void;
-  private lastAutoOpenedSpinId?: string;
+  private readonly observedSpinIds = new Map<string, string>();
 
   constructor() {
     this.initializeTheme();
     this.raffleService.user$.subscribe(async (authUser) => {
       this.stopWatchingJoinedGames?.();
       this.joinedGameLiveStates = [];
-      this.lastAutoOpenedSpinId = undefined;
+      this.observedSpinIds.clear();
       this.profileImageFailed = false;
       this.user = authUser
         ? {
@@ -92,20 +92,27 @@ export class AppComponent {
 
   private handleJoinedGameUpdates(userId: string, games: JoinedGameLiveState[]): void {
     this.joinedGameLiveStates = games;
-    const spinningGame = games.find((game) =>
-      game.creatorId !== userId && game.activeSpin?.phase === 'scheduled');
-    if (!spinningGame?.activeSpin || spinningGame.activeSpin.spinId === this.lastAutoOpenedSpinId) {
+    const newlySpinningGames = games.filter((game) => {
+      const spin = game.activeSpin;
+      if (!spin || game.creatorId === userId || spin.phase !== 'scheduled') {
+        return false;
+      }
+
+      const isNewSpin = this.observedSpinIds.get(game.gameUid) !== spin.spinId;
+      this.observedSpinIds.set(game.gameUid, spin.spinId);
+      return isNewSpin;
+    });
+    const spinningGame = newlySpinningGames.sort((left, right) =>
+      (right.activeSpin?.scheduledStartAt ?? 0) - (left.activeSpin?.scheduledStartAt ?? 0))[0];
+    if (!spinningGame?.activeSpin) {
       return;
     }
 
     const currentSpectatorPath = `/games/${spinningGame.gameId}/spectate`;
-    if (this.router.url === currentSpectatorPath
-      || /^\/games\/[^/]+\/spectate(?:\?|$)/.test(this.router.url)) {
-      this.lastAutoOpenedSpinId = spinningGame.activeSpin.spinId;
+    if (this.router.url.split('?')[0] === currentSpectatorPath) {
       return;
     }
 
-    this.lastAutoOpenedSpinId = spinningGame.activeSpin.spinId;
     this.profileOpen = false;
     void this.router.navigate(['/games', spinningGame.gameId, 'spectate']);
   }
