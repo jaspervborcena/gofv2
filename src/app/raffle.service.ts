@@ -854,6 +854,68 @@ export class RaffleService {
     this.writeLocal({ ...raffle, players: [...raffle.players, player] });
   }
 
+  async joinInvitationRaffle(
+    raffle: Raffle,
+    input: { name: string; customNumber?: number; mobileNumber?: string; remarks?: string }
+  ): Promise<number> {
+    if (!this.firestoreEnabled) {
+      const usedNumbers = new Set(raffle.players.map((player) => player.assignedNumber));
+      const digitCount = raffle.digitCount ?? 3;
+      const maximumNumber = 10 ** digitCount - 1;
+      const assignedNumber = input.customNumber ?? (raffle.numberMode === 'ordered'
+        ? Math.max(0, ...usedNumbers) + 1
+        : this.createAvailableRandomNumber(digitCount, usedNumbers));
+      if (!assignedNumber || assignedNumber > maximumNumber || usedNumbers.has(assignedNumber)) {
+        throw new Error(input.customNumber
+          ? `The number ${String(input.customNumber).padStart(digitCount, '0')} is already in use.`
+          : 'This raffle has no available ticket numbers.');
+      }
+
+      await this.joinRaffle(raffle, {
+        id: `${raffle.gameUid}-${Date.now()}`,
+        name: input.name,
+        assignedNumber,
+        drawn: false,
+        ...(input.mobileNumber ? { mobileNumber: input.mobileNumber } : {}),
+        ...(input.remarks ? { remarks: input.remarks } : {})
+      });
+      return assignedNumber;
+    }
+
+    const authUser = this.auth.currentUser ?? await firstValueFrom(this.user$);
+    if (!authUser) {
+      throw new Error('You must be signed in to join this game.');
+    }
+
+    const response = await fetchWithLogging(
+      `${environment.paymentApiUrl}/participants/games/${encodeURIComponent(raffle.gameUid)}/join`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${await authUser.getIdToken()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: input.name,
+          ...(input.customNumber !== undefined ? { customNumber: input.customNumber } : {}),
+          ...(input.mobileNumber ? { mobileNumber: input.mobileNumber } : {}),
+          ...(input.remarks ? { remarks: input.remarks } : {})
+        })
+      },
+      'RaffleService.joinInvitationRaffle'
+    );
+    const result = await response.json() as { assignedNumber?: number; message?: string | string[] };
+    if (!response.ok) {
+      const message = Array.isArray(result.message) ? result.message.join(' ') : result.message;
+      throw new Error(message || 'You could not join this game. Please try again.');
+    }
+    const assignedNumber = result.assignedNumber;
+    if (typeof assignedNumber !== 'number' || !Number.isInteger(assignedNumber) || assignedNumber < 1) {
+      throw new Error('The game returned an invalid ticket number. Please try again.');
+    }
+    return assignedNumber;
+  }
+
   async saveParticipant(raffle: Raffle, player: Player): Promise<void> {
     if (!this.firestoreEnabled) {
       return;
@@ -881,6 +943,20 @@ export class RaffleService {
       ...this.documentAuditFields(authUser.uid, joinedAt)
     };
     await setDoc(participantRef, participant);
+  }
+
+  private createAvailableRandomNumber(digitCount: number, usedNumbers: Set<number>): number | null {
+    const minimum = 10 ** (digitCount - 1);
+    const maximum = 10 ** digitCount - 1;
+    const range = maximum - minimum + 1;
+    const start = Math.floor(Math.random() * range);
+    for (let offset = 0; offset < range; offset += 1) {
+      const number = minimum + (start + offset) % range;
+      if (!usedNumbers.has(number)) {
+        return number;
+      }
+    }
+    return null;
   }
 
   async saveUserProfile(profile: UserProfile): Promise<void> {
