@@ -1,0 +1,17 @@
+env:
+  - variable: PAYPAL_CLIENT_ID
+    secret: PAYPAL_CLIENT_ID
+    availability:
+      - RUNTIME
+  - variable: PAYPAL_CLIENT_SECRET
+    secret: PAYPAL_CLIENT_SECRET
+    availability:
+      - RUNTIME
+  - variable: PAYPAL_WEBHOOK_ID
+    secret: PAYPAL_WEBHOOK_ID
+    availability:
+      - RUNTIME
+  - variable: PAYPAL_API_BASE_URL
+    value: https://api-m.paypal.com
+    availability:
+      - RUNTIME

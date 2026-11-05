@@ -27,7 +27,9 @@ Payment endpoints require a Firebase ID token:
 Authorization: Bearer <firebase-id-token>
 ```
 
-Copy `.env.example` to the deployment environment and configure provider secrets there. Never put provider secrets in Angular or commit a `.env` file. Firebase Admin uses Application Default Credentials on Cloud Run.
+Copy `.env.example` to the deployment environment and configure provider secrets there. PayPal credentials and `PAYPAL_API_BASE_URL` must be from the same environment: use sandbox credentials with `https://api-m.sandbox.paypal.com`, or live credentials with `https://api-m.paypal.com`. Never put provider secrets in Angular or commit a `.env` file. Firebase Admin uses Application Default Credentials on Cloud Run.
+
+For the Firebase App Hosting backend, set its Environment name to `prod` to load `apphosting.prod.yaml`. This configuration references the existing PayPal secrets by name and sets the live PayPal API URL; it does not contain secret values.
 
 Payment request body:
 
