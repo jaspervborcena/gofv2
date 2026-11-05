@@ -7,6 +7,17 @@ import { RouterLink } from '@angular/router';
 import { loadScript, PayPalButtonsComponent } from '@paypal/paypal-js';
 import QRCode from 'qrcode';
 import { environment } from '../environments/environment';
+import { fetchWithLogging } from './diagnostics';
+
+export function getPromoCodeErrorMessage(error: unknown): string {
+  const errorCode = typeof error === 'object' && error !== null && 'code' in error
+    ? error.code
+    : undefined;
+  if (errorCode === 'permission-denied') {
+    return 'This promo code is invalid or unavailable.';
+  }
+  return error instanceof Error ? error.message : 'This promo code is invalid.';
+}
 
 @Component({
   selector: 'app-plans-page',
@@ -23,6 +34,8 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
   @ViewChild('cardButtonContainer') private cardButtonContainer?: ElementRef<HTMLDivElement>;
   private paypalButtons: PayPalButtonsComponent[] = [];
   private paypalRenderStarted = false;
+  private paypalRenderGeneration = 0;
+  private paypalRenderQueue: Promise<void> = Promise.resolve();
   private closeDialogTimer?: number;
   private mayaStatusTimer?: number;
   private mayaStatusCheckInFlight = false;
@@ -61,7 +74,8 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
       && this.cardButtonContainer) {
       this.paypalRenderStarted = true;
       this.paymentButtonsLoading = true;
-      void this.renderPayPalButtons();
+      const generation = ++this.paypalRenderGeneration;
+      this.paypalRenderQueue = this.paypalRenderQueue.then(() => this.renderPayPalButtons(generation));
     }
   }
 
@@ -85,7 +99,7 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
     }
 
     try {
-      const response = await fetch('https://open.er-api.com/v6/latest/USD');
+      const response = await fetchWithLogging('https://open.er-api.com/v6/latest/USD', {}, 'PlansPage.loadUsdToPhpRate');
       if (!response.ok) {
         return;
       }
@@ -212,7 +226,7 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
     this.mayaPaymentOrderId = '';
     this.mayaStatusMessage = '';
     try {
-      const response = await fetch(`${environment.paymentApiUrl}/payments/maya/checkout`, {
+      const response = await fetchWithLogging(`${environment.paymentApiUrl}/payments/maya/checkout`, {
         method: 'POST',
         headers: await this.paymentHeaders(),
         body: JSON.stringify({
@@ -221,7 +235,7 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
           promoCode: this.promoCode.trim(),
           referralCode: this.referralCode.trim()
         })
-      });
+      }, 'PlansPage.createMayaCheckout');
       const result = await response.json() as { qrCode?: string; paymentOrderId?: string; message?: string };
       if (!response.ok || !result.qrCode || !result.paymentOrderId) {
         throw new Error(result.message ?? 'Maya checkout could not be started.');
@@ -296,7 +310,7 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
     } catch (error) {
       this.couponValid = false;
       this.couponDiscount = 0;
-      this.couponMessage = error instanceof Error ? error.message : 'This promo code is invalid.';
+      this.couponMessage = getPromoCodeErrorMessage(error);
     } finally {
       this.loading = false;
     }
@@ -324,7 +338,7 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
     this.successMessage = '';
     try {
       const token = await user.getIdToken();
-      const response = await fetch(`${environment.paymentApiUrl}/payments/paypal/order`, {
+      const response = await fetchWithLogging(`${environment.paymentApiUrl}/payments/paypal/order`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -336,7 +350,7 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
           promoCode: this.promoCode.trim(),
           referralCode: this.referralCode.trim()
         })
-      });
+      }, 'PlansPage.createPayPalCheckout');
       const result = await response.json() as { approvalUrl?: string; status?: string; message?: string };
       if (!response.ok) {
         throw new Error(result.message ?? 'PayPal checkout could not be started.');
@@ -358,7 +372,7 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
     }
   }
 
-  private async renderPayPalButtons(): Promise<void> {
+  private async renderPayPalButtons(generation: number): Promise<void> {
     const user = this.auth.currentUser;
     const paypalHost = this.paypalButtonContainer?.nativeElement;
     const cardHost = this.cardButtonContainer?.nativeElement;
@@ -370,10 +384,17 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
 
     try {
       const headers = await this.paymentHeaders();
-      const configResponse = await fetch(`${environment.paymentApiUrl}/payments/paypal/config`, { headers });
+      const configResponse = await fetchWithLogging(
+        `${environment.paymentApiUrl}/payments/paypal/config`,
+        { headers },
+        'PlansPage.renderPayPalButtons'
+      );
       const config = await configResponse.json() as { clientId?: string; message?: string };
       if (!configResponse.ok || !config.clientId) {
         throw new Error(config.message ?? 'PayPal checkout is not configured.');
+      }
+      if (!this.isCurrentPayPalRender(generation)) {
+        return;
       }
 
       const paypal = await loadScript({
@@ -382,7 +403,7 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
         intent: 'capture',
         components: ['buttons']
       });
-      if (!paypal?.Buttons || !paypal.FUNDING || !this.upgradeOpen) {
+      if (!paypal?.Buttons || !paypal.FUNDING || !this.isCurrentPayPalRender(generation)) {
         return;
       }
 
@@ -405,24 +426,49 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
         throw new Error('PayPal checkout is not available for this account or region.');
       }
       await paypalButton.render(paypalHost);
+      if (!this.isCurrentPayPalRender(generation)) {
+        await paypalButton.close();
+        paypalHost.replaceChildren();
+        cardHost.replaceChildren();
+        return;
+      }
       this.paypalButtons.push(paypalButton);
 
       if (cardButton.isEligible()) {
         await cardButton.render(cardHost);
+        if (!this.isCurrentPayPalRender(generation)) {
+          await cardButton.close();
+          await paypalButton.close();
+          paypalHost.replaceChildren();
+          cardHost.replaceChildren();
+          return;
+        }
         this.paypalButtons.push(cardButton);
       } else {
         cardHost.textContent = 'Card checkout is not available for this account or region.';
       }
     } catch (error) {
-      this.paymentButtonsError(error instanceof Error ? error.message : 'PayPal checkout could not be loaded.');
+      if (this.isCurrentPayPalRender(generation)) {
+        this.paymentButtonsError(error instanceof Error ? error.message : 'PayPal checkout could not be loaded.');
+      }
     } finally {
-      this.paymentButtonsLoading = false;
+      if (this.isCurrentPayPalRender(generation)) {
+        this.paymentButtonsLoading = false;
+      }
     }
+  }
+
+  private isCurrentPayPalRender(generation: number): boolean {
+    return generation === this.paypalRenderGeneration
+      && this.upgradeOpen
+      && !this.submitted
+      && !(this.couponValid && this.totalPrice === 0)
+      && this.paymentMethod === 'paypal';
   }
 
   private async createPayPalOrder(): Promise<string> {
     const headers = await this.paymentHeaders();
-    const response = await fetch(`${environment.paymentApiUrl}/payments/paypal/order`, {
+    const response = await fetchWithLogging(`${environment.paymentApiUrl}/payments/paypal/order`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -431,7 +477,7 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
         promoCode: this.promoCode.trim(),
         referralCode: this.referralCode.trim()
       })
-    });
+    }, 'PlansPage.createPayPalOrder');
     const result = await response.json() as { orderId?: string; status?: string; message?: string };
     if (!response.ok || !result.orderId) {
       throw new Error(result.message ?? 'PayPal order could not be created.');
@@ -445,11 +491,11 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
       this.errorMessage = '';
     });
     try {
-      const response = await fetch(`${environment.paymentApiUrl}/payments/paypal/capture`, {
+      const response = await fetchWithLogging(`${environment.paymentApiUrl}/payments/paypal/capture`, {
         method: 'POST',
         headers: await this.paymentHeaders(),
         body: JSON.stringify({ orderId })
-      });
+      }, 'PlansPage.capturePayPalOrder');
       const result = await response.json() as { status?: string; message?: string };
       if (!response.ok || result.status !== 'paid') {
         throw new Error(result.message ?? 'Payment could not be confirmed.');
@@ -497,9 +543,10 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
 
     this.mayaStatusCheckInFlight = true;
     try {
-      const response = await fetch(
+      const response = await fetchWithLogging(
         `${environment.paymentApiUrl}/payments/maya/orders/${encodeURIComponent(this.mayaPaymentOrderId)}/status`,
-        { method: 'POST', headers: await this.paymentHeaders(), body: '{}' }
+        { method: 'POST', headers: await this.paymentHeaders(), body: '{}' },
+        'PlansPage.checkMayaPaymentStatus'
       );
       const result = await response.json() as { status?: 'pending' | 'paid' | 'failed'; message?: string };
       if (!response.ok) {
@@ -549,9 +596,14 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
   }
 
   private destroyPayPalButtons(): void {
-    this.paypalButtons.forEach((button) => void button.close().catch(() => undefined));
+    this.paypalRenderGeneration += 1;
+    this.paymentButtonsLoading = false;
+    const buttons = this.paypalButtons;
     this.paypalButtons = [];
     this.paypalButtonContainer?.nativeElement.replaceChildren();
     this.cardButtonContainer?.nativeElement.replaceChildren();
+    this.paypalRenderQueue = this.paypalRenderQueue.then(async () => {
+      await Promise.all(buttons.map((button) => button.close().catch(() => undefined)));
+    });
   }
 }

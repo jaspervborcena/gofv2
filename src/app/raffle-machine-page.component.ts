@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DrawItem, Raffle, RaffleService } from './raffle.service';
 import { environment } from '../environments/environment';
+import { fetchWithLogging } from './diagnostics';
 
 interface RaffleEntry {
   id?: string;
@@ -534,7 +535,7 @@ export class RaffleMachinePageComponent implements OnDestroy, OnInit {
     }
 
     try {
-      await fetch(`${environment.paymentApiUrl}/winners`, {
+      await fetchWithLogging(`${environment.paymentApiUrl}/winners`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -543,7 +544,7 @@ export class RaffleMachinePageComponent implements OnDestroy, OnInit {
           winnerId: winner.number,
           winnerName: winner.name,
         })
-      });
+      }, 'RaffleMachinePage.notifyWinner');
     } catch {
       // The raffle remains usable when the optional local gRPC bridge is offline.
     }

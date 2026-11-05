@@ -126,35 +126,6 @@ export class GameInvitationPageComponent implements OnDestroy, OnInit {
       return;
     }
 
-    if (this.game.players.length >= FREE_MAX_PLAYERS) {
-      this.errorMessage = `This raffle already has ${FREE_MAX_PLAYERS} players and cannot accept more entries.`;
-      return;
-    }
-
-    const digitCount = this.game.digitCount ?? 3;
-    const usedNumbers = new Set(this.game.players.map((player) => player.assignedNumber));
-    const assignedNumber = this.useCustomNumber
-      ? this.parseCustomNumber(this.customNumber, digitCount)
-      : this.game.numberMode === 'ordered'
-      ? this.game.players.length + 1
-      : this.createRandomNumber(digitCount, usedNumbers);
-    if (assignedNumber === null) {
-      this.errorMessage = `Enter a number from 1 to ${10 ** digitCount - 1}.`;
-      return;
-    }
-
-    const duplicateName = this.game.players.some((player) => player.name.trim().toLocaleLowerCase() === this.name.trim().toLocaleLowerCase());
-    if (duplicateName) {
-      this.errorMessage = `The name "${this.name.trim()}" has already joined this raffle.`;
-      return;
-    }
-
-    const duplicateNumber = this.game.players.some((player) => player.assignedNumber === assignedNumber);
-    if (duplicateNumber) {
-      this.errorMessage = `The number ${String(assignedNumber).padStart(digitCount, '0')} is already in use.`;
-      return;
-    }
-
     const signedInUser = await firstValueFrom(this.raffleService.user$);
     if (!signedInUser) {
       this.saveInvitationDraft(this.game.gameId);
@@ -166,16 +137,66 @@ export class GameInvitationPageComponent implements OnDestroy, OnInit {
 
     this.isJoining = true;
     this.errorMessage = '';
+    const digitCount = this.game.digitCount ?? 3;
+    let existingParticipants: ParticipantRecord[];
 
     try {
-      const existingParticipant = await this.raffleService.findUserParticipantForGame(this.game.gameUid, signedInUser.uid);
+      const [existingParticipant, participants] = await Promise.all([
+        this.raffleService.findUserParticipantForGame(this.game.gameUid, signedInUser.uid),
+        this.raffleService.listParticipants(this.game.gameUid)
+      ]);
       if (existingParticipant) {
         this.showExistingParticipant(existingParticipant);
         this.isJoining = false;
         return;
       }
+      existingParticipants = participants;
     } catch {
-      this.errorMessage = 'Your participation could not be checked. Please try again.';
+      this.errorMessage = 'Your participation and ticket availability could not be checked. Please try again.';
+      this.isJoining = false;
+      return;
+    }
+
+    const existingPlayers = new Map<string, { name: string; assignedNumber: number }>();
+    this.game.players.forEach((player) => existingPlayers.set(player.id, {
+      name: player.name,
+      assignedNumber: player.assignedNumber
+    }));
+    existingParticipants.forEach((participant) => existingPlayers.set(participant.id, {
+      name: participant.name,
+      assignedNumber: participant.assignedNumber
+    }));
+    if (existingPlayers.size >= FREE_MAX_PLAYERS) {
+      this.errorMessage = `This raffle already has ${FREE_MAX_PLAYERS} players and cannot accept more entries.`;
+      this.isJoining = false;
+      return;
+    }
+
+    const usedNumbers = new Set<number>([...existingPlayers.values()].map((player) => player.assignedNumber));
+    const assignedNumber = this.useCustomNumber
+      ? this.parseCustomNumber(this.customNumber, digitCount)
+      : this.game.numberMode === 'ordered'
+      ? Math.max(0, ...usedNumbers) + 1
+      : this.createRandomNumber(digitCount, usedNumbers);
+    if (assignedNumber === null || assignedNumber > 10 ** digitCount - 1) {
+      this.errorMessage = this.useCustomNumber
+        ? `Enter a number from 1 to ${10 ** digitCount - 1}.`
+        : 'This raffle has no available ticket numbers.';
+      this.isJoining = false;
+      return;
+    }
+
+    const duplicateName = [...existingPlayers.values()].some((player) =>
+      player.name.trim().toLocaleLowerCase() === this.name.trim().toLocaleLowerCase());
+    if (duplicateName) {
+      this.errorMessage = `The name "${this.name.trim()}" has already joined this raffle.`;
+      this.isJoining = false;
+      return;
+    }
+
+    const duplicateNumber = [...existingPlayers.values()].some((player) => player.assignedNumber === assignedNumber);
+    if (duplicateNumber) {
+      this.errorMessage = `The number ${String(assignedNumber).padStart(digitCount, '0')} is already in use.`;
       this.isJoining = false;
       return;
     }
@@ -379,13 +400,17 @@ export class GameInvitationPageComponent implements OnDestroy, OnInit {
     return number >= 1 && number <= 10 ** digitCount - 1 ? number : null;
   }
 
-  private createRandomNumber(digitCount: number, usedNumbers: Set<number>): number {
+  private createRandomNumber(digitCount: number, usedNumbers: Set<number>): number | null {
     const minimum = 10 ** (digitCount - 1);
     const maximum = 10 ** digitCount - 1;
-    let number = Math.floor(minimum + Math.random() * (maximum - minimum + 1));
-    while (usedNumbers.has(number)) {
-      number = Math.floor(minimum + Math.random() * (maximum - minimum + 1));
+    const range = maximum - minimum + 1;
+    const start = Math.floor(Math.random() * range);
+    for (let offset = 0; offset < range; offset += 1) {
+      const number = minimum + (start + offset) % range;
+      if (!usedNumbers.has(number)) {
+        return number;
+      }
     }
-    return number;
+    return null;
   }
 }

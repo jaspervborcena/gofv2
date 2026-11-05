@@ -17,6 +17,7 @@ import { Firestore, addDoc, collection, deleteField, doc, getDoc, getDocs, onSna
 import { firstValueFrom } from 'rxjs';
 import QRCode from 'qrcode';
 import { environment } from '../environments/environment';
+import { fetchWithLogging } from './diagnostics';
 import { FREE_MONTHLY_SPINS, planCatalog, UserSubscription } from './plan-schema';
 
 export type SpinMode = 'simultaneous' | 'per-digit';
@@ -552,11 +553,11 @@ export class RaffleService {
 
     const apiUrl = `${environment.paymentApiUrl}/contact`;
     try {
-      const response = await fetch(apiUrl, {
+      const response = await fetchWithLogging(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
-      });
+      }, 'RaffleService.submitContactMessage');
 
       if (!response.ok) {
         const body = await response.json().catch(() => null) as { message?: string | string[] } | null;

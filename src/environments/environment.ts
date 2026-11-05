@@ -1,4 +1,6 @@
-const isLocalDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+const isLocalDev = typeof window !== 'undefined'
+  && window.location.hostname === 'localhost'
+  && window.location.protocol === 'http:';
 
 export const environment = {
   production: false,
