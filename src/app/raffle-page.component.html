@@ -1,5 +1,5 @@
 <main class="app-shell" *ngIf="raffle && canManageGame; else loading">
-  <section class="raffle-detail" [class.players-view]="activeTab === 'players'" [class.qr-view]="activeTab === 'qr'" [attr.aria-busy]="isSpinning" [attr.inert]="spinExitDialogOpen ? '' : null">
+  <section class="raffle-detail" [class.has-winner]="!!lastWinner" [class.players-view]="activeTab === 'players'" [class.qr-view]="activeTab === 'qr'" [attr.aria-busy]="isSpinning" [attr.inert]="spinExitDialogOpen ? '' : null">
     <div class="game-topbar">
       <a class="brand-button" [routerLink]="isSpinning ? null : '/'" (click)="handleBrandClick($event)" aria-label="Go to Game of Fortunes home">
         <img src="/assets/gofv2logo.png" alt="Game of Fortunes" />
@@ -93,7 +93,7 @@
             </div>
           </div>
           <ng-template #noWinners><p class="empty-panel">Your first winner will appear here after the draw.</p></ng-template>
-          <button class="view-winners" type="button" (click)="activeTab = 'history'">♟ VIEW ALL WINNERS</button>
+          <button class="view-winners" type="button" (click)="viewAllWinners()">♟ VIEW ALL WINNERS</button>
         </aside>
       </div>
 
@@ -116,8 +116,8 @@
           </div>
         </div>
         <div class="free-plan-notice" *ngIf="isPreviewRaffle">
-          <strong>Free plan: players list is limited to 200.</strong>
-          <span>If you want more than 200 players, please <a routerLink="/plans">upgrade your plan</a>.</span>
+          <strong>Free plan: players list is limited to {{ playerLimit }}.</strong>
+          <span>If you want more than {{ playerLimit }} players, please <a routerLink="/plans">upgrade your plan</a>.</span>
         </div>
         <label class="number-toggle">
           <input type="checkbox" [(ngModel)]="useJoinedNumber" />
@@ -172,8 +172,8 @@
         <h2>Participant list editor</h2>
         <p class="player-help">One participant per line. Use <strong>number • name</strong> or enter names only.</p>
         <div class="free-plan-notice" *ngIf="isPreviewRaffle">
-          <strong>Free plan: players list is limited to 200.</strong>
-          <span>If you want more than 200 players, please <a routerLink="/plans">upgrade your plan</a>.</span>
+          <strong>Free plan: players list is limited to {{ playerLimit }}.</strong>
+          <span>If you want more than {{ playerLimit }} players, please <a routerLink="/plans">upgrade your plan</a>.</span>
         </div>
         <div class="duplicate-notice" *ngIf="duplicateNames.length" role="alert">
           <strong>Duplicate names found: {{ duplicateNames.join(', ') }}</strong>
@@ -183,7 +183,12 @@
             <button type="button" (click)="keepDuplicateNames()">Keep copies</button>
           </div>
         </div>
+        <div class="duplicate-notice" *ngIf="duplicateTicketNumbers.length" role="alert">
+          <strong>Duplicate ticket numbers found: {{ duplicateTicketNumbers.join(', ') }}</strong>
+          <span>Ticket numbers must be unique. Change the duplicate numbers before saving.</span>
+        </div>
         <p class="save-message" *ngIf="participantSaveMessage" role="status">{{ participantSaveMessage }}</p>
+        <p class="player-help" *ngIf="isPreviewRaffle">Demo list edits are temporary and reset when you reload.</p>
         <textarea [(ngModel)]="editorText" (ngModelChange)="handleEditorChange()" (blur)="assignMissingNumbers()" rows="8" aria-label="Participant names and raffle numbers"></textarea>
         <p class="save-message" *ngIf="participantLimitMessage" role="status">{{ participantLimitMessage }}</p>
       </div>

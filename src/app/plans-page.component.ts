@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewChecked, Component, ElementRef, OnDestroy, OnInit, NgZone, ViewChild, inject } from '@angular/core';
+import { AfterViewChecked, Component, ElementRef, OnDestroy, NgZone, ViewChild, inject } from '@angular/core';
 import { Auth } from '@angular/fire/auth';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { FormsModule } from '@angular/forms';
@@ -19,6 +19,10 @@ export function getPromoCodeErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'This promo code is invalid.';
 }
 
+export function isValidSubscriptionDuration(duration: number): boolean {
+  return Number.isInteger(duration) && duration >= 1 && duration <= 12;
+}
+
 @Component({
   selector: 'app-plans-page',
   standalone: true,
@@ -26,7 +30,7 @@ export function getPromoCodeErrorMessage(error: unknown): string {
   templateUrl: './plans-page.component.html',
   styleUrl: './plans-page.component.scss'
 })
-export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
+export class PlansPageComponent implements AfterViewChecked, OnDestroy {
   private readonly auth = inject(Auth);
   private readonly firestore = inject(Firestore);
   private readonly zone = inject(NgZone);
@@ -39,8 +43,6 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
   private closeDialogTimer?: number;
   private mayaStatusTimer?: number;
   private mayaStatusCheckInFlight = false;
-  private readonly exchangeRateCacheKey = 'gof-usd-php-exchange-rate';
-  private phpPerUsdRate = 0;
   paymentButtonsLoading = false;
   paymentMethod: 'paypal' | 'maya' = 'paypal';
   mayaQrImage = '';
@@ -60,13 +62,10 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
   couponValid = false;
   couponDiscount = 0;
 
-  ngOnInit(): void {
-    void this.loadUsdToPhpRate();
-  }
-
   ngAfterViewChecked(): void {
     if (this.upgradeOpen
       && !(this.couponValid && this.totalPrice === 0)
+      && this.isDurationValid
       && !this.submitted
       && this.paymentMethod === 'paypal'
       && !this.paypalRenderStarted
@@ -85,67 +84,6 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
     this.destroyPayPalButtons();
   }
 
-  phpPlanPrice(usdPrice: number, fallbackPhpPrice: number): number {
-    return this.phpPerUsdRate > 0 ? Math.round(usdPrice * this.phpPerUsdRate) : fallbackPhpPrice;
-  }
-
-  private async loadUsdToPhpRate(): Promise<void> {
-    const cached = this.readCachedExchangeRate();
-    if (cached) {
-      this.phpPerUsdRate = cached.rate;
-      if (cached.expiresAt > Date.now()) {
-        return;
-      }
-    }
-
-    try {
-      const response = await fetchWithLogging('https://open.er-api.com/v6/latest/USD', {}, 'PlansPage.loadUsdToPhpRate');
-      if (!response.ok) {
-        return;
-      }
-
-      const data = await response.json() as {
-        result?: string;
-        time_next_update_unix?: number;
-        rates?: { PHP?: number };
-      };
-      const rate = Number(data.rates?.PHP);
-      if (data.result !== 'success' || !Number.isFinite(rate) || rate <= 0) {
-        return;
-      }
-
-      this.zone.run(() => this.phpPerUsdRate = rate);
-      const nextUpdateAt = Number(data.time_next_update_unix) * 1000;
-      const expiresAt = Number.isFinite(nextUpdateAt) && nextUpdateAt > Date.now()
-        ? nextUpdateAt
-        : Date.now() + 24 * 60 * 60 * 1000;
-      try {
-        localStorage.setItem(this.exchangeRateCacheKey, JSON.stringify({ rate, expiresAt }));
-      } catch {
-        // Keep the fetched rate for this page view when storage is unavailable.
-      }
-    } catch {
-      // Keep the cached or listed fallback prices if the rate service is unavailable.
-    }
-  }
-
-  private readCachedExchangeRate(): { rate: number; expiresAt: number } | null {
-    try {
-      const cachedValue = localStorage.getItem(this.exchangeRateCacheKey);
-      if (!cachedValue) {
-        return null;
-      }
-      const cached = JSON.parse(cachedValue) as { rate?: number; expiresAt?: number };
-      const rate = Number(cached.rate);
-      const expiresAt = Number(cached.expiresAt);
-      return Number.isFinite(rate) && rate > 0 && Number.isFinite(expiresAt)
-        ? { rate, expiresAt }
-        : null;
-    } catch {
-      return null;
-    }
-  }
-
   get planName(): string {
     return this.selectedPlan === 'pro' ? 'Pro' : this.selectedPlan === 'basic' ? 'Basic' : 'Standard';
   }
@@ -155,8 +93,15 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
   }
 
   get totalPrice(): number {
-    const baseTotal = this.monthlyPrice * Math.max(1, this.duration);
+    if (!this.isDurationValid) {
+      return 0;
+    }
+    const baseTotal = this.monthlyPrice * this.duration;
     return this.couponValid ? Math.max(0, baseTotal - this.couponDiscount) : baseTotal;
+  }
+
+  get isDurationValid(): boolean {
+    return isValidSubscriptionDuration(this.duration);
   }
 
   openUpgrade(plan: 'basic' | 'standard' | 'pro'): void {
@@ -199,6 +144,11 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
     this.mayaStatusMessage = '';
   }
 
+  onDurationChange(): void {
+    this.clearCoupon();
+    this.errorMessage = '';
+  }
+
   selectPaymentMethod(method: 'paypal' | 'maya'): void {
     this.paymentMethod = method;
     this.errorMessage = '';
@@ -219,6 +169,9 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
     if (this.mayaCheckoutLoading || this.submitted) {
       return;
     }
+    if (!this.isDurationValid) {
+      return;
+    }
     this.mayaCheckoutLoading = true;
     this.errorMessage = '';
     this.stopMayaPaymentPolling();
@@ -231,7 +184,7 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
         headers: await this.paymentHeaders(),
         body: JSON.stringify({
           packageId: this.selectedPlan,
-          durationMonths: Math.min(12, Math.max(1, Math.floor(Number(this.duration) || 1))),
+          durationMonths: this.duration,
           promoCode: this.promoCode.trim(),
           referralCode: this.referralCode.trim()
         })
@@ -254,6 +207,9 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
   }
 
   async applyPromoCode(): Promise<void> {
+    if (!this.isDurationValid) {
+      return;
+    }
     const code = this.promoCode.trim();
     const user = this.auth.currentUser;
     if (!code) {
@@ -303,7 +259,7 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
       this.couponDiscount = Math.max(0, Number(result.discountAmount ?? 0));
       this.destroyPayPalButtons();
       this.paypalRenderStarted = false;
-      const discountMessage = this.couponDiscount >= this.monthlyPrice * Math.max(1, this.duration)
+      const discountMessage = this.couponDiscount >= this.monthlyPrice * this.duration
         ? `${result.durationDays ?? 30} days free.`
         : `₱${this.couponDiscount} discount applied.`;
       this.couponMessage = `✓ Coupon valid: ${result.description ?? 'Discount applied'} — ${discountMessage}`;
@@ -318,6 +274,10 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
 
   async submitUpgrade(): Promise<void> {
     if (this.loading) {
+      return;
+    }
+
+    if (!this.isDurationValid) {
       return;
     }
 
@@ -346,7 +306,7 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
         },
         body: JSON.stringify({
           packageId: this.selectedPlan,
-          durationMonths: Math.min(12, Math.max(1, Math.floor(Number(this.duration) || 1))),
+          durationMonths: this.duration,
           promoCode: this.promoCode.trim(),
           referralCode: this.referralCode.trim()
         })
@@ -461,19 +421,23 @@ export class PlansPageComponent implements AfterViewChecked, OnDestroy, OnInit {
   private isCurrentPayPalRender(generation: number): boolean {
     return generation === this.paypalRenderGeneration
       && this.upgradeOpen
+      && this.isDurationValid
       && !this.submitted
       && !(this.couponValid && this.totalPrice === 0)
       && this.paymentMethod === 'paypal';
   }
 
   private async createPayPalOrder(): Promise<string> {
+    if (!this.isDurationValid) {
+      throw new Error('Duration must be a whole number between 1 and 12 months.');
+    }
     const headers = await this.paymentHeaders();
     const response = await fetchWithLogging(`${environment.paymentApiUrl}/payments/paypal/order`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
         packageId: this.selectedPlan,
-        durationMonths: Math.min(12, Math.max(1, Math.floor(Number(this.duration) || 1))),
+        durationMonths: this.duration,
         promoCode: this.promoCode.trim(),
         referralCode: this.referralCode.trim()
       })

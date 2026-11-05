@@ -9,11 +9,13 @@ describe('AppComponent', () => {
   let fixture: ComponentFixture<AppComponent>;
   let userSubject: BehaviorSubject<{ uid: string; displayName: string | null; email: string | null; photoURL?: string | null } | null>;
   let joinedGamesListener: ((games: JoinedGameLiveState[]) => void) | undefined;
+  let saveProfileNamesSpy: jasmine.Spy;
 
   beforeEach(async () => {
     localStorage.removeItem('gof-theme');
     document.documentElement.removeAttribute('data-theme');
     userSubject = new BehaviorSubject<{ uid: string; displayName: string | null; email: string | null; photoURL?: string | null } | null>(null);
+    saveProfileNamesSpy = jasmine.createSpy('saveProfileNames').and.resolveTo(undefined);
 
     await TestBed.configureTestingModule({
       imports: [AppComponent],
@@ -34,6 +36,7 @@ describe('AppComponent', () => {
             getCurrentUserPlan: jasmine.createSpy('getCurrentUserPlan').and.resolveTo('free'),
             ensureUserSpinFields: jasmine.createSpy('ensureUserSpinFields').and.resolveTo(undefined),
             syncAuthenticatedUserProfile: jasmine.createSpy('syncAuthenticatedUserProfile').and.resolveTo(undefined),
+            saveProfileNames: saveProfileNamesSpy,
             getUserGreetingName: jasmine.createSpy('getUserGreetingName').and.resolveTo(''),
             getUserProfileSummary: jasmine.createSpy('getUserProfileSummary').and.resolveTo({
               uid: 'abc123',
@@ -139,6 +142,36 @@ describe('AppComponent', () => {
     const details = fixture.nativeElement.querySelector('.profile-details').textContent;
     expect(details).toContain('player@example.com');
     expect(details).not.toContain('abc123');
+  });
+
+  it('rejects a non-empty profile phone number without digits', async () => {
+    userSubject.next({ uid: 'abc123', displayName: 'Player Example', email: 'player@example.com' });
+    await fixture.whenStable();
+    await fixture.componentInstance.toggleProfile();
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance;
+    component.profileFullName = 'Player Example';
+    component.profilePhoneNumber = 'not-a-phone';
+
+    await component.saveProfileNames();
+    fixture.detectChanges();
+
+    expect(saveProfileNamesSpy).not.toHaveBeenCalled();
+    expect(component.profileSaveMessage).toBe('Enter a valid phone number containing at least one digit, or leave it blank.');
+    expect(fixture.nativeElement.textContent).toContain(component.profileSaveMessage);
+  });
+
+  it('allows an empty optional phone number when saving the profile', async () => {
+    const component = fixture.componentInstance;
+    component.user = { uid: 'abc123' };
+    component.profileFullName = 'Player Example';
+    component.profilePhoneNumber = '';
+
+    await component.saveProfileNames();
+
+    expect(saveProfileNamesSpy).toHaveBeenCalledWith('abc123', 'Player Example', '', '');
+    expect(component.profileSaveMessage).toBe('');
   });
 
   it('should show user initials if the profile photo fails to load', () => {

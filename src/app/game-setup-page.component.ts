@@ -61,12 +61,26 @@ export class GameSetupPageComponent implements OnInit {
 
   async createGame(): Promise<void> {
     const name = this.gameName.trim();
+    if (!name) {
+      this.errorMessage = 'Enter a game name.';
+      return;
+    }
+
+    if (this.digitCount < 3 || this.digitCount > 6) {
+      this.errorMessage = 'Choose a number of digits between 3 and 6.';
+      return;
+    }
+
     const startDate = new Date(this.startAt);
     const closeDate = new Date(this.closeAt);
 
     const latestCloseDate = new Date(this.latestCloseAt);
-    if (!name || this.digitCount < 3 || this.digitCount > 6 || !this.startAt || !this.closeAt || Number.isNaN(startDate.getTime()) || Number.isNaN(closeDate.getTime()) || closeDate <= startDate || closeDate > latestCloseDate || this.isSaving) {
+    if (!this.startAt || !this.closeAt || Number.isNaN(startDate.getTime()) || Number.isNaN(closeDate.getTime()) || closeDate <= startDate || closeDate > latestCloseDate) {
       this.errorMessage = 'Choose a close time after the start and within one month of it.';
+      return;
+    }
+
+    if (this.isSaving) {
       return;
     }
 

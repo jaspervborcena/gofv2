@@ -741,3 +741,5 @@ textarea,
 @media (max-width: 600px) {
   .raffle-detail.players-view { min-height: 28.35rem; padding-bottom: 0.8rem; }
 }
+
+.raffle-detail.has-winner { height: auto; }

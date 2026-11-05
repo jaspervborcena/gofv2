@@ -55,6 +55,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   joinedNumber = '';
   participantSaveMessage = '';
   duplicateNames: string[] = [];
+  duplicateTicketNumbers: string[] = [];
   participantLimitMessage = '';
   spinLimitMessage = '';
   playerLimit = FREE_MAX_PLAYERS;
@@ -151,6 +152,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
 
   handleEditorChange(): void {
     this.detectDuplicateNames();
+    this.detectDuplicateTicketNumbers();
     this.scheduleEditorSave();
   }
 
@@ -216,6 +218,28 @@ export class RafflePageComponent implements OnDestroy, OnInit {
     }
   }
 
+  private detectDuplicateTicketNumbers(): void {
+    const occurrences = new Map<string, number>();
+    this.editorLines().forEach((line) => {
+      const { ticketNumber } = this.parsePlayerEntry(line);
+      if (ticketNumber === null) {
+        return;
+      }
+
+      const key = /^\d+$/.test(ticketNumber)
+        ? this.formatNumber(Number(ticketNumber))
+        : ticketNumber.toLocaleUpperCase();
+      occurrences.set(key, (occurrences.get(key) ?? 0) + 1);
+    });
+    this.duplicateTicketNumbers = [...occurrences.entries()]
+      .filter(([, count]) => count > 1)
+      .map(([ticketNumber]) => ticketNumber);
+    if (this.duplicateTicketNumbers.length && this.editorSaveTimeout) {
+      window.clearTimeout(this.editorSaveTimeout);
+      this.editorSaveTimeout = undefined;
+    }
+  }
+
   private editorLineName(line: string): string {
     const parts = line.split('•').map((part) => part.trim());
     return parts.length > 1 && /^\d+$/.test(parts[0]) ? parts.slice(1).join(' • ') : parts[0];
@@ -237,7 +261,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   }
 
   scheduleEditorSave(): void {
-    if (this.duplicateNames.length) {
+    if (this.duplicateNames.length || this.duplicateTicketNumbers.length) {
       return;
     }
     this.participantSaveMessage = 'Auto Saving changes...';
@@ -313,6 +337,11 @@ export class RafflePageComponent implements OnDestroy, OnInit {
 
     this.rightPanelOpen = !this.rightPanelOpen;
     this.leftPanelOpen = false;
+  }
+
+  viewAllWinners(): void {
+    this.historySubTab = 'history';
+    this.activeTab = 'history';
   }
 
   ngOnInit(): void {
@@ -455,6 +484,11 @@ export class RafflePageComponent implements OnDestroy, OnInit {
     }
 
     this.assignMissingNumbers();
+    this.detectDuplicateTicketNumbers();
+    if (this.duplicateTicketNumbers.length) {
+      this.participantSaveMessage = `Duplicate ticket numbers are not allowed: ${this.duplicateTicketNumbers.join(', ')}.`;
+      return;
+    }
 
     const entries = this.editorLines()
       .map((line, index) => {
@@ -502,7 +536,9 @@ export class RafflePageComponent implements OnDestroy, OnInit {
     this.raffle.remainingDraws = Math.max(this.raffle.remainingDraws, this.raffle.players.length);
     this.raffle.numberMode = this.playerNumberMode;
     await this.saveRaffleIfPersisted();
-    this.participantSaveMessage = 'Participants saved';
+    this.participantSaveMessage = this.isPreviewRaffle
+      ? 'Demo participants updated. Changes are temporary and will reset when you reload.'
+      : 'Participants saved';
   }
 
   private parsePlayerEntry(line: string): { ticketNumber: string | null; name: string } {
@@ -562,6 +598,7 @@ export class RafflePageComponent implements OnDestroy, OnInit {
       usedNumbers.add(assignedNumber);
       return `${ticketCode ?? this.formatNumber(assignedNumber)} • ${name}`;
     }).join('\n');
+    this.detectDuplicateTicketNumbers();
   }
 
   async joinEntry(): Promise<void> {
@@ -577,6 +614,16 @@ export class RafflePageComponent implements OnDestroy, OnInit {
 
     const digitCount = this.raffle.digitCount ?? 3;
     const usedNumbers = new Set(this.raffle.players.map((player) => player.assignedNumber));
+    const enteredTicketNumber = this.joinedNumber.trim().toUpperCase();
+    const maximumTicketNumber = 10 ** digitCount - 1;
+    if (this.useJoinedNumber
+      && /^\d+$/.test(enteredTicketNumber)
+      && enteredTicketNumber.length <= digitCount
+      && (Number(enteredTicketNumber) < 1 || Number(enteredTicketNumber) > maximumTicketNumber)) {
+      this.showParticipantMessage(`Enter a number from 1 to ${maximumTicketNumber}.`);
+      return;
+    }
+
     const requestedTicketNumber = this.useJoinedNumber
       ? this.parseJoinedNumber(this.joinedNumber, digitCount)
       : null;

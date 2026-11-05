@@ -36,6 +36,7 @@
 .upgrade-form input, .upgrade-form select { box-sizing: border-box; width: 100%; min-height: 44px; padding: 0.65rem 0.8rem; border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 8px; color: #f8eff9; background: #241c2a; font: inherit; }
 .upgrade-form input::placeholder { color: #988ba1; }
 .upgrade-form input[readonly] { color: #d8c9df; background: #211728; }
+.duration-error { color: #ffd2d2 !important; font-size: 0.85rem !important; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .code-field { display: grid; grid-template-columns: 1fr auto; }
 .code-field input { border-radius: 7px 0 0 7px; }

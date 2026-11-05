@@ -235,6 +235,10 @@ export class AppComponent {
       this.profileSaveMessage = 'Enter your full name before saving.';
       return;
     }
+    if (this.profilePhoneNumber.trim() && !/\d/.test(this.profilePhoneNumber)) {
+      this.profileSaveMessage = 'Enter a valid phone number containing at least one digit, or leave it blank.';
+      return;
+    }
 
     this.profileSaving = true;
     this.profileSaveMessage = '';
