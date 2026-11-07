@@ -595,6 +595,7 @@ textarea,
 .live-pill { padding: 0.35rem 0.7rem; border-radius: 999px; color: #86efac; background: rgba(34, 197, 94, 0.2); }
 .join-row { display: flex; gap: 0.5rem; }
 .join-row input { flex: 1; min-width: 0; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 999px; padding: 0.8rem 0.9rem; color: white; background: rgba(255, 255, 255, 0.06); }
+.optional-details-toggle { justify-self: start; padding: 0; border: 0; color: #ffcf4d; background: none; cursor: pointer; }
 .pagination { display: flex; align-items: center; justify-content: center; gap: 0.7rem; margin-top: 0.55rem; color: #d9c8e7; font-size: 0.7rem; }
 .pagination button { width: 1.8rem; height: 1.8rem; border: 1px solid rgba(255, 207, 77, 0.45); border-radius: 50%; color: #ffcf4d; background: rgba(255, 255, 255, 0.06); cursor: pointer; font-size: 1.1rem; line-height: 1; }
 .pagination button:disabled { opacity: 0.35; cursor: not-allowed; }

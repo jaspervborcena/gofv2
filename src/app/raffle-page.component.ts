@@ -53,6 +53,9 @@ export class RafflePageComponent implements OnDestroy, OnInit {
   joinedName = '';
   useJoinedNumber = false;
   joinedNumber = '';
+  showOptionalParticipantDetails = false;
+  joinedMobileNumber = '';
+  joinedRemarks = '';
   participantSaveMessage = '';
   duplicateNames: string[] = [];
   duplicateTicketNumbers: string[] = [];
@@ -660,6 +663,8 @@ export class RafflePageComponent implements OnDestroy, OnInit {
       name,
       assignedNumber,
       ...(ticketCode ? { ticketCode } : {}),
+      ...(this.joinedMobileNumber.trim() ? { mobileNumber: this.joinedMobileNumber.trim() } : {}),
+      ...(this.joinedRemarks.trim() ? { remarks: this.joinedRemarks.trim() } : {}),
       drawn: false
     };
 
@@ -679,6 +684,8 @@ export class RafflePageComponent implements OnDestroy, OnInit {
     }
     this.joinedName = '';
     this.joinedNumber = '';
+    this.joinedMobileNumber = '';
+    this.joinedRemarks = '';
     this.playersText = this.raffle.players.map((player) => player.name).join('\n');
     this.editorText = this.formatEditorText();
     this.participantPage = this.participantPageCount;

@@ -128,6 +128,18 @@
           <input [(ngModel)]="joinedName" (keydown.enter)="joinEntry()" placeholder="Add your name to the raffle" />
           <button class="primary-btn" type="button" (click)="joinEntry()">Join</button>
         </div>
+        <button
+          class="optional-details-toggle"
+          type="button"
+          [attr.aria-expanded]="showOptionalParticipantDetails"
+          aria-controls="optional-participant-details"
+          (click)="showOptionalParticipantDetails = !showOptionalParticipantDetails">
+          {{ showOptionalParticipantDetails ? '− Hide optional phone and remarks' : '+ Add optional phone and remarks' }}
+        </button>
+        <div class="join-row optional-participant-details" id="optional-participant-details" *ngIf="showOptionalParticipantDetails">
+          <input [(ngModel)]="joinedMobileNumber" (keydown.enter)="joinEntry()" type="tel" autocomplete="tel" maxlength="32" placeholder="Phone (optional)" aria-label="Phone number (optional)" />
+          <input [(ngModel)]="joinedRemarks" (keydown.enter)="joinEntry()" type="text" placeholder="Remarks (optional)" aria-label="Remarks (optional)" />
+        </div>
         <p class="save-message" *ngIf="participantLimitMessage" role="status">{{ participantLimitMessage }}</p>
         <div class="participant-grid-scroll">
           <table class="participant-grid" aria-label="Participant details">

@@ -6,8 +6,10 @@ import { RaffleService } from './raffle.service';
 describe('RafflePageComponent', () => {
   let component: RafflePageComponent;
   let fixture: ComponentFixture<RafflePageComponent>;
+  let saveParticipant: jasmine.Spy;
 
   beforeEach(async () => {
+    saveParticipant = jasmine.createSpy().and.resolveTo(undefined);
     await TestBed.configureTestingModule({
       imports: [RafflePageComponent],
       providers: [
@@ -23,6 +25,8 @@ describe('RafflePageComponent', () => {
             findUserParticipantForGame: async () => null,
             getCurrentUserPlan: async () => 'free',
             listParticipants: async () => [],
+            saveParticipant,
+            saveRaffle: async () => undefined,
             saveRaffleIfPersisted: async () => undefined,
             raffleSpinning: () => false,
           },
@@ -127,6 +131,39 @@ describe('RafflePageComponent', () => {
     await component.joinEntry();
 
     expect(component.participantLimitMessage).toBe('Enter up to 3 letters or numbers.');
+  });
+
+  it('writes optional phone and remarks to the persisted participant record', async () => {
+    component.activeTab = 'players';
+    fixture.detectChanges();
+
+    const toggle = fixture.nativeElement.querySelector('.optional-details-toggle') as HTMLButtonElement;
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(fixture.nativeElement.querySelector('#optional-participant-details')).toBeNull();
+
+    toggle.click();
+    fixture.detectChanges();
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+
+    component.isPreviewRaffle = false;
+    component.isGameCreator = true;
+    component.raffle!.gameId = 'qa-game';
+    fixture.detectChanges();
+    component.joinedName = 'Optional details';
+    component.joinedMobileNumber = '+15555550123';
+    component.joinedRemarks = 'Please contact me';
+    await component.joinEntry();
+
+    const player = component.raffle!.players.find((entry) => entry.name === 'Optional details');
+    expect(player?.mobileNumber).toBe('+15555550123');
+    expect(player?.remarks).toBe('Please contact me');
+    expect(saveParticipant).toHaveBeenCalledWith(component.raffle, jasmine.objectContaining({
+      name: 'Optional details',
+      mobileNumber: '+15555550123',
+      remarks: 'Please contact me'
+    }));
+    expect(component.joinedMobileNumber).toBe('');
+    expect(component.joinedRemarks).toBe('');
   });
 
   it('lets the raffle panel grow to fit the winner banner and draw controls', () => {
